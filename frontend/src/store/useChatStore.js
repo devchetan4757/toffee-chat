@@ -7,20 +7,20 @@ export const useChatStore = create((set, get) => ({
   messages: [],
   isMessagesLoading: false,
 
+  // Fetch messages from backend
   getMessages: async () => {
-  set({ isMessagesLoading: true });
-  try {
-    const res = await axiosInstance.get("/messages");
-    set({ messages: res.data });
-  } catch (error) {
-    toast.error(
-      error?.response?.data?.message || "Failed to load messages"
-    );
-  } finally {
-    set({ isMessagesLoading: false });
-  }
-},
+    set({ isMessagesLoading: true });
+    try {
+      const res = await axiosInstance.get("/messages");
+      set({ messages: res.data });
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to load messages");
+    } finally {
+      set({ isMessagesLoading: false });
+    }
+  },
 
+  // Send message to backend
   sendMessage: async (messageData) => {
     try {
       const res = await axiosInstance.post("/messages/send", messageData);
@@ -32,6 +32,7 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Delete message
   deleteMessage: async (messageId) => {
     try {
       await axiosInstance.delete(`/messages/${messageId}`);
@@ -43,25 +44,39 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Initialize socket listeners
   initSocket: () => {
-    // ✅ Prevent duplicate listeners
+    // Remove old listeners to prevent duplicates
     socket.off("newMessage");
     socket.off("deleteMessage");
-    
+
+    // Listen for new messages
     socket.on("newMessage", (message) => {
-    console.log("Socket newMessage received:", message);
+      // 🔹 Debug: alert full message object (especially image)
+      alert(JSON.stringify(message));
+
+      // Ensure message.image is a string before adding
+      const cleanMessage = {
+        _id: message._id,
+        text: message.text,
+        image: typeof message.image === "string" ? message.image : "", // fallback
+        createdAt: message.createdAt,
+        updatedAt: message.updatedAt,
+      };
+
       set((state) => ({
-        messages: [...state.messages, message],
+        messages: [...state.messages, cleanMessage],
       }));
     });
 
+    // Listen for deleted messages
     socket.on("deleteMessage", (id) => {
       set((state) => ({
         messages: state.messages.filter((m) => m._id !== id),
       }));
     });
 
-    // ✅ Cleanup function
+    // Optional cleanup function
     return () => {
       socket.off("newMessage");
       socket.off("deleteMessage");

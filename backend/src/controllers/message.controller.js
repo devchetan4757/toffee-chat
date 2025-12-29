@@ -42,6 +42,7 @@ export const sendMessage = async (req, res) => {
         secure: true, // ensures HTTPS
       });
       imageUrl = uploadResponse.secure_url; // store only string
+      console.log(imageUrl);
     }
 
     // Reject empty messages
