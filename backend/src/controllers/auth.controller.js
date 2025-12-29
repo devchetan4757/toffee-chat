@@ -19,6 +19,7 @@ export const login = async (req, res) => {
     }
 
     generateToken(res)
+    console.log("correct");
 
     res.status(200).json({ message: "Login successful" });
   } catch (error) {

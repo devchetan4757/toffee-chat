@@ -1,83 +1,57 @@
 import { create } from "zustand";
-import toast from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { socket } from "../lib/socket";
 
 export const useChatStore = create((set, get) => ({
   messages: [],
   isMessagesLoading: false,
-  hasMoreMessages: true,
-  page: 1,
-  limit: 50,
 
-  // =====================
-  // Fetch messages (pagination)
-  // =====================
-  getMessages: async (page = 1) => {
-    set({ isMessagesLoading: true });
+  getMessages: async () => {
+  set({ isMessagesLoading: true });
+  try {
+    const res = await axiosInstance.get("/messages");
+    set({ messages: res.data });
+  } catch (error) {
+    toast.error(
+      error?.response?.data?.message || "Failed to load messages"
+    );
+  } finally {
+    set({ isMessagesLoading: false });
+  }
+},
 
+  sendMessage: async (messageData) => {
     try {
-      const res = await axiosInstance.get(
-        `/messages?page=${page}&limit=${get().limit}`
-      );
-
+      const res = await axiosInstance.post("/messages/send", messageData);
       set((state) => ({
-        messages:
-          page === 1
-            ? res.data
-            : [...res.data, ...state.messages], // older messages prepend
-        page,
-        hasMoreMessages: res.data.length === state.limit,
+        messages: [...state.messages, res.data],
       }));
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to load messages");
-    } finally {
-      set({ isMessagesLoading: false });
+      toast.error(error?.response?.data?.message || "Failed to send message");
     }
   },
 
-  // =====================
-  // Send message
-  // =====================
-  sendMessage: async (data) => {
+  deleteMessage: async (messageId) => {
     try {
-      await axiosInstance.post("/messages", data);
-      // new message will arrive via socket
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send message");
+      await axiosInstance.delete(`/messages/${messageId}`);
+      set((state) => ({
+        messages: state.messages.filter((m) => m._id !== messageId),
+      }));
+    } catch {
+      toast.error("Failed to delete message");
     }
   },
 
-  // =====================
-  // Delete message
-  // =====================
-  deleteMessage: async (id) => {
-    try {
-      await axiosInstance.delete(`/messages/${id}`);
-      // deleted message will be removed via socket
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to delete message");
-    }
-  },
-
-  // =====================
-  // Socket listeners (NO connect here)
-  // =====================
   initSocket: () => {
-    if (!socket || !socket.connected) return;
-
-    // remove previous listeners to prevent duplicates
+    // ✅ Prevent duplicate listeners
     socket.off("newMessage");
     socket.off("deleteMessage");
 
     socket.on("newMessage", (message) => {
-      set((state) => {
-        // prevent duplicates
-        if (state.messages.some((m) => m._id === message._id)) {
-          return state;
-        }
-        return { messages: [...state.messages, message] };
-      });
+      set((state) => ({
+        messages: [...state.messages, message],
+      }));
     });
 
     socket.on("deleteMessage", (id) => {
@@ -85,17 +59,11 @@ export const useChatStore = create((set, get) => ({
         messages: state.messages.filter((m) => m._id !== id),
       }));
     });
-  },
 
-  // =====================
-  // Reset on logout
-  // =====================
-  resetChat: () => {
-    set({
-      messages: [],
-      page: 1,
-      hasMoreMessages: true,
-      isMessagesLoading: false,
-    });
+    // ✅ Cleanup function
+    return () => {
+      socket.off("newMessage");
+      socket.off("deleteMessage");
+    };
   },
 }));
