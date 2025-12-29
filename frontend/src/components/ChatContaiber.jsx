@@ -12,25 +12,28 @@ const ChatContainer = () => {
     getMessages,
     deleteMessage,
     isMessagesLoading,
+    initSocket,
   } = useChatStore();
 
   const messageEndRef = useRef(null);
+  const didInitRef = useRef(false);
 
-  // Fetch messages once on mount
+  // 1️⃣ Fetch messages once on mount
   useEffect(() => {
-    getMessages();
+    getMessages(1);
   }, [getMessages]);
 
-const { initSocket } = useChatStore();
+  // 2️⃣ Init socket listeners ONCE
+  useEffect(() => {
+    if (didInitRef.current) return;
+    initSocket();
+    didInitRef.current = true;
+  }, [initSocket]);
 
-useEffect(() => {
-  const cleanup = initSocket();
-  return cleanup;
-}, [initSocket]);
-  // Auto-scroll to bottom when messages change
+  // 3️⃣ Auto-scroll when messages change
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages.length]);
 
   if (isMessagesLoading) {
     return (
@@ -60,7 +63,6 @@ useEffect(() => {
                 {formatMessageTime(message.createdAt)}
               </time>
 
-              {/* Delete button (visible on hover) */}
               <button
                 onClick={() => deleteMessage(message._id)}
                 className="opacity-0 group-hover:opacity-100 transition"

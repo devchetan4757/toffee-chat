@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { socket } from "../lib/socket";
 
-export const useAuthStore = create((set, get) => ({
+export const useAuthStore = create((set) => ({
   isAuthenticated: false,
   isLoggingIn: false,
   isCheckingAuth: true,
@@ -14,7 +14,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       await axiosInstance.get("/auth/check");
       set({ isAuthenticated: true });
-      get().connectSocket(); // connect socket after auth check
+      socket.connect(); // socket connects ONLY here
     } catch {
       set({ isAuthenticated: false });
     } finally {
@@ -27,11 +27,11 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoggingIn: true });
     try {
       await axiosInstance.post("/auth/login", data);
-      set({ isAuthenticated: true, isCheckingAuth: false });
+      set({ isAuthenticated: true });
+      socket.connect();
       toast.success("Logged in successfully");
-      get().connectSocket(); // connect socket after login
       return true;
-    } catch (error) {
+    } catch {
       toast.error("Login failed");
       return false;
     } finally {
@@ -43,42 +43,26 @@ export const useAuthStore = create((set, get) => ({
   logout: async () => {
     try {
       await axiosInstance.post("/auth/logout");
-      set({ isAuthenticated: false });
-      get().disconnectSocket();
+      socket.disconnect();
+      set({ isAuthenticated: false, onlineUsersCount: 0 });
       toast.success("Logged out successfully");
     } catch {
       toast.error("Logout failed");
     }
   },
 
-  // --- Connect Socket ---
-  connectSocket: () => {
-    if (socket.connected) return;
-
-    // FIXED: remove token/auth, plain socket connection
-    socket.connect();
-
-    // Online users listener
+  // --- Socket listeners ---
+  initSocketListeners: () => {
     socket.off("onlineUsersCount").on("onlineUsersCount", (count) => {
       set({ onlineUsersCount: count });
     });
 
-    // Socket connection errors
     socket.off("connect_error").on("connect_error", (err) => {
-      console.error("Socket connection error:", err.message);
+      console.error("Socket error:", err.message);
     });
 
-    // Socket disconnect handling
-    socket.off("disconnect").on("disconnect", (reason) => {
+    socket.off("disconnect").on("disconnect", () => {
       set({ onlineUsersCount: 0 });
     });
-  },
-
-  // --- Disconnect Socket ---
-  disconnectSocket: () => {
-    if (socket.connected) {
-      socket.disconnect();
-      set({ onlineUsersCount: 0 });
-    }
   },
 }));

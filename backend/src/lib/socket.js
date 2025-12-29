@@ -7,20 +7,23 @@ export const server = createServer(app);
 
 export const io = new Server(server, {
   cors: {
-    origin:
-      process.env.NODE_ENV === "production"
-        ? "https://your-production-domain.com"
-        : "http://localhost:5173",
+    origin: process.env.CLIENT_URL,
     credentials: true,
   },
 });
 
 io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
+  console.log("✅ Socket connected:", socket.id);
+
+  // Online users count
   io.emit("onlineUsersCount", io.of("/").sockets.size);
 
-  socket.on("disconnect", () => {
-    console.log("Socket disconnected:", socket.id);
+  socket.on("disconnect", (reason) => {
+    console.log("❌ Socket disconnected:", socket.id, reason);
     io.emit("onlineUsersCount", io.of("/").sockets.size);
+  });
+
+  socket.on("error", (err) => {
+    console.error("Socket error:", err);
   });
 });

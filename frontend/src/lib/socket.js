@@ -7,4 +7,5 @@ const BASE_URL =
 
 export const socket = io(BASE_URL, {
   autoConnect: false,
+  withCredentials: true,
 });
