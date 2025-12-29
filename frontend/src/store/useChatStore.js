@@ -49,7 +49,7 @@ export const useChatStore = create((set, get) => ({
     socket.off("deleteMessage");
     
     socket.on("newMessage", (message) => {
-      console.log("Socket newMessage received:", message);
+      console.log("Socket newMessage received:", message);}
     socket.on("newMessage", (message) => {
       set((state) => ({
         messages: [...state.messages, message],
