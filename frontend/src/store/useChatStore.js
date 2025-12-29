@@ -25,12 +25,12 @@ export const useChatStore = create((set, get) => ({
         messages:
           page === 1
             ? res.data
-            : [...res.data, ...state.messages],
+            : [...res.data, ...state.messages], // older messages prepend
         page,
         hasMoreMessages: res.data.length === state.limit,
       }));
-    } catch {
-      toast.error("Failed to load messages");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to load messages");
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -42,9 +42,9 @@ export const useChatStore = create((set, get) => ({
   sendMessage: async (data) => {
     try {
       await axiosInstance.post("/messages", data);
-      // message will arrive via socket
-    } catch {
-      toast.error("Failed to send message");
+      // new message will arrive via socket
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send message");
     }
   },
 
@@ -54,9 +54,9 @@ export const useChatStore = create((set, get) => ({
   deleteMessage: async (id) => {
     try {
       await axiosInstance.delete(`/messages/${id}`);
-      // update via socket
-    } catch {
-      toast.error("Failed to delete message");
+      // deleted message will be removed via socket
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete message");
     }
   },
 
@@ -64,6 +64,9 @@ export const useChatStore = create((set, get) => ({
   // Socket listeners (NO connect here)
   // =====================
   initSocket: () => {
+    if (!socket || !socket.connected) return;
+
+    // remove previous listeners to prevent duplicates
     socket.off("newMessage");
     socket.off("deleteMessage");
 

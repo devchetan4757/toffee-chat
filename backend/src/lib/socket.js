@@ -1,29 +1,59 @@
-import { createServer } from "http";
 import { Server } from "socket.io";
+import http from "http";
 import express from "express";
 
-export const app = express();
-export const server = createServer(app);
+const app = express();
+const server = http.createServer(app);
 
-export const io = new Server(server, {
+// =====================
+// Socket.io setup
+// =====================
+const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL,
-    credentials: true,
+    origin: ["http://localhost:5173"],
   },
 });
 
+// =====================
+// In-memory messages store
+// Replace with DB if needed
+// =====================
+let messages = []; // Each message: { _id, text, createdAt }
+let nextId = 1;
+
 io.on("connection", (socket) => {
-  console.log("✅ Socket connected:", socket.id);
+  console.log("A user connected", socket.id);
 
-  // Online users count
-  io.emit("onlineUsersCount", io.of("/").sockets.size);
+  // Send current online users count
+  io.emit("onlineCount", io.engine.clientsCount);
 
-  socket.on("disconnect", (reason) => {
-    console.log("❌ Socket disconnected:", socket.id, reason);
-    io.emit("onlineUsersCount", io.of("/").sockets.size);
+  // =====================
+  // Listen for new messages from frontend
+  // =====================
+  socket.on("sendMessage", (messageData) => {
+    const newMessage = {
+      _id: String(nextId++),
+      text: messageData.text,
+      createdAt: new Date(),
+    };
+    messages.push(newMessage);
+
+    // Broadcast to all clients
+    io.emit("newMessage", newMessage);
   });
 
-  socket.on("error", (err) => {
-    console.error("Socket error:", err);
+  // =====================
+  // Listen for delete requests
+  // =====================
+  socket.on("deleteMessage", (id) => {
+    messages = messages.filter((m) => m._id !== id);
+    io.emit("deleteMessage", id);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("A user disconnected", socket.id);
+    io.emit("onlineCount", io.engine.clientsCount);
   });
 });
+
+export { io, app, server };
