@@ -27,27 +27,39 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const { text, image } = req.body;
+
     const cleanText = sanitizeHtml(text?.trim() || "", {
       allowedTags: [],
       allowedAttributes: {},
     });
+
     let imageUrl;
     if (image) {
       // Upload base64 image to cloudinary
-      const uploadResponse = await cloudinary.uploader.upload(image);
-      imageUrl = uploadResponse.secure_url;
+      const uploadResponse = await cloudinary.uploader.upload(image, {
+        folder: "chat_images",
+        secure: true, // ensures HTTPS
+      });
+      imageUrl = uploadResponse.secure_url; // store only string
     }
 
-    const newMessage = new Message({
+    if (!cleanText && !imageUrl) {
+      return res.status(400).json({ error: "Message cannot be empty" });
+    }
+
+    const newMessage = await Message.create({
       text: cleanText,
       image: imageUrl,
     });
-    if (!cleanText && !imageUrl) {
-  return res.status(400).json({ error: "Message cannot be empty" });
-}
 
-    await newMessage.save();
-    io.emit("newMessage", newMessage);
+    // Emit only plain object to avoid _doc issues
+    io.emit("newMessage", {
+      _id: newMessage._id,
+      text: newMessage.text,
+      image: newMessage.image, // string URL only
+      createdAt: newMessage.createdAt,
+      updatedAt: newMessage.updatedAt,
+    });
 
     res.status(201).json(newMessage);
   } catch (error) {
@@ -55,6 +67,7 @@ export const sendMessage = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+    
 
 export const deleteMessage = async (req, res) => {
   try {
