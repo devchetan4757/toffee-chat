@@ -59,6 +59,7 @@ export const useAuthStore = create((set, get) => ({
 
     // Remove previous listeners and attach fresh one
     socket.off("onlineUsersCount").on("onlineUsersCount", (count) => {
+      console.log("onlineUsersCount event received:"+ count);
       set({ onlineUsersCount: count });
     });
 
