@@ -47,7 +47,9 @@ export const useChatStore = create((set, get) => ({
     // ✅ Prevent duplicate listeners
     socket.off("newMessage");
     socket.off("deleteMessage");
-
+    
+    socket.on("newMessage", (message) => {
+      console.log("Socket newMessage received:", message);
     socket.on("newMessage", (message) => {
       set((state) => ({
         messages: [...state.messages, message],
