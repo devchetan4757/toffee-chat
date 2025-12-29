@@ -28,14 +28,15 @@ export const sendMessage = async (req, res) => {
   try {
     const { text, image } = req.body;
 
+    // Sanitize text
     const cleanText = sanitizeHtml(text?.trim() || "", {
       allowedTags: [],
       allowedAttributes: {},
     });
 
+    // Upload image to Cloudinary if provided
     let imageUrl;
     if (image) {
-      // Upload base64 image to cloudinary
       const uploadResponse = await cloudinary.uploader.upload(image, {
         folder: "chat_images",
         secure: true, // ensures HTTPS
@@ -43,20 +44,22 @@ export const sendMessage = async (req, res) => {
       imageUrl = uploadResponse.secure_url; // store only string
     }
 
+    // Reject empty messages
     if (!cleanText && !imageUrl) {
       return res.status(400).json({ error: "Message cannot be empty" });
     }
 
+    // Save message to DB
     const newMessage = await Message.create({
       text: cleanText,
-      image: imageUrl,
+      image: imageUrl, // string only
     });
 
-    // Emit only plain object to avoid _doc issues
+    // Emit a plain object for frontend
     io.emit("newMessage", {
       _id: newMessage._id,
       text: newMessage.text,
-      image: newMessage.image, // string URL only
+      image: newMessage.image,
       createdAt: newMessage.createdAt,
       updatedAt: newMessage.updatedAt,
     });
