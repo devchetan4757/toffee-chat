@@ -16,28 +16,26 @@ const ChatContainer = () => {
   } = useChatStore();
 
   const messageEndRef = useRef(null);
-  const didInitRef = useRef(false);
 
-  // 1️⃣ Fetch messages once on mount
+  // Fetch messages once
   useEffect(() => {
-    getMessages(1);
+    getMessages();
   }, [getMessages]);
 
-  // 2️⃣ Init socket listeners ONCE
+  // Init socket once, clean up on unmount
   useEffect(() => {
-    if (didInitRef.current) return;
-    initSocket();
-    didInitRef.current = true;
+    const cleanup = initSocket();
+    return cleanup;
   }, [initSocket]);
 
-  // 3️⃣ Auto-scroll when messages change
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
   if (isMessagesLoading) {
     return (
-      <div className="flex-1 flex flex-col overflow-auto">
+      <div className="flex-1 flex flex-col">
         <MessageSkeleton />
         <MessageInput />
       </div>
@@ -45,7 +43,8 @@ const ChatContainer = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-auto">
+    <div className="flex-1 flex flex-col">
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <p className="text-center text-sm opacity-50">
@@ -54,10 +53,7 @@ const ChatContainer = () => {
         )}
 
         {messages.map((message) => (
-          <div
-            key={message._id}
-            className="chat chat-start group"
-          >
+          <div key={message._id} className="chat chat-start group">
             <div className="chat-header mb-1 flex items-center gap-2">
               <time className="text-xs opacity-50">
                 {formatMessageTime(message.createdAt)}
@@ -73,16 +69,16 @@ const ChatContainer = () => {
             </div>
 
             <div className="chat-bubble">
+              {message.text && <p>{message.text}</p>}
 
               {message.image && (
                 <img
                   src={message.image}
-                  alt="Attachment"
+                  alt="message"
                   loading="lazy"
                   className="mt-2 max-w-xs rounded-lg"
                 />
               )}
-               {message.text && <p>{message.text}</p>}
             </div>
           </div>
         ))}
@@ -91,7 +87,10 @@ const ChatContainer = () => {
         <div ref={messageEndRef} />
       </div>
 
-      <MessageInput />
+      {/* Input */}
+      <div className="border-t bg-base-100">
+        <MessageInput />
+      </div>
     </div>
   );
 };

@@ -32,9 +32,14 @@ const Navbar = () => {
             {isAuthenticated && (
               <>
                 {/* Online users display */}
-                <div className="flex items-center gap-1 text-sm text-gray-700">
-                  <Users className="w-4 h-4" />
-                  <span>{onlineUsersCount} online</span>
+                <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-base-200 text-base-content text-sm">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                  </span>
+
+                  <Users className="w-4 h-4 opacity-70" />
+                  <span className="font-medium">{onlineUsersCount} online</span>
                 </div>
 
                 <Link

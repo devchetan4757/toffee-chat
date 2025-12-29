@@ -30,7 +30,7 @@ const App = () => {
 
       <div data-theme={theme}>
         {isAuthenticated && <Navbar />}
-
+     <div className={isAuthenticated ? "pt-5 h-screen" : ""}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/settings" element={<SettingsPage />} />
@@ -49,6 +49,7 @@ const App = () => {
             element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
           />
         </Routes>
+     </div>
       </div>
     </>
   );
