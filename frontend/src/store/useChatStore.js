@@ -24,9 +24,6 @@ export const useChatStore = create((set, get) => ({
   sendMessage: async (messageData) => {
     try {
       const res = await axiosInstance.post("/messages/send", messageData);
-      set((state) => ({
-        messages: [...state.messages, res.data],
-      }));
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to send message");
     }
@@ -51,21 +48,14 @@ export const useChatStore = create((set, get) => ({
     socket.off("deleteMessage");
 
     // Listen for new messages
-    socket.on("newMessage", (message) =>{
-
-      // Ensure message.image is a string before adding
-      const cleanMessage = {
-        _id: message._id,
-        text: message.text,
-        image: typeof message.image === "string" ? message.image : "", // fallback
-        createdAt: message.createdAt,
-        updatedAt: message.updatedAt,
-      };
-
-      set((state) => ({
-        messages: [...state.messages, cleanMessage],
-      }));
-    });
+    socket.on("newMessage", (message) => {
+  set((state) => {
+    if (state.messages.some((m) => m._id === message._id)) {
+      return state;
+    }
+    return { messages: [...state.messages, message] };
+  });
+});
 
     // Listen for deleted messages
     socket.on("deleteMessage", (id) => {
