@@ -51,9 +51,7 @@ export const useChatStore = create((set, get) => ({
     socket.off("deleteMessage");
 
     // Listen for new messages
-    socket.on("newMessage", (message) => {
-      // 🔹 Debug: alert full message object (especially image)
-      alert(JSON.stringify(message));
+    socket.on("newMessage", (message) =>{
 
       // Ensure message.image is a string before adding
       const cleanMessage = {
