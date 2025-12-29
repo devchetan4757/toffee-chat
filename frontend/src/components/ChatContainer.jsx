@@ -73,16 +73,16 @@ const ChatContainer = () => {
             </div>
 
             <div className="chat-bubble">
-              {message.text && <p>{message.text}</p>}
 
               {message.image && (
                 <img
                   src={message.image}
-                  alt="message"
+                  alt="Attachment"
                   loading="lazy"
                   className="mt-2 max-w-xs rounded-lg"
                 />
               )}
+               {message.text && <p>{message.text}</p>}
             </div>
           </div>
         ))}

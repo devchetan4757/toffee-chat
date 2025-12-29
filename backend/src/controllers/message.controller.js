@@ -51,10 +51,11 @@ export const sendMessage = async (req, res) => {
     }
 
     // Save message to DB
-    const newMessage = await Message.create({
+    const newMessage = new Message({
       text: cleanText,
       image: imageUrl, // string only
     });
+    await newMessage.save()
 
     // Emit a plain object for frontend
     io.emit("newMessage", {
