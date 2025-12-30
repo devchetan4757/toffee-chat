@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { Loader } from "lucide-react";
 
 import { useThemeStore } from "./store/useThemeStore";
 import { useAuthStore } from "./store/useAuthStore";
@@ -14,42 +13,45 @@ import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const App = () => {
-
- 
   const { theme } = useThemeStore();
   const { checkAuth, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
   return (
     <>
-  
       <Toaster position="top-center" />
 
-      <div data-theme={theme}>
+      {/* Root wrapper */}
+      <div data-theme={theme} className="min-h-[100dvh]">
+        {/* Fixed navbar */}
         {isAuthenticated && <Navbar />}
-     <div className={isAuthenticated ? "pt-5 h-screen" : ""}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route
-            path="/home"
-            element={
-              <ProtectedRoute>
-                <HomePage />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* Default redirect */}
-          <Route
-            path="*"
-            element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
-          />
-        </Routes>
-     </div>
+        {/* App content */}
+        <div className={isAuthenticated ? "pt-16 h-[100dvh]" : ""}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+
+            <Route
+              path="/home"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path="/settings" element={<SettingsPage />} />
+
+            {/* Default redirect */}
+            <Route
+              path="*"
+              element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
+            />
+          </Routes>
+        </div>
       </div>
     </>
   );
