@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
-  const [bottomOffset, setBottomOffset] = useState(24); // more margin from bottom
+  const [bottomOffset, setBottomOffset] = useState(24);
 
   const fileInputRef = useRef(null);
   const inputRef = useRef(null);
@@ -20,12 +20,14 @@ const MessageInput = () => {
           window.innerHeight -
           window.visualViewport.height -
           window.visualViewport.offsetTop;
-        setBottomOffset(Math.max(offset + 24, 24)); // minimum bottom margin 24px
+        setBottomOffset(Math.max(offset + 24, 24));
       }
     };
+
     updateOffset();
     window.visualViewport?.addEventListener("resize", updateOffset);
     window.visualViewport?.addEventListener("scroll", updateOffset);
+
     return () => {
       window.visualViewport?.removeEventListener("resize", updateOffset);
       window.visualViewport?.removeEventListener("scroll", updateOffset);
@@ -78,12 +80,10 @@ const MessageInput = () => {
 
   return (
     <div
-      className="fixed left-0 right-0 z-50 flex justify-center"
+      className="fixed left-0 right-0 z-50 flex justify-center overflow-x-hidden"
       style={{ bottom: `${bottomOffset}px` }}
     >
-      {/* Centered container with horizontal margin */}
-      <div className="w-full max-w-4xl mx-4 px-4 py-6 bg-transparent rounded-xl flex flex-col gap-2">
-        {/* Image preview */}
+      <div className="w-full max-w-4xl mx-4 px-4 py-6 flex flex-col gap-2">
         {imagePreview && (
           <div className="relative w-fit mb-2">
             <img
@@ -101,8 +101,7 @@ const MessageInput = () => {
           </div>
         )}
 
-        {/* Input row */}
-        <form onSubmit={handleSendMessage} className="flex gap-3">
+        <form onSubmit={handleSendMessage} className="flex gap-3 w-full">
           <input
             ref={inputRef}
             type="text"
@@ -111,10 +110,9 @@ const MessageInput = () => {
             onChange={(e) => setText(e.target.value)}
             className="
               input input-bordered
-              flex-1 h-16
-              rounded-full
+              flex-1 min-w-0
+              h-16 rounded-full
               bg-base-200
-              text-base-content
               text-lg
               placeholder-base-content/60
               focus:ring-2 focus:ring-primary
@@ -128,10 +126,11 @@ const MessageInput = () => {
             ref={fileInputRef}
             onChange={handleImageChange}
           />
+
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="btn btn-ghost h-16 w-16 rounded-full bg-base-200 hover:bg-base-300"
+            className="btn btn-ghost h-16 w-16 shrink-0 rounded-full bg-base-200 hover:bg-base-300"
           >
             <Image size={24} />
           </button>
@@ -139,7 +138,7 @@ const MessageInput = () => {
           <button
             type="submit"
             disabled={!text.trim() && !imagePreview}
-            className="btn btn-primary h-16 w-16 rounded-full"
+            className="btn btn-primary h-16 w-16 shrink-0 rounded-full"
           >
             <Send size={24} />
           </button>
