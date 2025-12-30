@@ -83,13 +83,13 @@ const MessageInput = () => {
       className="fixed left-0 right-0 z-50 flex justify-center overflow-x-hidden"
       style={{ bottom: `${bottomOffset}px` }}
     >
-      <div className="w-full max-w-4xl mx-4 px-4 py-6 flex flex-col gap-2">
+      <div className="w-full max-w-4xl mx-4 px-4 py-3 sm:py-4 md:py-6 flex flex-col gap-2">
         {imagePreview && (
-          <div className="relative w-fit mb-2">
+          <div className="relative max-w-[160px] sm:max-w-[200px] mb-2">
             <img
               src={imagePreview}
               alt="Preview"
-              className="w-24 h-24 object-cover rounded-xl border border-base-300"
+              className="w-full max-w-[120px] sm:max-w-[160px] object-cover rounded-xl border border-base-300"
             />
             <button
               type="button"
@@ -111,11 +111,11 @@ const MessageInput = () => {
             className="
               input input-bordered
               flex-1 min-w-0
-              h-16 rounded-full
+              h-12 sm:h-14 md:h-16
+              rounded-full
               bg-base-200
-              text-lg
+              text-sm sm:text-base md:text-lg
               placeholder-base-content/60
-              focus:ring-2 focus:ring-primary
             "
           />
 
@@ -130,17 +130,21 @@ const MessageInput = () => {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="btn btn-ghost h-16 w-16 shrink-0 rounded-full bg-base-200 hover:bg-base-300"
+            className="btn btn-ghost
+              h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16
+              shrink-0 rounded-full bg-base-200"
           >
-            <Image size={24} />
+            <Image size={20} className="sm:size-22 md:size-24" />
           </button>
 
           <button
             type="submit"
             disabled={!text.trim() && !imagePreview}
-            className="btn btn-primary h-16 w-16 shrink-0 rounded-full"
+            className="btn btn-primary
+              h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16
+              shrink-0 rounded-full"
           >
-            <Send size={24} />
+            <Send size={20} className="sm:size-22 md:size-24" />
           </button>
         </form>
       </div>

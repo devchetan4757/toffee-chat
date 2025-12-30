@@ -17,12 +17,12 @@ const ChatContainer = () => {
 
   const messageEndRef = useRef(null);
 
-  // Fetch messages once
+  // Fetch messages once on mount
   useEffect(() => {
     getMessages();
   }, [getMessages]);
 
-  // Init socket once, clean up on unmount
+  // Init socket once
   useEffect(() => {
     const cleanup = initSocket();
     return cleanup;
@@ -35,7 +35,7 @@ const ChatContainer = () => {
 
   if (isMessagesLoading) {
     return (
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-auto">
         <MessageSkeleton />
         <MessageInput />
       </div>
@@ -43,9 +43,9 @@ const ChatContainer = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 space-y-4">
         {messages.length === 0 && (
           <p className="text-center text-sm opacity-50">
             No messages yet
@@ -68,15 +68,15 @@ const ChatContainer = () => {
               </button>
             </div>
 
-            <div className="chat-bubble">
-              {message.text && <p>{message.text}</p>}
+            <div className="chat-bubble max-w-[90%] sm:max-w-[75%] md:max-w-[60%] break-words">
+              {message.text && <p className="text-sm sm:text-base md:text-base">{message.text}</p>}
 
               {message.image && (
                 <img
                   src={message.image}
                   alt="message"
                   loading="lazy"
-                  className="mt-2 max-w-xs rounded-lg"
+                  className="mt-2 w-full max-w-[220px] sm:max-w-xs rounded-lg object-contain"
                 />
               )}
             </div>
@@ -87,7 +87,7 @@ const ChatContainer = () => {
         <div ref={messageEndRef} />
       </div>
 
-      {/* Input */}
+      {/* Sticky Input */}
       <div className="border-t bg-base-100">
         <MessageInput />
       </div>
