@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 
 import { useChatStore } from "../store/useChatStore";
 import MessageInput from "./MessageInput";
@@ -18,18 +18,18 @@ const ChatContainer = () => {
   const messageEndRef = useRef(null);
   const [viewImage, setViewImage] = useState(null);
 
-  // Fetch messages once
+  // Fetch messages
   useEffect(() => {
     getMessages();
   }, [getMessages]);
 
-  // Init socket once
+  // Init socket
   useEffect(() => {
     const cleanup = initSocket();
     return cleanup;
   }, [initSocket]);
 
-  // Auto-scroll
+  // Auto scroll
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
@@ -46,7 +46,7 @@ const ChatContainer = () => {
   return (
     <div className="flex-1 flex flex-col h-full relative">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
         {messages.length === 0 && (
           <p className="text-center text-xs opacity-50">
             No messages yet
@@ -71,22 +71,28 @@ const ChatContainer = () => {
             </div>
 
             {/* Bubble */}
-            <div className="chat-bubble max-w-[80%] sm:max-w-[65%] md:max-w-[50%] px-3 py-2 break-words">
-              {/* Text */}
+            <div className="chat-bubble max-w-[80%] sm:max-w-[65%] md:max-w-[50%] px-3 py-2">
               {message.text && (
-                <p className="text-xs sm:text-sm leading-snug">
+                <p className="text-xs sm:text-sm leading-snug break-words">
                   {message.text}
                 </p>
               )}
 
-              {/* Image */}
               {message.image && (
                 <img
                   src={message.image}
                   alt="message"
                   loading="lazy"
                   onClick={() => setViewImage(message.image)}
-                  className="mt-2 w-full max-w-[150px] sm:max-w-[180px] rounded-md object-cover cursor-pointer hover:opacity-90"
+                  className="
+                    mt-2
+                    w-full
+                    max-w-[150px] sm:max-w-[180px]
+                    rounded-md
+                    object-cover
+                    cursor-pointer
+                    hover:opacity-90
+                  "
                 />
               )}
             </div>
@@ -101,17 +107,36 @@ const ChatContainer = () => {
         <MessageInput />
       </div>
 
-      {/* Image Viewer Modal */}
+      {/* Responsive Image Viewer */}
       {viewImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
+          className="
+            fixed inset-0 z-50
+            bg-black/90
+            flex items-center justify-center
+            p-2 sm:p-4 md:p-6
+          "
           onClick={() => setViewImage(null)}
         >
+          {/* Close button */}
+          <button
+            className="absolute top-4 right-4 text-white"
+            onClick={() => setViewImage(null)}
+          >
+            <X size={22} />
+          </button>
+
           <img
             src={viewImage}
             alt="full-view"
-            className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-xl"
             onClick={(e) => e.stopPropagation()}
+            className="
+              w-auto h-auto
+              max-w-full max-h-full
+              sm:max-w-[90vw] sm:max-h-[90vh]
+              object-contain
+              rounded-lg
+            "
           />
         </div>
       )}
