@@ -24,6 +24,11 @@ const MessageInput = () => {
   // Floating position
   const [position, setPosition] = useState({ top: 100, left: 50 });
   const [dragging, setDragging] = useState(false);
+
+  // 🔥 Scaling
+  const [scale, setScale] = useState(1);
+  const lastTouchDistance = useRef(null);
+
   const dragStartRef = useRef({ x: 0, y: 0 });
 
   const textareaRef = useRef(null);
@@ -72,7 +77,7 @@ const MessageInput = () => {
     setIsRecording(false);
   };
 
-  /* ---------------- SEND MESSAGE ---------------- */
+  /* ---------------- SEND ---------------- */
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview && !audioBlob) return;
@@ -104,7 +109,7 @@ const MessageInput = () => {
       Math.min(textareaRef.current.scrollHeight, 140) + "px";
   }, [text]);
 
-  /* ---------------- DRAGGING (Mouse + Touch) ---------------- */
+  /* ---------------- DRAGGING ---------------- */
   const onMouseDown = (e) => {
     setDragging(true);
     dragStartRef.current = {
@@ -123,36 +128,69 @@ const MessageInput = () => {
 
   const onMouseUp = () => setDragging(false);
 
+  /* ---------------- TOUCH + PINCH ---------------- */
+  const getDistance = (t1, t2) =>
+    Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+
   const onTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      lastTouchDistance.current = getDistance(e.touches[0], e.touches[1]);
+      return;
+    }
+
     setDragging(true);
-    const touch = e.touches[0];
+    const t = e.touches[0];
     dragStartRef.current = {
-      x: touch.clientX - position.left,
-      y: touch.clientY - position.top,
+      x: t.clientX - position.left,
+      y: t.clientY - position.top,
     };
   };
 
   const onTouchMove = (e) => {
+    if (e.touches.length === 2 && lastTouchDistance.current) {
+      const newDist = getDistance(e.touches[0], e.touches[1]);
+      const diff = newDist - lastTouchDistance.current;
+
+      setScale((s) => Math.min(1.6, Math.max(0.7, s + diff * 0.002)));
+      lastTouchDistance.current = newDist;
+      return;
+    }
+
     if (!dragging) return;
-    const touch = e.touches[0];
+    const t = e.touches[0];
     setPosition({
-      left: touch.clientX - dragStartRef.current.x,
-      top: touch.clientY - dragStartRef.current.y,
+      left: t.clientX - dragStartRef.current.x,
+      top: t.clientY - dragStartRef.current.y,
     });
   };
 
-  const onTouchEnd = () => setDragging(false);
+  const onTouchEnd = () => {
+    setDragging(false);
+    lastTouchDistance.current = null;
+  };
+
+  /* ---------------- DESKTOP RESIZE (CTRL + SCROLL) ---------------- */
+  const onWheel = (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    setScale((s) =>
+      Math.min(1.6, Math.max(0.7, s - e.deltaY * 0.001))
+    );
+  };
 
   useEffect(() => {
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("touchmove", onTouchMove);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd);
+    window.addEventListener("wheel", onWheel, { passive: false });
+
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("wheel", onWheel);
     };
   });
 
@@ -164,7 +202,9 @@ const MessageInput = () => {
         left: position.left,
         zIndex: 9999,
         width: "350px",
-        touchAction: "none", // prevent mobile scrolling while dragging
+        transform: `scale(${scale})`,
+        transformOrigin: "top left",
+        touchAction: "none",
       }}
       onMouseDown={onMouseDown}
       onTouchStart={onTouchStart}
@@ -211,7 +251,6 @@ const MessageInput = () => {
           onSubmit={handleSendMessage}
           className="flex items-center gap-2 bg-base-200 rounded-full shadow-lg px-4 py-3 w-full"
         >
-          {/* MIC */}
           <button
             type="button"
             onClick={isRecording ? stopRecording : startRecording}
@@ -222,17 +261,15 @@ const MessageInput = () => {
             {isRecording ? <Square size={18} /> : <Mic size={18} />}
           </button>
 
-          {/* TEXT INPUT */}
           <textarea
             ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Type a message"
             rows={1}
-            className="flex-1 bg-base-100 rounded-full px-4 py-3 text-base resize-none focus:outline-none min-h-[48px] sm:min-h-[56px] max-h-36"
+            className="flex-1 bg-base-100 rounded-full px-4 py-3 resize-none focus:outline-none min-h-[48px]"
           />
 
-          {/* IMAGE */}
           <input
             ref={fileInputRef}
             type="file"
@@ -248,7 +285,6 @@ const MessageInput = () => {
             <Image size={18} />
           </button>
 
-          {/* SEND */}
           <button
             type="submit"
             className="btn btn-circle btn-sm btn-primary"
