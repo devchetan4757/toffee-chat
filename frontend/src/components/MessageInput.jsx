@@ -21,16 +21,15 @@ const MessageInput = () => {
   const [audioBlob, setAudioBlob] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
 
-  // Floating position
+  // Position & dragging
   const [position, setPosition] = useState({ top: 100, left: 50 });
   const [dragging, setDragging] = useState(false);
 
-  // 🔥 Scaling
+  // Scaling
   const [scale, setScale] = useState(1);
   const lastTouchDistance = useRef(null);
 
   const dragStartRef = useRef({ x: 0, y: 0 });
-
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -109,6 +108,24 @@ const MessageInput = () => {
       Math.min(textareaRef.current.scrollHeight, 140) + "px";
   }, [text]);
 
+  /* ---------------- CLAMP POSITION ---------------- */
+  const clampPosition = (pos, width = 350, height = 140) => {
+    const vv = window.visualViewport;
+
+    const viewportLeft = vv?.offsetLeft ?? 0;
+    const viewportTop = vv?.offsetTop ?? 0;
+    const vw = vv?.width ?? window.innerWidth;
+    const vh = vv?.height ?? window.innerHeight;
+
+    const maxLeft = viewportLeft + vw - width * scale;
+    const maxTop = viewportTop + vh - height * scale;
+
+    return {
+      left: Math.min(Math.max(viewportLeft, pos.left), Math.max(viewportLeft, maxLeft)),
+      top: Math.min(Math.max(viewportTop, pos.top), Math.max(viewportTop, maxTop)),
+    };
+  };
+
   /* ---------------- DRAGGING ---------------- */
   const onMouseDown = (e) => {
     setDragging(true);
@@ -120,10 +137,12 @@ const MessageInput = () => {
 
   const onMouseMove = (e) => {
     if (!dragging) return;
-    setPosition({
-      left: e.clientX - dragStartRef.current.x,
-      top: e.clientY - dragStartRef.current.y,
-    });
+    setPosition((pos) =>
+      clampPosition({
+        left: e.clientX - dragStartRef.current.x,
+        top: e.clientY - dragStartRef.current.y,
+      })
+    );
   };
 
   const onMouseUp = () => setDragging(false);
@@ -137,7 +156,6 @@ const MessageInput = () => {
       lastTouchDistance.current = getDistance(e.touches[0], e.touches[1]);
       return;
     }
-
     setDragging(true);
     const t = e.touches[0];
     dragStartRef.current = {
@@ -151,17 +169,24 @@ const MessageInput = () => {
       const newDist = getDistance(e.touches[0], e.touches[1]);
       const diff = newDist - lastTouchDistance.current;
 
-      setScale((s) => Math.min(1.6, Math.max(0.7, s + diff * 0.002)));
-      lastTouchDistance.current = newDist;
+      setScale((prev) => {
+        const newScale = Math.min(1.6, Math.max(0.7, prev + diff * 0.002));
+        setPosition((pos) => clampPosition(pos));
+        lastTouchDistance.current = newDist;
+        return newScale;
+      });
+      e.preventDefault();
       return;
     }
 
     if (!dragging) return;
     const t = e.touches[0];
-    setPosition({
-      left: t.clientX - dragStartRef.current.x,
-      top: t.clientY - dragStartRef.current.y,
-    });
+    setPosition((pos) =>
+      clampPosition({
+        left: t.clientX - dragStartRef.current.x,
+        top: t.clientY - dragStartRef.current.y,
+      })
+    );
   };
 
   const onTouchEnd = () => {
@@ -169,15 +194,48 @@ const MessageInput = () => {
     lastTouchDistance.current = null;
   };
 
-  /* ---------------- DESKTOP RESIZE (CTRL + SCROLL) ---------------- */
+  /* ---------------- DESKTOP ZOOM (CTRL + SCROLL) ---------------- */
   const onWheel = (e) => {
     if (!e.ctrlKey) return;
     e.preventDefault();
-    setScale((s) =>
-      Math.min(1.6, Math.max(0.7, s - e.deltaY * 0.001))
-    );
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = e.clientX - rect.left;
+    const centerY = e.clientY - rect.top;
+
+    setScale((prev) => {
+      const newScale = Math.min(1.6, Math.max(0.7, prev - e.deltaY * 0.001));
+
+      setPosition((pos) => {
+        const offsetX = (centerX / prev) * (newScale - prev);
+        const offsetY = (centerY / prev) * (newScale - prev);
+        return clampPosition({ left: pos.left - offsetX, top: pos.top - offsetY });
+      });
+
+      return newScale;
+    });
   };
 
+  /* ---------------- KEEP BOX INSIDE VIEWPORT ON MOBILE ZOOM / SCROLL ---------------- */
+  useEffect(() => {
+    const handleViewportChange = () => {
+      setPosition((pos) => clampPosition(pos));
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleViewportChange);
+      window.visualViewport.addEventListener("scroll", handleViewportChange);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleViewportChange);
+        window.visualViewport.removeEventListener("scroll", handleViewportChange);
+      }
+    };
+  }, [scale]);
+
+  /* ---------------- EVENT LISTENERS ---------------- */
   useEffect(() => {
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
