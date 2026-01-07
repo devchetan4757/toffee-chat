@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Trash2, X } from "lucide-react";
+import VoiceMessageBubble from "./VoiceMessageBubble";
 
 import { useChatStore } from "../store/useChatStore";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { formatMessageTime } from "../lib/utils";
+
+// Import the audio player
+import AudioPlayer from "react-h5-audio-player";
+import "react-h5-audio-player/lib/styles.css";
 
 const ChatContainer = () => {
   const {
@@ -77,6 +82,10 @@ const ChatContainer = () => {
                   {message.text}
                 </p>
               )}
+
+              {/* Audio with react-h5-audio-player */}
+              {message.audio &&
+                 <VoiceMessageBubble src={message.audio} />}
 
               {message.image && (
                 <img

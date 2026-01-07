@@ -1,9 +1,13 @@
+
+import dotenv from "dotenv";
+dotenv.config();
 import bcrypt from "bcryptjs";
 import { generateToken } from "../lib/utils.js";
 
 export const login = async (req, res) => {
   try {
     const { password } = req.body;
+    console.log(password)
 
     if (!password) {
       return res.status(400).json({ message: "Password is required" });
@@ -13,6 +17,7 @@ export const login = async (req, res) => {
       password,
       process.env.ADMIN_PASSWORD
     );
+    console.log(isMatch)
 
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid password" });

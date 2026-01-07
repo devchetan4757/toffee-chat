@@ -20,7 +20,6 @@ const LoginPage = () => {
     e.preventDefault();
     const success = await login({ password });
     if (success) {
-      console.log("home loads..")
       navigate("/home")
 };
   };

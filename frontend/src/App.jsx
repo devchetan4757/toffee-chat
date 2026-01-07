@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { Loader } from "lucide-react";
+import 'react-h5-audio-player';
+import "react-h5-audio-player/lib/styles.css";
 
 import { useThemeStore } from "./store/useThemeStore";
 import { useAuthStore } from "./store/useAuthStore";
