@@ -163,7 +163,7 @@ const MessageInput = () => {
         top: position.top,
         left: position.left,
         zIndex: 9999,
-        width: "250px",
+        width: "350px",
         touchAction: "none", // prevent mobile scrolling while dragging
       }}
       onMouseDown={onMouseDown}
