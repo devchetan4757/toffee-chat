@@ -1,15 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Trash2, X } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
-
 import { useChatStore } from "../store/useChatStore";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { formatMessageTime } from "../lib/utils";
-
-// Import the audio player
-import AudioPlayer from "react-h5-audio-player";
-import "react-h5-audio-player/lib/styles.css";
 
 const ChatContainer = () => {
   const {
@@ -20,7 +15,7 @@ const ChatContainer = () => {
     initSocket,
   } = useChatStore();
 
-  const messageEndRef = useRef(null);
+  const messageTopRef = useRef(null);
   const [viewImage, setViewImage] = useState(null);
 
   // Fetch messages
@@ -34,10 +29,17 @@ const ChatContainer = () => {
     return cleanup;
   }, [initSocket]);
 
-  // Auto scroll
+  // Sort messages: NEW → OLD
+  const sortedMessages = useMemo(() => {
+    return [...messages].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+  }, [messages]);
+
+  // Auto-scroll to top when new message arrives
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    messageTopRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [sortedMessages.length]);
 
   if (isMessagesLoading) {
     return (
@@ -52,13 +54,15 @@ const ChatContainer = () => {
     <div className="flex-1 flex flex-col h-full relative">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
-        {messages.length === 0 && (
+        <div ref={messageTopRef} />
+
+        {sortedMessages.length === 0 && (
           <p className="text-center text-xs opacity-50">
             No messages yet
           </p>
         )}
 
-        {messages.map((message) => (
+        {sortedMessages.map((message) => (
           <div key={message._id} className="chat chat-start group">
             {/* Header */}
             <div className="chat-header mb-1 flex items-center gap-2">
@@ -83,9 +87,9 @@ const ChatContainer = () => {
                 </p>
               )}
 
-              {/* Audio with react-h5-audio-player */}
-              {message.audio &&
-                 <VoiceMessageBubble src={message.audio} />}
+              {message.audio && (
+                <VoiceMessageBubble src={message.audio} />
+              )}
 
               {message.image && (
                 <img
@@ -107,8 +111,6 @@ const ChatContainer = () => {
             </div>
           </div>
         ))}
-
-        <div ref={messageEndRef} />
       </div>
 
       {/* Input */}
@@ -116,7 +118,7 @@ const ChatContainer = () => {
         <MessageInput />
       </div>
 
-      {/* Responsive Image Viewer */}
+      {/* Image Viewer */}
       {viewImage && (
         <div
           className="
@@ -127,7 +129,6 @@ const ChatContainer = () => {
           "
           onClick={() => setViewImage(null)}
         >
-          {/* Close button */}
           <button
             className="absolute top-4 right-4 text-white"
             onClick={() => setViewImage(null)}
