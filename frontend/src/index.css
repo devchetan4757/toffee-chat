@@ -1,16 +1,12 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/* Example: make Instagram embeds fixed width & responsive */
-.instagram-media {
-  width: 100% !important;      /* full width of parent */
-  max-width: 500px;             /* maximum width */
-  min-height: 400px;            /* optional minimum height */
-  margin: auto;
-}
-
+/* Instagram embed adjustments for mobile-friendly chat bubbles */
+.instagram-media,
 .instagram-media iframe {
-  width: 100% !important;
-  height: 100% !important;
+  width: 100% !important;   /* full width of the chat bubble */
+  max-width: 280px;          /* optional: limit width for mobile */
+  height: auto !important;   /* auto-adjust height */
+  min-height: 300px;         /* optional: keep it visible */
+  max-height: 500px;         /* optional: cap very tall embeds */
 }
-
