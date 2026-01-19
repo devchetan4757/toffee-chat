@@ -1,5 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* Example: make Instagram embeds fixed width & responsive */
+.instagram-media {
+  width: 100% !important;      /* full width of parent */
+  max-width: 500px;             /* maximum width */
+  min-height: 400px;            /* optional minimum height */
+  margin: auto;
+}
 
+.instagram-media iframe {
+  width: 100% !important;
+  height: 100% !important;
+}
 
