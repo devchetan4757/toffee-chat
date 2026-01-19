@@ -2,7 +2,6 @@
 import Message from "../models/message.model.js";
 import sanitizeHtml from "sanitize-html";
 import { io } from "../lib/socket.js";
-import { downloadMedia } from "../lib/mediaDownloader.js";
 
 export const getMessages = async (req, res) => {
   try {
@@ -23,7 +22,7 @@ export const getMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
   try {
-    const { text, image, audio, stickers, mediaType } = req.body;
+    const { text, image, audio, stickers } = req.body;
 
     const cleanText = sanitizeHtml(text?.trim() || "", {
       allowedTags: [],
@@ -35,35 +34,19 @@ export const sendMessage = async (req, res) => {
       image: image || null,
       audio: audio || null,
       stickers: stickers || [],
-      mediaType: mediaType || null,
-      mediaStatus: mediaType ? "pending" : null,
     });
 
     await newMessage.save();
 
     io.emit("newMessage", newMessage);
     res.status(201).json(newMessage);
-
-    // Background download
-    if (mediaType && cleanText) {
-      try {
-        const mediaUrl = await downloadMedia(cleanText, mediaType);
-        newMessage.mediaUrl = mediaUrl;
-        newMessage.mediaStatus = mediaUrl ? "ready" : "failed";
-        await newMessage.save();
-        io.emit("updateMessage", newMessage);
-      } catch (err) {
-        console.error("Media download failed:", err);
-        newMessage.mediaStatus = "failed";
-        await newMessage.save();
-        io.emit("updateMessage", newMessage);
-      }
-    }
-  } catch (error) {
+ } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+    
 
 export const deleteMessage = async (req, res) => {
   try {
