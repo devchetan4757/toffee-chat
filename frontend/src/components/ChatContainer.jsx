@@ -5,56 +5,67 @@ import VoiceMessageBubble from "./VoiceMessageBubble";
 import { useChatStore } from "../store/useChatStore";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
-import ReelPlayer from "./ReelPlayer"; // responsive embed component
+import ReelPlayer from "./ReelPlayer"; // Our new responsive Reel/Posts player
 
-// Detect Instagram Reels/Posts and YouTube Shorts
-const detectMedia = (text) => {
+// Detect Instagram Reel/Post URLs
+const detectInstagramMedia = (text) => {
   if (!text) return null;
 
-  const instaReel = text.match(/https?:\/\/(www\.)?instagram\.com\/reel\/[A-Za-z0-9_-]+/);
-  if (instaReel) return { type: "instagram", url: instaReel[0] };
+  // Instagram Reel
+  const reelMatch = text.match(
+    /(https?:\/\/(www\.)?instagram\.com\/reel\/[A-Za-z0-9_-]+)/
+  );
+  if (reelMatch) return { type: "reel", url: reelMatch[1] };
 
-  const instaPost = text.match(/https?:\/\/(www\.)?instagram\.com\/p\/[A-Za-z0-9_-]+/);
-  if (instaPost) return { type: "instagram_post", url: instaPost[0] };
-
-  const ytShort = text.match(/https?:\/\/(www\.)?youtube\.com\/shorts\/[A-Za-z0-9_-]+/);
-  if (ytShort) return { type: "youtube", url: ytShort[0] };
+  // Instagram Post
+  const postMatch = text.match(
+    /(https?:\/\/(www\.)?instagram\.com\/p\/[A-Za-z0-9_-]+)/
+  );
+  if (postMatch) return { type: "post", url: postMatch[1] };
 
   return null;
 };
 
 const ChatContainer = () => {
-  const { messages, getMessages, deleteMessage, isMessagesLoading, initSocket } = useChatStore();
+  const {
+    messages,
+    getMessages,
+    deleteMessage,
+    isMessagesLoading,
+    initSocket,
+  } = useChatStore();
+
   const messageTopRef = useRef(null);
   const [viewImage, setViewImage] = useState(null);
 
-  // Fetch messages
+  // Fetch messages on load
   useEffect(() => getMessages(), [getMessages]);
 
-  // Init socket
+  // Initialize socket
   useEffect(() => {
     const cleanup = initSocket();
     return cleanup;
   }, [initSocket]);
 
-  // Sort messages newest → oldest
+  // Sort messages: newest first
   const sortedMessages = useMemo(
     () => [...messages].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     [messages]
   );
 
-  // Auto-scroll to top when new message arrives
+  // Auto-scroll to bottom when new message arrives
   useEffect(() => {
     messageTopRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [sortedMessages.length]);
 
-  if (isMessagesLoading)
+  if (isMessagesLoading) {
     return (
       <div className="flex-1 flex flex-col overflow-auto">
         <MessageSkeleton />
         <MessageInput />
       </div>
     );
+  }
 
   return (
     <div className="flex-1 flex flex-col h-full relative">
@@ -67,7 +78,7 @@ const ChatContainer = () => {
         )}
 
         {sortedMessages.map((message) => {
-          const media = detectMedia(message.text);
+          const media = detectInstagramMedia(message.text);
 
           return (
             <div key={message._id} className="chat chat-start group">
@@ -79,6 +90,7 @@ const ChatContainer = () => {
                     minute: "2-digit",
                   })}
                 </time>
+
                 <button
                   onClick={() => deleteMessage(message._id)}
                   className="opacity-0 group-hover:opacity-100 transition"
@@ -90,9 +102,9 @@ const ChatContainer = () => {
 
               {/* Bubble */}
               <div className="chat-bubble max-w-[80%] sm:max-w-[65%] md:max-w-[50%] px-3 py-2">
-                {/* Media or text */}
+                {/* Instagram media */}
                 {media ? (
-                  <ReelPlayer type={media.type} url={media.url} />
+                  <ReelPlayer url={media.url} />
                 ) : (
                   message.text && (
                     <p className="text-xs sm:text-sm leading-snug break-words">
@@ -124,18 +136,15 @@ const ChatContainer = () => {
                 )}
 
                 {/* Stickers */}
-                {message.stickers && message.stickers.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {message.stickers.map((sticker, idx) => (
-                      <img
-                        key={idx}
-                        src={sticker}
-                        alt="sticker"
-                        className="w-12 h-12 object-contain"
-                      />
-                    ))}
-                  </div>
-                )}
+                {message.stickers &&
+                  message.stickers.map((sticker, idx) => (
+                    <img
+                      key={idx}
+                      src={sticker}
+                      alt="sticker"
+                      className="w-12 h-12 object-contain inline-block mr-1 mt-1"
+                    />
+                  ))}
               </div>
             </div>
           );
@@ -147,7 +156,7 @@ const ChatContainer = () => {
         <MessageInput />
       </div>
 
-      {/* Image viewer */}
+      {/* Image Viewer */}
       {viewImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-2 sm:p-4 md:p-6"
