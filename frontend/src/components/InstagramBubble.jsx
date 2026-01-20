@@ -1,26 +1,28 @@
 import ReelPlayer from "./ReelPlayer";
 import { useState, useEffect } from "react";
 
-const InstagramBubble = ({ url, maxWidth = 250, maxHeight = 380 }) => {
-  const [aspectRatio, setAspectRatio] = useState(9 / 16); // default IG reel ratio
+const InstagramBubble = ({ url }) => {
+  const [height, setHeight] = useState(380); // default bubble height for reels
 
   useEffect(() => {
-    // Optional: Instagram doesn't expose exact video size via embed
-    // But you can adjust ratio by detecting "post" vs "reel"
-    if (url.includes("/p/")) setAspectRatio(4 / 5); // typical IG post
-    else if (url.includes("/reel/")) setAspectRatio(9 / 16); // IG reel
+    // Only adjust height if this is a post
+    if (url.includes("/p/")) {
+      const postAspectRatio = 4 / 5; // typical IG post
+      const width = 250; // keep your bubble width same as reels
+      let calculatedHeight = width / postAspectRatio;
+
+      // limit height to max 380 (same as reel bubble)
+      if (calculatedHeight > 380) calculatedHeight = 380;
+
+      setHeight(calculatedHeight);
+    }
   }, [url]);
-
-  const width = maxWidth;
-  let height = width / aspectRatio;
-
-  if (height > maxHeight) height = maxHeight; // limit height to your bubble max
 
   return (
     <div
       className="instagram-bubble"
       style={{
-        width: `${width}px`,
+        width: "250px",      // same width for reels and posts
         height: `${height}px`,
         borderRadius: "12px",
         overflow: "hidden",
@@ -32,10 +34,10 @@ const InstagramBubble = ({ url, maxWidth = 250, maxHeight = 380 }) => {
       <div
         style={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
+          top: url.includes("/p/") ? "0" : "-58px",  // keep your reel top crop
+          left: url.includes("/p/") ? "0" : "-39px", // keep your reel left crop
+          width: url.includes("/p/") ? "100%" : "300px",
+          height: url.includes("/p/") ? "100%" : "530px",
         }}
       >
         <ReelPlayer url={url} />
