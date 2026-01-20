@@ -1,12 +1,27 @@
 import ReelPlayer from "./ReelPlayer";
+import { useState, useEffect } from "react";
 
-const InstagramBubble = ({ url }) => {
+const InstagramBubble = ({ url, maxWidth = 250, maxHeight = 380 }) => {
+  const [aspectRatio, setAspectRatio] = useState(9 / 16); // default IG reel ratio
+
+  useEffect(() => {
+    // Optional: Instagram doesn't expose exact video size via embed
+    // But you can adjust ratio by detecting "post" vs "reel"
+    if (url.includes("/p/")) setAspectRatio(4 / 5); // typical IG post
+    else if (url.includes("/reel/")) setAspectRatio(9 / 16); // IG reel
+  }, [url]);
+
+  const width = maxWidth;
+  let height = width / aspectRatio;
+
+  if (height > maxHeight) height = maxHeight; // limit height to your bubble max
+
   return (
     <div
       className="instagram-bubble"
       style={{
-        width: "250px",
-        height: "380px",
+        width: `${width}px`,
+        height: `${height}px`,
         borderRadius: "12px",
         overflow: "hidden",
         margin: "5px 0",
@@ -14,14 +29,13 @@ const InstagramBubble = ({ url }) => {
         backgroundColor: "#000",
       }}
     >
-      {/* Inner wrapper to crop and shift */}
       <div
         style={{
           position: "absolute",
-          top: "-58px",        // crops top black space
-          left: "-39px",
-          width: "300px",
-          height: "530px",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
         }}
       >
         <ReelPlayer url={url} />
