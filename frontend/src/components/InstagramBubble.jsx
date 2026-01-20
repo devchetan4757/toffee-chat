@@ -1,57 +1,74 @@
+import { useEffect, useRef } from "react";
 import ReelPlayer from "./ReelPlayer";
 
 const InstagramBubble = ({ url, type }) => {
-  // type can be "reel" or "post" if you want separate sizing for posts later
+  const bubbleRef = useRef(null);
 
-  // Function to reload page on replay
-  const handleReplay = () => {
-    window.location.reload(); // reloads the entire page to replay the reel
+  // Reload page when Instagram iframe becomes black (replay issue)
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const iframe = bubbleRef.current?.querySelector("iframe");
+      if (iframe && iframe.clientHeight === 0) {
+        window.location.reload();
+      }
+    });
+
+    if (bubbleRef.current) {
+      observer.observe(bubbleRef.current, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  // ===== YOUR ORIGINAL REEL SIZING (UNCHANGED) =====
+  const reelStyle = {
+    width: "250px",
+    height: "380px",
+    borderRadius: "12px",
+    overflow: "hidden",
+    position: "relative",
+    backgroundColor: "#000",
   };
+
+  const reelInner = {
+    position: "absolute",
+    top: "-58px",
+    left: "-39px",
+    width: "300px",
+    height: "530px",
+  };
+
+  // ===== POST SIZING (NEW, CROPPED TOP) =====
+  const postStyle = {
+    width: "260px",
+    height: "260px",
+    borderRadius: "12px",
+    overflow: "hidden",
+    position: "relative",
+    backgroundColor: "#000",
+  };
+
+  const postInner = {
+    position: "absolute",
+    top: "-30px",
+    left: "-20px",
+    width: "300px",
+    height: "340px",
+  };
+
+  const isReel = type === "reel";
 
   return (
     <div
-      className="instagram-bubble"
-      style={{
-        width: "250px",       // bubble width
-        height: "380px",      // bubble height
-        borderRadius: "12px",
-        overflow: "hidden",   // crop the inner iframe
-        margin: "5px 0",
-        position: "relative",
-        backgroundColor: "#000",
-      }}
+      ref={bubbleRef}
+      style={isReel ? reelStyle : postStyle}
     >
-      {/* Inner wrapper to crop and shift */}
-      <div
-        style={{
-          position: "absolute",
-          top: "-58px",        // crops top black space
-          left: "-39px",
-          width: "300px",      // must be larger than container width
-          height: "530px",     // larger than container height
-        }}
-      >
+      <div style={isReel ? reelInner : postInner}>
         <ReelPlayer url={url} />
       </div>
-
-      {/* Replay button */}
-      <button
-        onClick={handleReplay}
-        style={{
-          position: "absolute",
-          bottom: "8px",
-          right: "8px",
-          padding: "4px 8px",
-          fontSize: "12px",
-          borderRadius: "6px",
-          backgroundColor: "rgba(255,255,255,0.8)",
-          color: "#000",
-          cursor: "pointer",
-          zIndex: 10,
-        }}
-      >
-        Replay
-      </button>
     </div>
   );
 };
