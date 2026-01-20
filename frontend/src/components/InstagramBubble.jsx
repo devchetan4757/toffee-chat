@@ -2,16 +2,14 @@ import ReelPlayer from "./ReelPlayer";
 import { useState, useEffect } from "react";
 
 const InstagramBubble = ({ url }) => {
-  const [height, setHeight] = useState(380); // default bubble height for reels
+  const [height, setHeight] = useState(380); // default bubble height
 
   useEffect(() => {
-    // Only adjust height if this is a post
     if (url.includes("/p/")) {
-      const postAspectRatio = 4 / 5; // typical IG post
-      const width = 250; // keep your bubble width same as reels
+      const postAspectRatio = 4 / 5; // typical IG post ratio
+      const width = 250; // keep bubble width same
       let calculatedHeight = width / postAspectRatio;
 
-      // limit height to max 380 (same as reel bubble)
       if (calculatedHeight > 380) calculatedHeight = 380;
 
       setHeight(calculatedHeight);
@@ -22,7 +20,7 @@ const InstagramBubble = ({ url }) => {
     <div
       className="instagram-bubble"
       style={{
-        width: "250px",      // same width for reels and posts
+        width: "250px",
         height: `${height}px`,
         borderRadius: "12px",
         overflow: "hidden",
@@ -34,10 +32,10 @@ const InstagramBubble = ({ url }) => {
       <div
         style={{
           position: "absolute",
-          top: url.includes("/p/") ? "0" : "-58px",  // keep your reel top crop
-          left: url.includes("/p/") ? "0" : "-39px", // keep your reel left crop
+          top: url.includes("/p/") ? "-30px" : "-58px", // crop top for post
+          left: url.includes("/p/") ? "0" : "-39px",   // reels keep left crop
           width: url.includes("/p/") ? "100%" : "300px",
-          height: url.includes("/p/") ? "100%" : "530px",
+          height: url.includes("/p/") ? "calc(100% + 30px)" : "530px", // extra height to compensate top crop
         }}
       >
         <ReelPlayer url={url} />
