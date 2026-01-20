@@ -1,72 +1,63 @@
-import { useEffect, useRef } from "react";
+// src/components/InstagramBubble.jsx
 import ReelPlayer from "./ReelPlayer";
 
 const InstagramBubble = ({ url, type }) => {
-  const bubbleRef = useRef(null);
-
-  // Reload page when Instagram iframe becomes black (replay issue)
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      const iframe = bubbleRef.current?.querySelector("iframe");
-      if (iframe && iframe.clientHeight === 0) {
-        window.location.reload();
-      }
-    });
-
-    if (bubbleRef.current) {
-      observer.observe(bubbleRef.current, {
-        childList: true,
-        subtree: true,
-      });
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  // ===== YOUR ORIGINAL REEL SIZING (UNCHANGED) =====
-  const reelStyle = {
-    width: "250px",
-    height: "380px",
-    borderRadius: "12px",
-    overflow: "hidden",
-    position: "relative",
-    backgroundColor: "#000",
-  };
-
-  const reelInner = {
-    position: "absolute",
-    top: "-58px",
-    left: "-39px",
-    width: "300px",
-    height: "530px",
-  };
-
-  // ===== POST SIZING (NEW, CROPPED TOP) =====
-  const postStyle = {
-    width: "260px",
-    height: "260px",
-    borderRadius: "12px",
-    overflow: "hidden",
-    position: "relative",
-    backgroundColor: "#000",
-  };
-
-  const postInner = {
-    position: "absolute",
-    top: "-30px",
-    left: "-20px",
-    width: "300px",
-    height: "340px",
-  };
-
+  // Check type to decide sizing
   const isReel = type === "reel";
 
+  if (isReel) {
+    // --- Reels: keep your current sizing ---
+    return (
+      <div
+        className="instagram-bubble"
+        style={{
+          width: "250px",
+          height: "380px",
+          borderRadius: "12px",
+          overflow: "hidden",
+          margin: "5px 0",
+          position: "relative",
+          backgroundColor: "#000",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: "-58px",
+            left: "-39px",
+            width: "300px",
+            height: "530px",
+          }}
+        >
+          <ReelPlayer url={url} />
+        </div>
+      </div>
+    );
+  }
+
+  // --- Posts: separate sizing and cropping ---
   return (
     <div
-      ref={bubbleRef}
-      style={isReel ? reelStyle : postStyle}
+      className="instagram-bubble-post"
+      style={{
+        width: "220px",
+        height: "300px",
+        borderRadius: "12px",
+        overflow: "hidden",
+        margin: "5px 0",
+        position: "relative",
+        backgroundColor: "#000",
+      }}
     >
-      <div style={isReel ? reelInner : postInner}>
+      <div
+        style={{
+          position: "absolute",
+          top: "-30px", // crop top part
+          left: "-15px", // crop left side
+          width: "260px",
+          height: "360px",
+        }}
+      >
         <ReelPlayer url={url} />
       </div>
     </div>
