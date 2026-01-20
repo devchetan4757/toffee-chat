@@ -1,14 +1,12 @@
-// src/components/InstagramBubble.jsx
-import { useState } from "react";
 import { RotateCw } from "lucide-react";
 import ReelPlayer from "./ReelPlayer";
 
 const InstagramBubble = ({ url, type }) => {
   const isReel = type === "reel";
-  const [replayKey, setReplayKey] = useState(0); // to force reload
 
+  // Page reload function
   const handleReplay = () => {
-    setReplayKey((prev) => prev + 1); // reload the reel
+    window.location.reload(); // reloads the whole page
   };
 
   if (isReel) {
@@ -34,7 +32,7 @@ const InstagramBubble = ({ url, type }) => {
             height: "530px",
           }}
         >
-          <ReelPlayer key={replayKey} url={url} />
+          <ReelPlayer url={url} />
         </div>
 
         {/* Replay Icon */}
@@ -44,16 +42,17 @@ const InstagramBubble = ({ url, type }) => {
             position: "absolute",
             bottom: "8px",
             right: "8px",
-            background: "rgba(255,255,255,0.8)",
+            background: "rgba(0,123,255,0.9)", // blue
             borderRadius: "50%",
             padding: "6px",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
           }}
         >
-          <RotateCw size={18} />
+          <RotateCw size={18} color="#fff" /> {/* white icon on blue circle */}
         </button>
       </div>
     );
@@ -76,7 +75,7 @@ const InstagramBubble = ({ url, type }) => {
       <div
         style={{
           position: "absolute",
-          top: "-30px",
+          top: "-50px",
           left: "-25px",
           width: "260px",
           height: "260px",
