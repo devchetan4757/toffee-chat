@@ -2,22 +2,20 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { Trash2, X } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
+import InstagramBubble from "./InstagramBubble"; // our cropped responsive Reel/Post component
 import { useChatStore } from "../store/useChatStore";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
-import ReelPlayer from "./ReelPlayer"; // Our new responsive Reel/Posts player
 
 // Detect Instagram Reel/Post URLs
 const detectInstagramMedia = (text) => {
   if (!text) return null;
 
-  // Instagram Reel
   const reelMatch = text.match(
     /(https?:\/\/(www\.)?instagram\.com\/reel\/[A-Za-z0-9_-]+)/
   );
   if (reelMatch) return { type: "reel", url: reelMatch[1] };
 
-  // Instagram Post
   const postMatch = text.match(
     /(https?:\/\/(www\.)?instagram\.com\/p\/[A-Za-z0-9_-]+)/
   );
@@ -38,22 +36,31 @@ const ChatContainer = () => {
   const messageTopRef = useRef(null);
   const [viewImage, setViewImage] = useState(null);
 
-  // Fetch messages on load
-  useEffect(() => getMessages(), [getMessages]);
+  // Fetch messages safely
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        await getMessages();
+      } catch (err) {
+        console.error("Failed to fetch messages:", err);
+      }
+    };
+    fetchMessages();
+  }, [getMessages]);
 
-  // Initialize socket
+  // Initialize socket safely
   useEffect(() => {
     const cleanup = initSocket();
-    return cleanup;
+    return typeof cleanup === "function" ? cleanup : undefined;
   }, [initSocket]);
 
-  // Sort messages: newest first
+  // Sort messages newest first
   const sortedMessages = useMemo(
-    () => [...messages].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    () => [...(messages || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     [messages]
   );
 
-  // Auto-scroll to bottom when new message arrives
+  // Auto-scroll when messages change
   useEffect(() => {
     messageTopRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [sortedMessages.length]);
@@ -104,7 +111,7 @@ const ChatContainer = () => {
               <div className="chat-bubble max-w-[80%] sm:max-w-[65%] md:max-w-[50%] px-3 py-2">
                 {/* Instagram media */}
                 {media ? (
-                  <ReelPlayer url={media.url} />
+                  <InstagramBubble url={media.url} />
                 ) : (
                   message.text && (
                     <p className="text-xs sm:text-sm leading-snug break-words">

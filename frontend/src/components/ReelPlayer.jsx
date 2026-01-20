@@ -1,20 +1,30 @@
-// src/components/ReelPlayer.jsx
 import { useEffect, useRef } from "react";
 
 const ReelPlayer = ({ url }) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    // Load Instagram embeds script if not already loaded
-    if (!window.instgrm) {
-      const script = document.createElement("script");
-      script.src = "https://www.instagram.com/embed.js";
-      script.async = true;
-      script.onload = () => window.instgrm.Embeds.process();
-      document.body.appendChild(script);
-    } else {
-      window.instgrm.Embeds.process();
-    }
+    if (!url) return;
+
+    // Only load script once
+    const loadInstagramScript = () => {
+      if (!window.instgrm) {
+        const script = document.createElement("script");
+        script.src = "https://www.instagram.com/embed.js";
+        script.async = true;
+        script.onload = () => {
+          window.instgrm.Embeds.process();
+        };
+        document.body.appendChild(script);
+      } else {
+        // Wait a tick for React render to complete, then process
+        setTimeout(() => {
+          window.instgrm.Embeds.process();
+        }, 50);
+      }
+    };
+
+    loadInstagramScript();
   }, [url]);
 
   return (
@@ -22,15 +32,19 @@ const ReelPlayer = ({ url }) => {
       ref={containerRef}
       style={{
         width: "100%",
-        maxWidth: "400px", // max width for desktop, scales down on mobile
-        margin: "10px auto",
+        height: "100%",
+        overflow: "hidden",
       }}
     >
       <blockquote
         className="instagram-media"
         data-instgrm-permalink={url}
         data-instgrm-version="14"
-        style={{ margin: "0 auto" }}
+        style={{
+          margin: 0,
+          width: "100% !important",
+          height: "100% !important",
+        }}
       ></blockquote>
     </div>
   );
