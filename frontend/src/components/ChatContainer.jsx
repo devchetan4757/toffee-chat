@@ -1,11 +1,10 @@
-// src/components/ChatContainer.jsx
 import { useEffect, useRef, useState, useMemo } from "react";
 import { Trash2, X } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
-import InstagramBubble from "./InstagramBubble"; // our cropped responsive Reel/Post component
 import { useChatStore } from "../store/useChatStore";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
+import InstagramBubble from "./InstagramBubble"; // New component with replay & cropping
 
 // Detect Instagram Reel/Post URLs
 const detectInstagramMedia = (text) => {
@@ -36,31 +35,22 @@ const ChatContainer = () => {
   const messageTopRef = useRef(null);
   const [viewImage, setViewImage] = useState(null);
 
-  // Fetch messages safely
-  useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        await getMessages();
-      } catch (err) {
-        console.error("Failed to fetch messages:", err);
-      }
-    };
-    fetchMessages();
-  }, [getMessages]);
+  // Fetch messages
+  useEffect(() => getMessages(), [getMessages]);
 
-  // Initialize socket safely
+  // Init socket
   useEffect(() => {
     const cleanup = initSocket();
-    return typeof cleanup === "function" ? cleanup : undefined;
+    return cleanup;
   }, [initSocket]);
 
   // Sort messages newest first
   const sortedMessages = useMemo(
-    () => [...(messages || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    () => [...messages].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     [messages]
   );
 
-  // Auto-scroll when messages change
+  // Auto scroll
   useEffect(() => {
     messageTopRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [sortedMessages.length]);
@@ -109,9 +99,9 @@ const ChatContainer = () => {
 
               {/* Bubble */}
               <div className="chat-bubble max-w-[80%] sm:max-w-[65%] md:max-w-[50%] px-3 py-2">
-                {/* Instagram media */}
+                {/* Instagram Media */}
                 {media ? (
-                  <InstagramBubble url={media.url} />
+                  <InstagramBubble url={media.url} type={media.type} />
                 ) : (
                   message.text && (
                     <p className="text-xs sm:text-sm leading-snug break-words">
