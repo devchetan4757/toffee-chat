@@ -1,12 +1,17 @@
 // src/components/InstagramBubble.jsx
+import { useState } from "react";
+import { RotateCw } from "lucide-react";
 import ReelPlayer from "./ReelPlayer";
 
 const InstagramBubble = ({ url, type }) => {
-  // Check type to decide sizing
   const isReel = type === "reel";
+  const [replayKey, setReplayKey] = useState(0); // to force reload
+
+  const handleReplay = () => {
+    setReplayKey((prev) => prev + 1); // reload the reel
+  };
 
   if (isReel) {
-    // --- Reels: keep your current sizing ---
     return (
       <div
         className="instagram-bubble"
@@ -20,7 +25,8 @@ const InstagramBubble = ({ url, type }) => {
           backgroundColor: "#000",
         }}
       >
-        <div          style={{
+        <div
+          style={{
             position: "absolute",
             top: "-58px",
             left: "-39px",
@@ -28,19 +34,38 @@ const InstagramBubble = ({ url, type }) => {
             height: "530px",
           }}
         >
-          <ReelPlayer url={url} />
+          <ReelPlayer key={replayKey} url={url} />
         </div>
+
+        {/* Replay Icon */}
+        <button
+          onClick={handleReplay}
+          style={{
+            position: "absolute",
+            bottom: "8px",
+            right: "8px",
+            background: "rgba(255,255,255,0.8)",
+            borderRadius: "50%",
+            padding: "6px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <RotateCw size={18} />
+        </button>
       </div>
     );
   }
 
-  // --- Posts: separate sizing and cropping ---
+  // Posts
   return (
     <div
-      className="instagram-bubble-post"
+      className="instagram-post-bubble"
       style={{
-        width: "320px",
-        height: "300px",
+        width: "280px",
+        height: "220px",
         borderRadius: "12px",
         overflow: "hidden",
         margin: "5px 0",
@@ -51,10 +76,10 @@ const InstagramBubble = ({ url, type }) => {
       <div
         style={{
           position: "absolute",
-          top: "-80px", // crop top part
-          left: "-30px", // crop left side
+          top: "-30px",
+          left: "-25px",
           width: "260px",
-          height: "360px",
+          height: "260px",
         }}
       >
         <ReelPlayer url={url} />
