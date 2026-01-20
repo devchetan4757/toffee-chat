@@ -1,45 +1,54 @@
-import { useState } from "react";
 import ReelPlayer from "./ReelPlayer";
 
 const InstagramBubble = ({ url, type }) => {
-  const [replayKey, setReplayKey] = useState(0);
+  // type can be "reel" or "post" if you want separate sizing for posts later
 
+  // Function to reload page on replay
   const handleReplay = () => {
-    // Force remount to reload Instagram embed
-    setReplayKey((prev) => prev + 1);
-  };
-
-  // Bubble styling (kept your crop & resize)
-  const bubbleStyles = {
-    width: type === "post" ? "250px" : "250px",
-    height: type === "post" ? "380px" : "430px", // posts shorter than reels
-    borderRadius: "12px",
-    overflow: "hidden",
-    margin: "5px 0",
-    position: "relative",
-    backgroundColor: "#000",
-  };
-
-  const innerWrapper = {
-    position: "absolute",
-    top: type === "post" ? "-70px" : "-58px", // crop top differently for posts
-    left: type === "post" ? "-20px" : "-39px",
-    width: type === "post" ? "300px" : "300px",
-    height: type === "post" ? "470px" : "530px",
+    window.location.reload(); // reloads the entire page to replay the reel
   };
 
   return (
-    <div className="flex flex-col items-start">
-      <div style={bubbleStyles}>
-        <div style={innerWrapper}>
-          <ReelPlayer key={replayKey} url={url} />
-        </div>
+    <div
+      className="instagram-bubble"
+      style={{
+        width: "250px",       // bubble width
+        height: "380px",      // bubble height
+        borderRadius: "12px",
+        overflow: "hidden",   // crop the inner iframe
+        margin: "5px 0",
+        position: "relative",
+        backgroundColor: "#000",
+      }}
+    >
+      {/* Inner wrapper to crop and shift */}
+      <div
+        style={{
+          position: "absolute",
+          top: "-58px",        // crops top black space
+          left: "-39px",
+          width: "300px",      // must be larger than container width
+          height: "530px",     // larger than container height
+        }}
+      >
+        <ReelPlayer url={url} />
       </div>
 
       {/* Replay button */}
       <button
         onClick={handleReplay}
-        className="mt-1 px-2 py-1 bg-gray-200 rounded text-xs hover:bg-gray-300"
+        style={{
+          position: "absolute",
+          bottom: "8px",
+          right: "8px",
+          padding: "4px 8px",
+          fontSize: "12px",
+          borderRadius: "6px",
+          backgroundColor: "rgba(255,255,255,0.8)",
+          color: "#000",
+          cursor: "pointer",
+          zIndex: 10,
+        }}
       >
         Replay
       </button>
