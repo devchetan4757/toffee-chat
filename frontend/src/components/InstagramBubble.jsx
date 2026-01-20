@@ -1,45 +1,57 @@
+import { useState } from "react";
 import ReelPlayer from "./ReelPlayer";
-import { useState, useEffect } from "react";
 
 const InstagramBubble = ({ url }) => {
-  const [height, setHeight] = useState(380); // default bubble height
+  const [key, setKey] = useState(0); // changing key will reload embed
 
-  useEffect(() => {
-    if (url.includes("/p/")) {
-      const postAspectRatio = 4 / 5; // typical IG post ratio
-      const width = 250; // keep bubble width same
-      let calculatedHeight = width / postAspectRatio;
-
-      if (calculatedHeight > 380) calculatedHeight = 380;
-
-      setHeight(calculatedHeight);
-    }
-  }, [url]);
+  const handleReplay = () => {
+    setKey((prev) => prev + 1); // triggers re-render of ReelPlayer
+  };
 
   return (
     <div
       className="instagram-bubble"
       style={{
-        width: "250px",
-        height: `${height}px`,
+        width: "250px",       // bubble width
+        height: "380px",      // bubble height
         borderRadius: "12px",
-        overflow: "hidden",
+        overflow: "hidden",   // crop the inner iframe
         margin: "5px 0",
         position: "relative",
         backgroundColor: "#000",
       }}
     >
+      {/* Inner wrapper to crop and shift */}
       <div
         style={{
           position: "absolute",
-          top: url.includes("/p/") ? "-30px" : "-58px", // crop top for post
-          left: url.includes("/p/") ? "0" : "-39px",   // reels keep left crop
-          width: url.includes("/p/") ? "100%" : "300px",
-          height: url.includes("/p/") ? "calc(100% + 30px)" : "530px", // extra height to compensate top crop
+          top: "-58px",        // crops top black space
+          left: "-39px",
+          width: "300px",      // must be larger than container width
+          height: "530px",     // larger than container height
         }}
       >
-        <ReelPlayer url={url} />
+        <ReelPlayer key={key} url={url} />
       </div>
+
+      {/* Replay Button */}
+      <button
+        onClick={handleReplay}
+        style={{
+          position: "absolute",
+          bottom: "5px",
+          right: "5px",
+          backgroundColor: "rgba(0,0,0,0.5)",
+          color: "#fff",
+          border: "none",
+          borderRadius: "6px",
+          padding: "2px 6px",
+          fontSize: "12px",
+          cursor: "pointer",
+        }}
+      >
+        Replay
+      </button>
     </div>
   );
 };
