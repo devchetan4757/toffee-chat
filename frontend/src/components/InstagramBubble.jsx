@@ -20,8 +20,7 @@ const InstagramBubble = ({ url, type }) => {
           backgroundColor: "#000",
         }}
       >
-        <div
-          style={{
+        <div          style={{
             position: "absolute",
             top: "-58px",
             left: "-39px",
@@ -40,7 +39,7 @@ const InstagramBubble = ({ url, type }) => {
     <div
       className="instagram-bubble-post"
       style={{
-        width: "220px",
+        width: "320px",
         height: "300px",
         borderRadius: "12px",
         overflow: "hidden",
@@ -52,8 +51,8 @@ const InstagramBubble = ({ url, type }) => {
       <div
         style={{
           position: "absolute",
-          top: "-30px", // crop top part
-          left: "-15px", // crop left side
+          top: "-80px", // crop top part
+          left: "-30px", // crop left side
           width: "260px",
           height: "360px",
         }}
