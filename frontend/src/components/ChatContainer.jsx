@@ -30,20 +30,20 @@ const ChatContainer = () => {
   const chatRef = useRef(null);
   const loadingOlderRef = useRef(false);
 
-  useEffect(() => getMessages(), [getMessages]); // initial load
-  useEffect(() => initSocket?.(), [initSocket]); // socket init
+  // Initial load
+  useEffect(() => getMessages(), [getMessages]);
+  // Init socket
+  useEffect(() => initSocket?.(), [initSocket]);
 
+  // Scroll down to load older messages
   const handleScroll = async () => {
     const el = chatRef.current;
     if (!el) return;
-
-    // Already loading older?
     if (loadingOlderRef.current) return;
 
-    // If user not at bottom (10px tolerance)
-    if (el.scrollTop + el.clientHeight < el.scrollHeight - 10) return;
+    // Only trigger when user is near bottom
+    if (el.scrollHeight - el.scrollTop - el.clientHeight > 10) return;
 
-    // Last message = oldest
     const oldestId = messages[messages.length - 1]?._id;
     if (!oldestId) return;
 
@@ -70,7 +70,6 @@ const ChatContainer = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full relative">
-      {/* Messages */}
       <div
         ref={chatRef}
         onScroll={handleScroll}
@@ -82,7 +81,6 @@ const ChatContainer = () => {
 
         {messages.map((message) => {
           const media = detectInstagramMedia(message.text);
-
           return (
             <div key={message._id} className="chat chat-start group">
               <div className="chat-header mb-1 flex items-center gap-2">

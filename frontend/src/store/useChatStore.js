@@ -7,7 +7,7 @@ export const useChatStore = create((set, get) => ({
   messages: [],
   isMessagesLoading: false,
 
-  // Fetch messages, optionally pass cursor (oldest message ID)
+  // Fetch messages. If cursor is passed, fetch older messages and append at bottom
   getMessages: async (cursor) => {
     set({ isMessagesLoading: true });
     try {
@@ -18,14 +18,16 @@ export const useChatStore = create((set, get) => ({
       const newMessages = res.data || [];
 
       set((state) => {
-        // Remove duplicates
         const existingIds = new Set(state.messages.map((m) => m._id));
         const filtered = newMessages.filter((m) => !existingIds.has(m._id));
 
-        // If cursor provided, append older messages at the end
-        return {
-          messages: cursor ? [...state.messages, ...filtered] : [...filtered, ...state.messages],
-        };
+        if (cursor) {
+          // Old messages: append at bottom
+          return { messages: [...state.messages, ...filtered] };
+        } else {
+          // Initial load or new messages: newest at top
+          return { messages: [...filtered, ...state.messages] };
+        }
       });
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to load messages");
@@ -60,7 +62,7 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", (message) => {
       set((state) => {
         if (state.messages.some((m) => m._id === message._id)) return state;
-        return { messages: [message, ...state.messages] }; // newest on top
+        return { messages: [message, ...state.messages] }; // Newest at top
       });
     });
 
