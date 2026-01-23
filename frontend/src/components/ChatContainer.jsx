@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2, X } from "lucide-react";
+import { Trash2, X, RotateCw } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import { useChatStore } from "../store/useChatStore";
 import MessageInput from "./MessageInput";
@@ -33,7 +33,7 @@ const ChatContainer = () => {
   // Initial load
   useEffect(() => getMessages(), [getMessages]);
 
-  // Init socket once
+  // Socket init once
   useEffect(() => initSocket?.(), [initSocket]);
 
   // Scroll down to fetch older messages
@@ -41,17 +41,16 @@ const ChatContainer = () => {
     const el = chatRef.current;
     if (!el || loadingOlderRef.current) return;
 
-    // Trigger only when user is near bottom
+    // Only trigger when near bottom
     if (el.scrollHeight - el.scrollTop - el.clientHeight > 50) return;
 
-    // Get oldest message (bottom-most currently)
     const oldestId = messages[messages.length - 1]?._id;
     if (!oldestId) return;
 
     loadingOlderRef.current = true;
     const prevScrollHeight = el.scrollHeight;
 
-    await getMessages(oldestId); // Fetch older messages
+    await getMessages(oldestId); // fetch older messages
 
     requestAnimationFrame(() => {
       const newScrollHeight = el.scrollHeight;
@@ -71,7 +70,6 @@ const ChatContainer = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full relative">
-      {/* Messages */}
       <div
         ref={chatRef}
         onScroll={handleScroll}
@@ -83,6 +81,7 @@ const ChatContainer = () => {
 
         {messages.map((message) => {
           const media = detectInstagramMedia(message.text);
+
           return (
             <div key={message._id} className="chat chat-start group">
               <div className="chat-header mb-1 flex items-center gap-2">
@@ -139,12 +138,10 @@ const ChatContainer = () => {
         })}
       </div>
 
-      {/* Input */}
       <div className="border-t bg-base-100">
         <MessageInput />
       </div>
 
-      {/* Image viewer */}
       {viewImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-2 sm:p-4"

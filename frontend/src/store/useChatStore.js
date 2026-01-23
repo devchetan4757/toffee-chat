@@ -4,29 +4,26 @@ import { axiosInstance } from "../lib/axios";
 import { socket } from "../lib/socket";
 
 export const useChatStore = create((set, get) => ({
-  messages: [],
+  messages: [],          // newest first
   isMessagesLoading: false,
 
-  // Fetch messages. If cursor is passed, fetch older messages and append at bottom
+  // Fetch messages; cursor is the _id of the **oldest** message you have
   getMessages: async (cursor) => {
     set({ isMessagesLoading: true });
     try {
       const res = await axiosInstance.get("/messages", {
-        params: cursor ? { cursor } : {},
+        params: { cursor },
       });
 
-      const newMessages = res.data || [];
+      const fetchedMessages = res.data;
 
       set((state) => {
-        const existingIds = new Set(state.messages.map((m) => m._id));
-        const filtered = newMessages.filter((m) => !existingIds.has(m._id));
-
-        if (cursor) {
-          // Old messages: append at bottom
-          return { messages: [...state.messages, ...filtered] };
+        if (!cursor) {
+          // initial load, newest first
+          return { messages: fetchedMessages };
         } else {
-          // Initial load or new messages: newest at top
-          return { messages: [...filtered, ...state.messages] };
+          // append older messages at the **end**
+          return { messages: [...state.messages, ...fetchedMessages] };
         }
       });
     } catch (error) {
@@ -62,7 +59,8 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", (message) => {
       set((state) => {
         if (state.messages.some((m) => m._id === message._id)) return state;
-        return { messages: [message, ...state.messages] }; // Newest at top
+        // **prepend** new message at top
+        return { messages: [message, ...state.messages] };
       });
     });
 
