@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2, X, RotateCw } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import { useChatStore } from "../store/useChatStore";
 import MessageInput from "./MessageInput";
@@ -36,25 +36,26 @@ const ChatContainer = () => {
   // Socket init once
   useEffect(() => initSocket?.(), [initSocket]);
 
-  // Scroll down to fetch older messages
+  // Load older messages when user scrolls **bottom**
   const handleScroll = async () => {
     const el = chatRef.current;
     if (!el || loadingOlderRef.current) return;
 
-    // Only trigger when near bottom
+    // Only trigger when near bottom (50px)
     if (el.scrollHeight - el.scrollTop - el.clientHeight > 50) return;
 
     const oldestId = messages[messages.length - 1]?._id;
     if (!oldestId) return;
 
     loadingOlderRef.current = true;
+
     const prevScrollHeight = el.scrollHeight;
 
-    await getMessages(oldestId); // fetch older messages
+    await getMessages(oldestId);
 
     requestAnimationFrame(() => {
       const newScrollHeight = el.scrollHeight;
-      el.scrollTop = el.scrollTop + (newScrollHeight - prevScrollHeight);
+      el.scrollTop += newScrollHeight - prevScrollHeight;
       loadingOlderRef.current = false;
     });
   };

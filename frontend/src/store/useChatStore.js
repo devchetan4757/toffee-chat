@@ -4,10 +4,10 @@ import { axiosInstance } from "../lib/axios";
 import { socket } from "../lib/socket";
 
 export const useChatStore = create((set, get) => ({
-  messages: [],          // newest first
+  messages: [],           // newest at index 0
   isMessagesLoading: false,
 
-  // Fetch messages; cursor is the _id of the **oldest** message you have
+  // Fetch messages; cursor is _id of the **oldest loaded message**
   getMessages: async (cursor) => {
     set({ isMessagesLoading: true });
     try {
@@ -15,16 +15,19 @@ export const useChatStore = create((set, get) => ({
         params: { cursor },
       });
 
-      const fetchedMessages = res.data;
+      const fetchedMessages = res.data || [];
 
       set((state) => {
+        // Initial load
         if (!cursor) {
-          // initial load, newest first
           return { messages: fetchedMessages };
-        } else {
-          // append older messages at the **end**
-          return { messages: [...state.messages, ...fetchedMessages] };
         }
+
+        // Append older messages to bottom, prevent duplicates
+        const existingIds = new Set(state.messages.map((m) => m._id));
+        const newMessages = fetchedMessages.filter((m) => !existingIds.has(m._id));
+
+        return { messages: [...state.messages, ...newMessages] };
       });
     } catch (error) {
       toast.error(error?.response?.data?.message || "Failed to load messages");
@@ -59,7 +62,7 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", (message) => {
       set((state) => {
         if (state.messages.some((m) => m._id === message._id)) return state;
-        // **prepend** new message at top
+        // prepend new messages at top (newest first)
         return { messages: [message, ...state.messages] };
       });
     });
