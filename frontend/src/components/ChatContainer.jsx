@@ -32,28 +32,31 @@ const ChatContainer = () => {
 
   // Initial load
   useEffect(() => getMessages(), [getMessages]);
-  // Init socket
+
+  // Init socket once
   useEffect(() => initSocket?.(), [initSocket]);
 
-  // Scroll down to load older messages
+  // Scroll down to fetch older messages
   const handleScroll = async () => {
     const el = chatRef.current;
     if (!el) return;
     if (loadingOlderRef.current) return;
 
-    // Only trigger when user is near bottom
-    if (el.scrollHeight - el.scrollTop - el.clientHeight > 10) return;
+    // Trigger only when user is near bottom
+    if (el.scrollHeight - el.scrollTop - el.clientHeight > 50) return;
 
+    // Get oldest message (bottom-most currently)
     const oldestId = messages[messages.length - 1]?._id;
     if (!oldestId) return;
 
     loadingOlderRef.current = true;
     const prevScrollHeight = el.scrollHeight;
 
-    await getMessages(oldestId);
+    await getMessages(oldestId); // Fetch older messages (cursor)
 
     requestAnimationFrame(() => {
       const newScrollHeight = el.scrollHeight;
+      // Keep scroll position stable
       el.scrollTop = el.scrollTop + (newScrollHeight - prevScrollHeight);
       loadingOlderRef.current = false;
     });
@@ -70,6 +73,7 @@ const ChatContainer = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full relative">
+      {/* Messages */}
       <div
         ref={chatRef}
         onScroll={handleScroll}
@@ -134,13 +138,15 @@ const ChatContainer = () => {
               </div>
             </div>
           );
-        })}
+        ))}
       </div>
 
+      {/* Input */}
       <div className="border-t bg-base-100">
         <MessageInput />
       </div>
 
+      {/* Image viewer */}
       {viewImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-2 sm:p-4"
