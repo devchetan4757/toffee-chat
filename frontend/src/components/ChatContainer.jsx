@@ -39,8 +39,7 @@ const ChatContainer = () => {
   // Scroll down to fetch older messages
   const handleScroll = async () => {
     const el = chatRef.current;
-    if (!el) return;
-    if (loadingOlderRef.current) return;
+    if (!el || loadingOlderRef.current) return;
 
     // Trigger only when user is near bottom
     if (el.scrollHeight - el.scrollTop - el.clientHeight > 50) return;
@@ -52,11 +51,10 @@ const ChatContainer = () => {
     loadingOlderRef.current = true;
     const prevScrollHeight = el.scrollHeight;
 
-    await getMessages(oldestId); // Fetch older messages (cursor)
+    await getMessages(oldestId); // Fetch older messages
 
     requestAnimationFrame(() => {
       const newScrollHeight = el.scrollHeight;
-      // Keep scroll position stable
       el.scrollTop = el.scrollTop + (newScrollHeight - prevScrollHeight);
       loadingOlderRef.current = false;
     });
@@ -138,7 +136,7 @@ const ChatContainer = () => {
               </div>
             </div>
           );
-        ))}
+        })}
       </div>
 
       {/* Input */}
