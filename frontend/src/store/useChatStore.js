@@ -8,17 +8,31 @@ export const useChatStore = create((set, get) => ({
   isMessagesLoading: false,
 
   // Fetch messages from backend
-  getMessages: async () => {
-    set({ isMessagesLoading: true });
-    try {
-      const res = await axiosInstance.get("/messages");
-      set({ messages: res.data });
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Failed to load messages");
-    } finally {
-      set({ isMessagesLoading: false });
-    }
-  },
+  getMessages: async (cursor = null) => {
+  set({ isMessagesLoading: true });
+
+  try {
+    const url = cursor ? `/messages?cursor=${cursor}` : "/messages";
+    const res = await axiosInstance.get(url);
+
+    set((state) => {
+      // first load = replace
+      if (!cursor) {
+        return { messages: res.data };
+      }
+
+      // cursor load = prepend older messages
+      const existingIds = new Set(state.messages.map((m) => m._id));
+      const olderUnique = res.data.filter((m) => !existingIds.has(m._id));
+
+      return { messages: [...olderUnique, ...state.messages] };
+    });
+  } catch (error) {
+    toast.error(error?.response?.data?.message || "Failed to load messages");
+  } finally {
+    set({ isMessagesLoading: false });
+  }
+},
 
   // Send message to backend
   sendMessage: async (messageData) => {

@@ -4,19 +4,18 @@ import VoiceMessageBubble from "./VoiceMessageBubble";
 import { useChatStore } from "../store/useChatStore";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
-import InstagramBubble from "./InstagramBubble"; // New component with replay & cropping
+import InstagramBubble from "./InstagramBubble";
 
-// Detect Instagram Reel/Post URLs
 const detectInstagramMedia = (text) => {
   if (!text) return null;
 
   const reelMatch = text.match(
-    /(https?:\/\/(www\.)?instagram\.com\/reel\/[A-Za-z0-9_-]+)/
+    /(https?:\/\/(www\.)?instagram\.com\/reel\/[A-Za-z0-9_-]+\/?)/
   );
   if (reelMatch) return { type: "reel", url: reelMatch[1] };
 
   const postMatch = text.match(
-    /(https?:\/\/(www\.)?instagram\.com\/p\/[A-Za-z0-9_-]+)/
+    /(https?:\/\/(www\.)?instagram\.com\/p\/[A-Za-z0-9_-]+\/?)/
   );
   if (postMatch) return { type: "post", url: postMatch[1] };
 
@@ -34,27 +33,58 @@ const ChatContainer = () => {
 
   const [viewImage, setViewImage] = useState(null);
 
-  // Fetch messages once
+  const chatRef = useRef(null);
+  const loadingOlderRef = useRef(false); // prevents double fetch
+
+  // Initial load
   useEffect(() => {
     getMessages();
   }, [getMessages]);
 
-  // Initialize socket once
+  // Socket init once
   useEffect(() => {
     initSocket?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sort messages newest first
-  const sortedMessages = useMemo(
-    () =>
-      [...messages].sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      ),
-    [messages]
-  );
+  // Sort oldest -> newest (best for chat UI)
+  const sortedMessages = useMemo(() => {
+    return [...messages].sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+    );
+  }, [messages]);
 
-  if (isMessagesLoading) {
+  // ✅ AUTO LOAD older messages when user scrolls to TOP
+  const handleScroll = async () => {
+    const el = chatRef.current;
+    if (!el) return;
+
+    // if already loading older, stop
+    if (loadingOlderRef.current) return;
+
+    // if user not at top, stop
+    if (el.scrollTop > 10) return;
+
+    // oldest message cursor
+    const oldestId = sortedMessages[0]?._id;
+    if (!oldestId) return;
+
+    loadingOlderRef.current = true;
+
+    // keep scroll position stable
+    const prevScrollHeight = el.scrollHeight;
+
+    await getMessages(oldestId);
+
+    // after messages load, adjust scroll so user stays at same position
+    requestAnimationFrame(() => {
+      const newScrollHeight = el.scrollHeight;
+      el.scrollTop = newScrollHeight - prevScrollHeight;
+      loadingOlderRef.current = false;
+    });
+  };
+
+  if (isMessagesLoading && messages.length === 0) {
     return (
       <div className="flex-1 flex flex-col overflow-auto">
         <MessageSkeleton />
@@ -66,10 +96,15 @@ const ChatContainer = () => {
   return (
     <div className="flex-1 flex flex-col h-full relative">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
-        {sortedMessages.length === 0 && (
-          <p className="text-center text-xs opacity-50">No messages yet</p>
-        )}
+      <div
+        ref={chatRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3"
+      >
+        {/* top loader hint */}
+        <p className="text-center text-[10px] opacity-40">
+          Scroll up to load older messages
+        </p>
 
         {sortedMessages.map((message) => {
           const media = detectInstagramMedia(message.text);
@@ -117,15 +152,7 @@ const ChatContainer = () => {
                     alt="message"
                     loading="lazy"
                     onClick={() => setViewImage(message.image)}
-                    className="
-                      mt-2
-                      w-full
-                      max-w-[150px] sm:max-w-[180px]
-                      rounded-md
-                      object-cover
-                      cursor-pointer
-                      hover:opacity-90
-                    "
+                    className="mt-2 w-full max-w-[180px] rounded-md object-cover cursor-pointer hover:opacity-90"
                   />
                 )}
 
@@ -153,7 +180,7 @@ const ChatContainer = () => {
       {/* Image Viewer */}
       {viewImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-2 sm:p-4 md:p-6"
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-2 sm:p-4"
           onClick={() => setViewImage(null)}
         >
           <button
@@ -166,7 +193,7 @@ const ChatContainer = () => {
             src={viewImage}
             alt="full-view"
             onClick={(e) => e.stopPropagation()}
-            className="w-auto h-auto max-w-full max-h-full sm:max-w-[90vw] sm:max-h-[90vh] object-contain rounded-lg"
+            className="max-w-full max-h-full object-contain rounded-lg"
           />
         </div>
       )}
