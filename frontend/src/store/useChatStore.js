@@ -11,21 +11,20 @@ export const useChatStore = create((set, get) => ({
   getMessages: async (cursor) => {
     set({ isMessagesLoading: true });
     try {
-      const res = await axiosInstance.get("/messages", {
-        params: { cursor },
-      });
-
+      const res = await axiosInstance.get("/messages", { params: { cursor } });
       const fetchedMessages = res.data || [];
 
       set((state) => {
         if (!cursor) {
-          // ✅ Reverse the order for initial load (newest on top)
+          // Initial load: newest first
           return { messages: fetchedMessages.reverse() };
         }
 
-        // Append older messages at bottom (keep existing array order)
+        // Older messages: reverse before appending at bottom
         const existingIds = new Set(state.messages.map((m) => m._id));
-        const newMessages = fetchedMessages.filter((m) => !existingIds.has(m._id));
+        const newMessages = fetchedMessages
+          .filter((m) => !existingIds.has(m._id))
+          .reverse(); // ✅ Reverse older messages
 
         return { messages: [...state.messages, ...newMessages] };
       });
@@ -36,6 +35,7 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Send message
   sendMessage: async (messageData) => {
     try {
       await axiosInstance.post("/messages/send", messageData);
@@ -44,6 +44,7 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Delete message
   deleteMessage: async (messageId) => {
     try {
       await axiosInstance.delete(`/messages/${messageId}`);
@@ -55,6 +56,7 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
+  // Initialize socket listeners
   initSocket: () => {
     socket.off("newMessage");
     socket.off("deleteMessage");
@@ -62,8 +64,7 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", (message) => {
       set((state) => {
         if (state.messages.some((m) => m._id === message._id)) return state;
-        // ✅ Keep newest at top
-        return { messages: [message, ...state.messages] };
+        return { messages: [message, ...state.messages] }; // newest on top
       });
     });
 
