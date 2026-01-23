@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trash2, X } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import { useChatStore } from "../store/useChatStore";
@@ -30,40 +30,30 @@ const ChatContainer = () => {
   const chatRef = useRef(null);
   const loadingOlderRef = useRef(false);
 
-  // Initial load
-  useEffect(() => getMessages(), [getMessages]);
+  useEffect(() => getMessages(), [getMessages]); // initial load
+  useEffect(() => initSocket?.(), [initSocket]); // socket init
 
-  // Socket
-  useEffect(() => initSocket?.(), [initSocket]);
-
-  // Messages are already in newest → oldest order
-  const sortedMessages = useMemo(() => [...messages], [messages]);
-
-  // Load older messages when user scrolls to bottom
   const handleScroll = async () => {
     const el = chatRef.current;
     if (!el) return;
 
-    // Already loading? stop
+    // Already loading older?
     if (loadingOlderRef.current) return;
 
-    // If not near bottom, stop
+    // If user not at bottom (10px tolerance)
     if (el.scrollTop + el.clientHeight < el.scrollHeight - 10) return;
 
-    // Oldest message cursor = last message in array (newest → oldest)
-    const oldestId = sortedMessages[sortedMessages.length - 1]?._id;
+    // Last message = oldest
+    const oldestId = messages[messages.length - 1]?._id;
     if (!oldestId) return;
 
     loadingOlderRef.current = true;
-
-    // Keep scroll position stable
     const prevScrollHeight = el.scrollHeight;
 
-    await getMessages(oldestId); // fetch older messages
+    await getMessages(oldestId);
 
     requestAnimationFrame(() => {
       const newScrollHeight = el.scrollHeight;
-      // keep current messages visible
       el.scrollTop = el.scrollTop + (newScrollHeight - prevScrollHeight);
       loadingOlderRef.current = false;
     });
@@ -86,16 +76,15 @@ const ChatContainer = () => {
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3"
       >
-        {sortedMessages.length === 0 && (
+        {messages.length === 0 && (
           <p className="text-center text-xs opacity-50">No messages yet</p>
         )}
 
-        {sortedMessages.map((message) => {
+        {messages.map((message) => {
           const media = detectInstagramMedia(message.text);
 
           return (
             <div key={message._id} className="chat chat-start group">
-              {/* Header */}
               <div className="chat-header mb-1 flex items-center gap-2">
                 <time className="text-[10px] opacity-50">
                   {new Date(message.createdAt).toLocaleTimeString([], {
@@ -103,7 +92,6 @@ const ChatContainer = () => {
                     minute: "2-digit",
                   })}
                 </time>
-
                 <button
                   onClick={() => deleteMessage(message._id)}
                   className="opacity-0 group-hover:opacity-100 transition"
@@ -113,9 +101,7 @@ const ChatContainer = () => {
                 </button>
               </div>
 
-              {/* Bubble */}
               <div className="chat-bubble max-w-[80%] sm:max-w-[65%] md:max-w-[50%] px-3 py-2">
-                {/* Instagram Media */}
                 {media ? (
                   <InstagramBubble url={media.url} type={media.type} />
                 ) : (
@@ -126,10 +112,8 @@ const ChatContainer = () => {
                   )
                 )}
 
-                {/* Audio */}
                 {message.audio && <VoiceMessageBubble src={message.audio} />}
 
-                {/* Image */}
                 {message.image && (
                   <img
                     src={message.image}
@@ -140,7 +124,6 @@ const ChatContainer = () => {
                   />
                 )}
 
-                {/* Stickers */}
                 {message.stickers &&
                   message.stickers.map((sticker, idx) => (
                     <img
@@ -156,12 +139,10 @@ const ChatContainer = () => {
         })}
       </div>
 
-      {/* Input */}
       <div className="border-t bg-base-100">
         <MessageInput />
       </div>
 
-      {/* Image Viewer */}
       {viewImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-2 sm:p-4"
