@@ -23,63 +23,48 @@ const detectInstagramMedia = (text) => {
 };
 
 const ChatContainer = () => {
-  const {
-    messages,
-    getMessages,
-    deleteMessage,
-    isMessagesLoading,
-    initSocket,
-  } = useChatStore();
+  const { messages, getMessages, deleteMessage, isMessagesLoading, initSocket } =
+    useChatStore();
 
   const [viewImage, setViewImage] = useState(null);
-
   const chatRef = useRef(null);
-  const loadingOlderRef = useRef(false); // prevents double fetch
+  const loadingOlderRef = useRef(false);
 
   // Initial load
-  useEffect(() => {
-    getMessages();
-  }, [getMessages]);
+  useEffect(() => getMessages(), [getMessages]);
 
-  // Socket init once
-  useEffect(() => {
-    initSocket?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Socket
+  useEffect(() => initSocket?.(), [initSocket]);
 
-  // Sort oldest -> newest (best for chat UI)
-  const sortedMessages = useMemo(() => {
-    return [...messages].sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-    );
-  }, [messages]);
+  // Messages are already in newest → oldest order
+  const sortedMessages = useMemo(() => [...messages], [messages]);
 
-  // ✅ AUTO LOAD older messages when user scrolls to TOP
+  // Load older messages when user scrolls to bottom
   const handleScroll = async () => {
     const el = chatRef.current;
     if (!el) return;
 
-    // if already loading older, stop
+    // Already loading? stop
     if (loadingOlderRef.current) return;
 
-    // if user not at top, stop
-    if (el.scrollTop > 10) return;
+    // If not near bottom, stop
+    if (el.scrollTop + el.clientHeight < el.scrollHeight - 10) return;
 
-    // oldest message cursor
-    const oldestId = sortedMessages[0]?._id;
+    // Oldest message cursor = last message in array (newest → oldest)
+    const oldestId = sortedMessages[sortedMessages.length - 1]?._id;
     if (!oldestId) return;
 
     loadingOlderRef.current = true;
 
-    // keep scroll position stable
+    // Keep scroll position stable
     const prevScrollHeight = el.scrollHeight;
 
-    await getMessages(oldestId);
+    await getMessages(oldestId); // fetch older messages
 
-    // after messages load, adjust scroll so user stays at same position
     requestAnimationFrame(() => {
       const newScrollHeight = el.scrollHeight;
-      el.scrollTop = newScrollHeight - prevScrollHeight;
+      // keep current messages visible
+      el.scrollTop = el.scrollTop + (newScrollHeight - prevScrollHeight);
       loadingOlderRef.current = false;
     });
   };
@@ -101,10 +86,9 @@ const ChatContainer = () => {
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3"
       >
-        {/* top loader hint */}
-        <p className="text-center text-[10px] opacity-40">
-          Scroll up to load older messages
-        </p>
+        {sortedMessages.length === 0 && (
+          <p className="text-center text-xs opacity-50">No messages yet</p>
+        )}
 
         {sortedMessages.map((message) => {
           const media = detectInstagramMedia(message.text);
