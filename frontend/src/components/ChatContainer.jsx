@@ -50,7 +50,7 @@ const ChatContainer = () => {
   // Sort oldest -> newest (best for chat UI)
   const sortedMessages = useMemo(() => {
     return [...messages].sort(
-      (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
   }, [messages]);
 

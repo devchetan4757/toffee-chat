@@ -21,10 +21,11 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 app.use(
   cors({
-    origin:  "http://localhost:5173",
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173"], // base frontend URL
     credentials: true,
   })
 );
+
 console.log("ADMIN_PASSWORD loaded:", process.env.ADMIN_PASSWORD);
 // ✅ Routes
 app.use("/api/auth", authRoutes);
