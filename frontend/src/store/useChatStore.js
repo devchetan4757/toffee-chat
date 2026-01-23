@@ -4,10 +4,10 @@ import { axiosInstance } from "../lib/axios";
 import { socket } from "../lib/socket";
 
 export const useChatStore = create((set, get) => ({
-  messages: [],           // newest at index 0
+  messages: [],
   isMessagesLoading: false,
 
-  // Fetch messages; cursor is _id of the **oldest loaded message**
+  // Fetch messages from backend
   getMessages: async (cursor) => {
     set({ isMessagesLoading: true });
     try {
@@ -18,12 +18,12 @@ export const useChatStore = create((set, get) => ({
       const fetchedMessages = res.data || [];
 
       set((state) => {
-        // Initial load
         if (!cursor) {
-          return { messages: fetchedMessages };
+          // ✅ Reverse the order for initial load (newest on top)
+          return { messages: fetchedMessages.reverse() };
         }
 
-        // Append older messages to bottom, prevent duplicates
+        // Append older messages at bottom (keep existing array order)
         const existingIds = new Set(state.messages.map((m) => m._id));
         const newMessages = fetchedMessages.filter((m) => !existingIds.has(m._id));
 
@@ -62,7 +62,7 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", (message) => {
       set((state) => {
         if (state.messages.some((m) => m._id === message._id)) return state;
-        // prepend new messages at top (newest first)
+        // ✅ Keep newest at top
         return { messages: [message, ...state.messages] };
       });
     });

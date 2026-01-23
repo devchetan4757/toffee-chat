@@ -30,25 +30,20 @@ const ChatContainer = () => {
   const chatRef = useRef(null);
   const loadingOlderRef = useRef(false);
 
-  // Initial load
   useEffect(() => getMessages(), [getMessages]);
-
-  // Socket init once
   useEffect(() => initSocket?.(), [initSocket]);
 
-  // Load older messages when user scrolls **bottom**
   const handleScroll = async () => {
     const el = chatRef.current;
     if (!el || loadingOlderRef.current) return;
 
-    // Only trigger when near bottom (50px)
+    // Trigger when user scrolls to bottom (50px threshold)
     if (el.scrollHeight - el.scrollTop - el.clientHeight > 50) return;
 
     const oldestId = messages[messages.length - 1]?._id;
     if (!oldestId) return;
 
     loadingOlderRef.current = true;
-
     const prevScrollHeight = el.scrollHeight;
 
     await getMessages(oldestId);
