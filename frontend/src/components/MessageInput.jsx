@@ -14,14 +14,13 @@ const blobToBase64 = (blob) =>
   });
 
 const MessageInput = () => {
-  const { sendMessage } = useChatStore();
+  const { sendMessage, replyTo, clearReplyTo } = useChatStore();
 
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [audioBlob, setAudioBlob] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-
   const [showStickerPicker, setShowStickerPicker] = useState(false);
 
   // Position & dragging
@@ -31,7 +30,6 @@ const MessageInput = () => {
   // Scaling
   const [scale, setScale] = useState(1);
   const lastTouchDistance = useRef(null);
-
   const dragStartRef = useRef({ x: 0, y: 0 });
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -42,13 +40,13 @@ const MessageInput = () => {
     "aloo-dance.webp","cat-laugh.webp","rotlu.webp","smirk.webp",
     "amazed.webp","cat-laught.webp","shin1.webp","stare.webp",
     "blush.webp","luv.webp","shin2.webp","tease.webp",
-    "cat-comp.webp","me.webp","shocked.webp", "1.webp","2.webp",
+    "cat-comp.webp","me.webp","shocked.webp","1.webp","2.webp",
     "3.webp","4.webp","5.webp","6.webp","7.webp","8.webp","9.webp",
     "10.webp","11.webp","12.webp","13.webp","14.webp","15.webp",
     "16.webp","17.webp","18.webp","19.webp","20.webp","21.webp",
     "22.webp","23.webp","24.webp","25.webp","26.webp","27.webp",
-    "28.webp","29.webp","30.webp","31.webp","32.webp",
-    "34.webp","35.webp","36.webp","37.webp"
+    "28.webp","29.webp","30.webp","31.webp","32.webp","34.webp",
+    "35.webp","36.webp","37.webp"
   ];
 
   /* ---------------- IMAGE ---------------- */
@@ -105,12 +103,14 @@ const MessageInput = () => {
         text: text.trim(),
         image: imagePreview,
         audio: audioBase64,
+        replyTo: replyTo?._id || null, // attach reply id
       });
 
       setText("");
       setImagePreview(null);
       setImageFile(null);
       setAudioBlob(null);
+      clearReplyTo(); // reset reply
     } catch {
       toast.error("Failed to send message");
     }
@@ -118,7 +118,8 @@ const MessageInput = () => {
 
   const handleStickerSend = async (base64) => {
     try {
-      await sendMessage({ text: "", image: base64, audio: null });
+      await sendMessage({ text: "", image: base64, audio: null, replyTo: replyTo?._id || null });
+      clearReplyTo();
     } catch {
       toast.error("Failed to send sticker");
     }
@@ -132,7 +133,7 @@ const MessageInput = () => {
       Math.min(textareaRef.current.scrollHeight, 140) + "px";
   }, [text]);
 
-  /* ---------------- CLAMP POSITION ---------------- */
+  /* ---------------- POSITION / DRAG / SCALE LOGIC ---------------- */
   const clampPosition = (pos, width = 350, height = 140) => {
     const vv = window.visualViewport;
     const viewportLeft = vv?.offsetLeft ?? 0;
@@ -147,7 +148,6 @@ const MessageInput = () => {
     };
   };
 
-  /* ---------------- DRAGGING ---------------- */
   const onMouseDown = (e) => {
     setDragging(true);
     dragStartRef.current = {
@@ -209,11 +209,10 @@ const MessageInput = () => {
     lastTouchDistance.current = null;
   };
 
-  /* ---------------- DESKTOP ZOOM (CTRL + SCROLL) ---------------- */
+  /* ---------------- WHEEL ZOOM ---------------- */
   const onWheel = (e) => {
     if (!e.ctrlKey) return;
     e.preventDefault();
-
     const rect = e.currentTarget.getBoundingClientRect();
     const centerX = e.clientX - rect.left;
     const centerY = e.clientY - rect.top;
@@ -229,7 +228,7 @@ const MessageInput = () => {
     });
   };
 
-  /* ---------------- KEEP BOX INSIDE VIEWPORT ON MOBILE ZOOM / SCROLL ---------------- */
+  /* ---------------- KEEP INSIDE VIEWPORT ---------------- */
   useEffect(() => {
     const handleViewportChange = () => setPosition((pos) => clampPosition(pos));
     if (window.visualViewport) {
@@ -277,6 +276,18 @@ const MessageInput = () => {
       className="cursor-grab"
     >
       <div className="flex flex-col w-full gap-1">
+        {/* REPLY PREVIEW */}
+        {replyTo && (
+          <div className="bg-gray-200 px-3 py-1 rounded-lg flex justify-between items-center">
+            <span className="text-sm text-gray-700 truncate max-w-[80%]">
+              Replying: {replyTo.text || "Media"}
+            </span>
+            <button type="button" onClick={clearReplyTo}>
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         {/* AUDIO PREVIEW */}
         {audioBlob && (
           <div className="flex items-center gap-2 mb-1">

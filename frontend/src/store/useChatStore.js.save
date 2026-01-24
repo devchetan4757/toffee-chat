@@ -7,64 +7,56 @@ export const useChatStore = create((set, get) => ({
   messages: [],
   isMessagesLoading: false,
 
-  // 🔹 REPLY STATE
-  replyTo: null,
-  setReplyTo: (message) => set({ replyTo: message }),
-  clearReplyTo: () => set({ replyTo: null }),
-
-  // Fetch messages
+  // Fetch messages from backend
   getMessages: async (cursor) => {
     set({ isMessagesLoading: true });
     try {
-      const res = await axiosInstance.get("/messages", {
-        params: cursor ? { cursor } : {},
-      });
-
-      const fetched = res.data || [];
+      const res = await axiosInstance.get("/messages", { params: { cursor } });
+      const fetchedMessages = res.data || [];
 
       set((state) => {
         if (!cursor) {
-          // initial load (newest → oldest)
-          return { messages: fetched.reverse() };
+          // Initial load: newest first
+          return { messages: fetchedMessages.reverse() };
         }
 
-        // fetch older on bottom hit
+        // Older messages: reverse before appending at bottom
         const existingIds = new Set(state.messages.map((m) => m._id));
-        const older = fetched
+        const newMessages = fetchedMessages
           .filter((m) => !existingIds.has(m._id))
-          .reverse();
+          .reverse(); 
 
-        return { messages: [...state.messages, ...older] };
+        return { messages: [...state.messages, ...newMessages] };
       });
     } catch (error) {
-      toast.error(
-        error?.response?.data?.message || "Failed to load messages"
-      );
+      toast.error(error?.response?.data?.message || "Failed to load messages");
     } finally {
       set({ isMessagesLoading: false });
     }
   },
 
-  sendMessage: async (data) => {
+  // Send message
+  sendMessage: async (messageData) => {
     try {
-      await axiosInstance.post("/messages/send", data);
-      set({ replyTo: null });
+      await axiosInstance.post("/messages/send", messageData);
     } catch (error) {
-      toast.error("Failed to send message");
+      toast.error(error?.response?.data?.message || "Failed to send message");
     }
   },
 
-  deleteMessage: async (id) => {
+  // Delete message
+  deleteMessage: async (messageId) => {
     try {
-      await axiosInstance.delete(`/messages/${id}`);
+      await axiosInstance.delete(`/messages/${messageId}`);
       set((state) => ({
-        messages: state.messages.filter((m) => m._id !== id),
+        messages: state.messages.filter((m) => m._id !== messageId),
       }));
     } catch {
       toast.error("Failed to delete message");
     }
   },
 
+  // Initialize socket listeners
   initSocket: () => {
     socket.off("newMessage");
     socket.off("deleteMessage");
@@ -72,7 +64,7 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", (message) => {
       set((state) => {
         if (state.messages.some((m) => m._id === message._id)) return state;
-        return { messages: [message, ...state.messages] };
+        return { messages: [message, ...state.messages] }; // newest on top
       });
     });
 
