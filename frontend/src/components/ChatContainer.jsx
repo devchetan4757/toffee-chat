@@ -1,20 +1,16 @@
 import { useEffect, useRef } from "react";
-import { Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import InstagramBubble from "./InstagramBubble";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useChatStore } from "../store/useChatStore";
+import { formatMessageTime } from "../lib/utils";
 
 const detectInstagramMedia = (text) => {
   if (!text) return null;
-
-  if (text.includes("instagram.com/reel"))
-    return { type: "reel", url: text };
-
-  if (text.includes("instagram.com/p"))
-    return { type: "post", url: text };
-
+  if (text.includes("instagram.com/reel")) return { type: "reel", url: text };
+  if (text.includes("instagram.com/p")) return { type: "post", url: text };
   return null;
 };
 
@@ -44,9 +40,7 @@ const ChatContainer = () => {
     const el = chatRef.current;
     if (!el || loadingOlderRef.current) return;
 
-    const nearBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight < 50;
-
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
     if (!nearBottom) return;
 
     const oldestId = messages[messages.length - 1]?._id;
@@ -79,7 +73,7 @@ const ChatContainer = () => {
           return (
             <div key={message._id} className="chat chat-start group">
               <div className="chat-header flex gap-2 text-[10px] opacity-60">
-                {new Date(message.createdAt).toLocaleTimeString()}
+                {formatMessageTime(message.createdAt)}
                 <button
                   onClick={() => deleteMessage(message._id)}
                   className="opacity-0 group-hover:opacity-100"
@@ -102,15 +96,38 @@ const ChatContainer = () => {
                   }
                 }}
               >
+                {/* REPLY PREVIEW INSIDE MESSAGE */}
+                {message.replyTo && (
+                  <div className="bg-gray-200 px-2 py-1 rounded-md mb-2 border-l-2 border-blue-500">
+                    {message.replyTo.text && (
+                      <p className="text-sm text-gray-700 truncate max-w-[90%]">
+                        {message.replyTo.text}
+                      </p>
+                    )}
+                    {message.replyTo.image && (
+                      <img
+                        src={message.replyTo.image}
+                        className="mt-1 max-w-[100px] rounded-md"
+                      />
+                    )}
+                    {message.replyTo.audio && (
+                      <audio
+                        controls
+                        src={message.replyTo.audio}
+                        className="mt-1 w-full"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* MESSAGE CONTENT */}
                 {media ? (
                   <InstagramBubble url={media.url} type={media.type} />
                 ) : (
                   message.text && <p>{message.text}</p>
                 )}
 
-                {message.audio && (
-                  <VoiceMessageBubble src={message.audio} />
-                )}
+                {message.audio && <VoiceMessageBubble src={message.audio} />}
 
                 {message.image && (
                   <img

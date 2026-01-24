@@ -1,15 +1,22 @@
-// src/models/message.model.js
 import mongoose from "mongoose";
+
+const replySchema = new mongoose.Schema({
+  _id: { type: mongoose.Schema.Types.ObjectId, required: true },
+  text: { type: String, default: null },
+  image: { type: String, default: null },
+  audio: { type: String, default: null },
+}, { _id: false });
 
 const messageSchema = new mongoose.Schema(
   {
     text: { type: String },
     image: { type: String },
     audio: { type: String },
-    stickers: [{ type: String }], // optional: base64 stickers
+    stickers: [{ type: String }],
     mediaType: { type: String, enum: ["instagram", "youtube"], default: null },
     mediaStatus: { type: String, enum: ["pending", "ready", "failed"], default: null },
-    mediaUrl: { type: String, default: null }, // hosted media after download
+    mediaUrl: { type: String, default: null },
+    replyTo: { type: replySchema, default: null }, // ✅ store full reply snapshot
   },
   { timestamps: true }
 );
