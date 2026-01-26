@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Trash2, X } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import InstagramBubble from "./InstagramBubble";
 import MessageInput from "./MessageInput";
@@ -26,6 +26,7 @@ const ChatContainer = () => {
 
   const chatRef = useRef(null);
   const loadingOlderRef = useRef(false);
+  const [viewImage, setViewImage] = useState(null);
 
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
@@ -35,12 +36,13 @@ const ChatContainer = () => {
     initSocket();
   }, []);
 
-  // Fetch older messages when scrolled to bottom
   const handleScroll = async () => {
     const el = chatRef.current;
     if (!el || loadingOlderRef.current) return;
 
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+    const nearBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+
     if (!nearBottom) return;
 
     const oldestId = messages[messages.length - 1]?._id;
@@ -61,7 +63,7 @@ const ChatContainer = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex-1 flex flex-col h-full relative">
       <div
         ref={chatRef}
         onScroll={handleScroll}
@@ -92,47 +94,35 @@ const ChatContainer = () => {
                 }
                 onTouchEnd={() => {
                   if (touchEndX.current - touchStartX.current > 60) {
-                    setReplyTo(message); // swipe right → reply
+                    setReplyTo(message);
                   }
                 }}
               >
-                {/* REPLY PREVIEW INSIDE MESSAGE */}
+                {/* 🔹 REPLY DISPLAY */}
                 {message.replyTo && (
-                  <div className="bg-gray-200 px-2 py-1 rounded-md mb-2 border-l-2 border-blue-500">
-                    {message.replyTo.text && (
-                      <p className="text-sm text-gray-700 truncate max-w-[90%]">
-                        {message.replyTo.text}
-                      </p>
-                    )}
-                    {message.replyTo.image && (
-                      <img
-                        src={message.replyTo.image}
-                        className="mt-1 max-w-[100px] rounded-md"
-                      />
-                    )}
-                    {message.replyTo.audio && (
-                      <audio
-                        controls
-                        src={message.replyTo.audio}
-                        className="mt-1 w-full"
-                      />
-                    )}
+                  <div className="mb-1 px-2 py-1 border-l-4 border-primary bg-base-300 rounded text-xs opacity-80">
+                    <div className="truncate">
+                      {message.replyTo.text || "Media"}
+                    </div>
                   </div>
                 )}
 
-                {/* MESSAGE CONTENT */}
+                {/* MAIN CONTENT */}
                 {media ? (
                   <InstagramBubble url={media.url} type={media.type} />
                 ) : (
                   message.text && <p>{message.text}</p>
                 )}
 
-                {message.audio && <VoiceMessageBubble src={message.audio} />}
+                {message.audio && (
+                  <VoiceMessageBubble src={message.audio} />
+                )}
 
                 {message.image && (
                   <img
                     src={message.image}
-                    className="mt-2 rounded-md max-w-[180px]"
+                    className="mt-2 rounded-md max-w-[180px] cursor-pointer"
+                    onClick={() => setViewImage(message.image)}
                   />
                 )}
               </div>
@@ -142,6 +132,26 @@ const ChatContainer = () => {
       </div>
 
       <MessageInput />
+
+      {/* 🔹 FULLSCREEN IMAGE VIEW (NO NEW COMPONENT) */}
+      {viewImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          onClick={() => setViewImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white"
+            onClick={() => setViewImage(null)}
+          >
+            <X size={24} />
+          </button>
+          <img
+            src={viewImage}
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
