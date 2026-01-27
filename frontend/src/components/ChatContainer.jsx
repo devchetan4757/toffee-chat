@@ -18,55 +18,37 @@ const ChatContainer = () => {
   const {
     messages,
     getMessages,
+    preloadOlderMessages,
     deleteMessage,
     isMessagesLoading,
-    loadingOlder,
     initSocket,
     setReplyTo,
+    hasMore,
   } = useChatStore();
 
   const chatRef = useRef(null);
-  const loadingOlderRef = useRef(false);
   const [viewImage, setViewImage] = useState(null);
 
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
+  // 🔹 INITIAL LOAD → NEWEST FIRST
   useEffect(() => {
-    getMessages(); // initial
+    const load = async () => {
+      await getMessages(null, 40);   // 🚀 instant newest
+      preloadOlderMessages();       // 💤 background preload
+    };
+
+    load();
     initSocket();
   }, []);
 
-  // ================================
-  // SCROLL LOAD (OPTIONAL)
-  // ================================
-  const handleScroll = async () => {
-    const el = chatRef.current;
-    if (!el || loadingOlderRef.current) return;
-
-    const nearBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-
-    if (!nearBottom) return;
-
-    await loadOlderMessages();
-  };
-
-  // ================================
-  // BUTTON LOAD (FAST + RELIABLE)
-  // ================================
+  // 🔹 MANUAL LOAD (instant because of preload)
   const loadOlderMessages = async () => {
-    if (loadingOlderRef.current) return;
-
     const oldestId = messages[messages.length - 1]?._id;
     if (!oldestId) return;
 
-    loadingOlderRef.current = true;
-
-    // 🔥 BIGGER CHUNK SIZE HERE
-    await getMessages(oldestId, 300);
-
-    loadingOlderRef.current = false;
+    await getMessages(oldestId, 200);
   };
 
   if (isMessagesLoading && messages.length === 0) {
@@ -82,7 +64,6 @@ const ChatContainer = () => {
     <div className="flex-1 flex flex-col h-full relative">
       <div
         ref={chatRef}
-        onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-3 space-y-3"
       >
         {messages.map((message) => {
@@ -146,16 +127,15 @@ const ChatContainer = () => {
         })}
       </div>
 
-      {/* 🔹 LOAD OLDER BUTTON (FAST) */}
-      {messages.length > 0 && (
+      {/* 🔹 LOAD OLDER BUTTON */}
+      {hasMore && messages.length > 0 && (
         <div className="flex justify-center py-2 border-t border-base-300">
           <button
             onClick={loadOlderMessages}
-            disabled={loadingOlder}
             className="btn btn-sm btn-outline gap-2"
           >
             <ArrowUp size={14} />
-            {loadingOlder ? "Loading…" : "Load older messages"}
+            Load older messages
           </button>
         </div>
       )}
