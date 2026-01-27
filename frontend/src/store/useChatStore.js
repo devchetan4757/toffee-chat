@@ -6,67 +6,45 @@ import { socket } from "../lib/socket";
 export const useChatStore = create((set, get) => ({
   messages: [],
   isMessagesLoading: false,
-  loadingOlder: false,
 
   // 🔹 REPLY STATE
   replyTo: null,
   setReplyTo: (message) => set({ replyTo: message }),
   clearReplyTo: () => set({ replyTo: null }),
 
-  // ================================
-  // FETCH MESSAGES (INITIAL + OLDER)
-  // ================================
-  getMessages: async (cursor = null, limit = 150) => {
-    const isInitialLoad = !cursor;
-
-    set(
-      isInitialLoad
-        ? { isMessagesLoading: true }
-        : { loadingOlder: true }
-    );
-
+  // Fetch messages
+  getMessages: async (cursor) => {
+    set({ isMessagesLoading: true });
     try {
       const res = await axiosInstance.get("/messages", {
-        params: {
-          cursor,
-          limit,
-        },
+        params: cursor ? { cursor } : {},
       });
 
       const fetched = res.data || [];
 
       set((state) => {
-        if (isInitialLoad) {
-          // ✅ Backend already sends OLD → NEW
-          return { messages: fetched };
+        if (!cursor) {
+          // initial load (newest → oldest)
+          return { messages: fetched.reverse() };
         }
 
-        // ✅ Append older messages at bottom
+        // fetch older on bottom hit
         const existingIds = new Set(state.messages.map((m) => m._id));
+        const older = fetched
+          .filter((m) => !existingIds.has(m._id))
+          .reverse();
 
-        const uniqueOlder = fetched.filter(
-          (m) => !existingIds.has(m._id)
-        );
-
-        return {
-          messages: [...state.messages, ...uniqueOlder],
-        };
+        return { messages: [...state.messages, ...older] };
       });
     } catch (error) {
       toast.error(
         error?.response?.data?.message || "Failed to load messages"
       );
     } finally {
-      set({
-        isMessagesLoading: false,
-        loadingOlder: false,
-      });
+      set({ isMessagesLoading: false });
     }
   },
 
-  // ================================
-  // SEND MESSAGE
-  // ================================
   sendMessage: async (data) => {
     try {
       await axiosInstance.post("/messages/send", data);
@@ -76,9 +54,6 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // ================================
-  // DELETE MESSAGE
-  // ================================
   deleteMessage: async (id) => {
     try {
       await axiosInstance.delete(`/messages/${id}`);
@@ -90,23 +65,14 @@ export const useChatStore = create((set, get) => ({
     }
   },
 
-  // ================================
-  // SOCKET HANDLERS
-  // ================================
   initSocket: () => {
     socket.off("newMessage");
     socket.off("deleteMessage");
 
     socket.on("newMessage", (message) => {
       set((state) => {
-        if (state.messages.some((m) => m._id === message._id)) {
-          return state;
-        }
-
-        // ✅ New messages come at TOP
-        return {
-          messages: [message, ...state.messages],
-        };
+        if (state.messages.some((m) => m._id === message._id)) return state;
+        return { messages: [message, ...state.messages] };
       });
     });
 
@@ -115,5 +81,10 @@ export const useChatStore = create((set, get) => ({
         messages: state.messages.filter((m) => m._id !== id),
       }));
     });
+
+    return () => {
+      socket.off("newMessage");
+      socket.off("deleteMessage");
+    };
   },
 }));
