@@ -13,24 +13,27 @@ export const useChatStore = create((set, get) => ({
   clearReplyTo: () => set({ replyTo: null }),
 
   // Fetch messages
-  getMessages: async (cursor, limit = 50) => {
+  getMessages: async (cursor) => {
     set({ isMessagesLoading: true });
     try {
       const res = await axiosInstance.get("/messages", {
-        params: { cursor, limit },
+        params: cursor ? { cursor } : {},
       });
 
       const fetched = res.data || [];
 
       set((state) => {
         if (!cursor) {
-          // initial load → newest at top
-          return { messages: fetched };
+          // initial load (newest → oldest)
+          return { messages: fetched.reverse() };
         }
 
-        // append older messages at bottom
+        // fetch older on bottom hit
         const existingIds = new Set(state.messages.map((m) => m._id));
-        const older = fetched.filter((m) => !existingIds.has(m._id));
+        const older = fetched
+          .filter((m) => !existingIds.has(m._id))
+          .reverse();
+
         return { messages: [...state.messages, ...older] };
       });
     } catch (error) {
@@ -69,7 +72,7 @@ export const useChatStore = create((set, get) => ({
     socket.on("newMessage", (message) => {
       set((state) => {
         if (state.messages.some((m) => m._id === message._id)) return state;
-        return { messages: [message, ...state.messages] }; // newest at top
+        return { messages: [message, ...state.messages] };
       });
     });
 
