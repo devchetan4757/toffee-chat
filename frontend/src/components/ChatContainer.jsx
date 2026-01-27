@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2, X, ArrowDown } from "lucide-react";
+import { Trash2, ArrowUp, X } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import InstagramBubble from "./InstagramBubble";
 import MessageInput from "./MessageInput";
@@ -17,36 +17,63 @@ const detectInstagramMedia = (text) => {
 const ChatContainer = () => {
   const {
     messages,
+    preloadedMessages,
     getMessages,
     deleteMessage,
     isMessagesLoading,
     initSocket,
     setReplyTo,
-    preloadOlderMessages,
-    hasMore,
   } = useChatStore();
 
   const chatRef = useRef(null);
+  const loadingOlderRef = useRef(false);
   const [viewImage, setViewImage] = useState(null);
 
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
-  // 🔹 INITIAL LOAD
   useEffect(() => {
     getMessages();
     initSocket();
   }, []);
 
-  // 🔹 SCROLL HANDLER (optional auto-load)
+  // Scroll-based loading (still works)
   const handleScroll = async () => {
     const el = chatRef.current;
-    if (!el) return;
+    if (!el || loadingOlderRef.current) return;
 
-    // If scrolled near bottom → load older messages
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 50 && hasMore) {
-      preloadOlderMessages();
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+    if (!nearBottom) return;
+
+    await appendPreloadedMessages();
+  };
+
+  const appendPreloadedMessages = async () => {
+    if (loadingOlderRef.current) return;
+
+    if (preloadedMessages.length === 0) {
+      // Preload next chunk manually if buffer empty
+      const oldestId = messages[messages.length - 1]?._id;
+      if (!oldestId) return;
+      loadingOlderRef.current = true;
+      await getMessages(oldestId);
+      loadingOlderRef.current = false;
+      return;
     }
+
+    loadingOlderRef.current = true;
+    // Append preloaded messages instantly
+    setTimeout(() => {
+      useChatStore.setState((state) => ({
+        messages: [...state.messages, ...state.preloadedMessages],
+        preloadedMessages: [],
+      }));
+      loadingOlderRef.current = false;
+
+      // Preload next chunk in background
+      const oldestId = messages[messages.length - 1]?._id;
+      if (oldestId) getMessages(oldestId, true);
+    }, 0);
   };
 
   if (isMessagesLoading && messages.length === 0) {
@@ -60,7 +87,6 @@ const ChatContainer = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full relative">
-      {/* 🔹 CHAT MESSAGES */}
       <div
         ref={chatRef}
         onScroll={handleScroll}
@@ -71,7 +97,6 @@ const ChatContainer = () => {
 
           return (
             <div key={message._id} className="chat chat-start group">
-              {/* TIME & DELETE */}
               <div className="chat-header flex gap-2 text-[10px] opacity-60">
                 {formatMessageTime(message.createdAt)}
                 <button
@@ -82,7 +107,6 @@ const ChatContainer = () => {
                 </button>
               </div>
 
-              {/* MESSAGE BUBBLE */}
               <div
                 className="chat-bubble max-w-[75%]"
                 onTouchStart={(e) =>
@@ -93,28 +117,42 @@ const ChatContainer = () => {
                 }
                 onTouchEnd={() => {
                   if (touchEndX.current - touchStartX.current > 60) {
-                    setReplyTo(message); // swipe → reply
+                    setReplyTo(message); // swipe right → reply
                   }
                 }}
               >
-                {/* 🔹 REPLY PREVIEW */}
+                {/* REPLY PREVIEW */}
                 {message.replyTo && (
-                  <div className="mb-1 px-2 py-1 border-l-4 border-primary bg-base-300 rounded text-xs opacity-80">
-                    <div className="truncate">
-                      {message.replyTo.text || message.replyTo.image || "Media"}
-                    </div>
+                  <div className="bg-gray-200 px-2 py-1 rounded-md mb-2 border-l-2 border-blue-500">
+                    {message.replyTo.text && (
+                      <p className="text-sm text-gray-700 truncate max-w-[90%]">
+                        {message.replyTo.text}
+                      </p>
+                    )}
+                    {message.replyTo.image && (
+                      <img
+                        src={message.replyTo.image}
+                        className="mt-1 max-w-[100px] rounded-md"
+                      />
+                    )}
+                    {message.replyTo.audio && (
+                      <audio
+                        controls
+                        src={message.replyTo.audio}
+                        className="mt-1 w-full"
+                      />
+                    )}
                   </div>
                 )}
 
+                {/* MESSAGE CONTENT */}
                 {media ? (
                   <InstagramBubble url={media.url} type={media.type} />
                 ) : (
                   message.text && <p>{message.text}</p>
                 )}
 
-                {message.audio && (
-                  <VoiceMessageBubble src={message.audio} />
-                )}
+                {message.audio && <VoiceMessageBubble src={message.audio} />}
 
                 {message.image && (
                   <img
@@ -129,22 +167,21 @@ const ChatContainer = () => {
         })}
       </div>
 
-      {/* 🔹 LOAD OLDER BUTTON */}
-      {hasMore && messages.length > 0 && (
+      {/* LOAD OLDER MESSAGES BUTTON */}
+      {messages.length > 0 && (
         <div className="flex justify-center py-2 border-t border-base-300">
           <button
-            onClick={preloadOlderMessages}
+            onClick={appendPreloadedMessages}
             className="btn btn-sm btn-outline gap-2"
           >
-            <ArrowDown size={14} />
-            Load older messages
+            <ArrowUp size={14} /> Load older messages
           </button>
         </div>
       )}
 
       <MessageInput />
 
-      {/* 🔹 FULLSCREEN IMAGE */}
+      {/* FULLSCREEN IMAGE VIEW */}
       {viewImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"

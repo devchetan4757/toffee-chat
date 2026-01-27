@@ -5,7 +5,9 @@ import { socket } from "../lib/socket";
 
 export const useChatStore = create((set, get) => ({
   messages: [],
+  preloadedMessages: [], // buffer for older messages
   isMessagesLoading: false,
+  isPreloading: false,
 
   // 🔹 REPLY STATE
   replyTo: null,
@@ -13,35 +15,54 @@ export const useChatStore = create((set, get) => ({
   clearReplyTo: () => set({ replyTo: null }),
 
   // Fetch messages
-  getMessages: async (cursor) => {
-    set({ isMessagesLoading: true });
+  getMessages: async (cursor, preload = false) => {
+    if (!preload) set({ isMessagesLoading: true });
+    else set({ isPreloading: true });
+
     try {
       const res = await axiosInstance.get("/messages", {
-        params: cursor ? { cursor } : {},
+        params: cursor ? { cursor, limit: 50 } : { limit: 50 },
       });
 
       const fetched = res.data || [];
 
-      set((state) => {
-        if (!cursor) {
-          // initial load (newest → oldest)
-          return { messages: fetched.reverse() };
-        }
+      if (!cursor) {
+        // Initial load (newest → oldest)
+        set({ messages: fetched.reverse() });
 
-        // fetch older on bottom hit
-        const existingIds = new Set(state.messages.map((m) => m._id));
+        // Start background preload of next chunk
+        if (fetched.length > 0) {
+          get().getMessages(fetched[fetched.length - 1]._id, true);
+        }
+      } else if (preload) {
+        // Store older messages in preloaded buffer
+        set((state) => ({
+          preloadedMessages: fetched.reverse(),
+        }));
+      } else {
+        // User requested older messages
+        const existingIds = new Set(get().messages.map((m) => m._id));
         const older = fetched
           .filter((m) => !existingIds.has(m._id))
           .reverse();
 
-        return { messages: [...state.messages, ...older] };
-      });
+        set((state) => ({
+          messages: [...state.messages, ...older],
+          preloadedMessages: [],
+        }));
+
+        // Preload next chunk in background
+        if (fetched.length > 0) {
+          get().getMessages(fetched[fetched.length - 1]._id, true);
+        }
+      }
     } catch (error) {
       toast.error(
         error?.response?.data?.message || "Failed to load messages"
       );
     } finally {
-      set({ isMessagesLoading: false });
+      if (!preload) set({ isMessagesLoading: false });
+      else set({ isPreloading: false });
     }
   },
 
