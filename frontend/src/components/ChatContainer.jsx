@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2, X, ArrowUp } from "lucide-react";
+import { Trash2, X, ArrowDown } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import InstagramBubble from "./InstagramBubble";
 import MessageInput from "./MessageInput";
@@ -18,11 +18,11 @@ const ChatContainer = () => {
   const {
     messages,
     getMessages,
-    preloadOlderMessages,
     deleteMessage,
     isMessagesLoading,
     initSocket,
     setReplyTo,
+    preloadOlderMessages,
     hasMore,
   } = useChatStore();
 
@@ -32,23 +32,21 @@ const ChatContainer = () => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
-  // 🔹 INITIAL LOAD → NEWEST FIRST
+  // 🔹 INITIAL LOAD
   useEffect(() => {
-    const load = async () => {
-      await getMessages(null, 40);   // 🚀 instant newest
-      preloadOlderMessages();       // 💤 background preload
-    };
-
-    load();
+    getMessages();
     initSocket();
   }, []);
 
-  // 🔹 MANUAL LOAD (instant because of preload)
-  const loadOlderMessages = async () => {
-    const oldestId = messages[messages.length - 1]?._id;
-    if (!oldestId) return;
+  // 🔹 SCROLL HANDLER (optional auto-load)
+  const handleScroll = async () => {
+    const el = chatRef.current;
+    if (!el) return;
 
-    await getMessages(oldestId, 200);
+    // If scrolled near bottom → load older messages
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 50 && hasMore) {
+      preloadOlderMessages();
+    }
   };
 
   if (isMessagesLoading && messages.length === 0) {
@@ -62,8 +60,10 @@ const ChatContainer = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full relative">
+      {/* 🔹 CHAT MESSAGES */}
       <div
         ref={chatRef}
+        onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-3 space-y-3"
       >
         {messages.map((message) => {
@@ -71,6 +71,7 @@ const ChatContainer = () => {
 
           return (
             <div key={message._id} className="chat chat-start group">
+              {/* TIME & DELETE */}
               <div className="chat-header flex gap-2 text-[10px] opacity-60">
                 {formatMessageTime(message.createdAt)}
                 <button
@@ -81,6 +82,7 @@ const ChatContainer = () => {
                 </button>
               </div>
 
+              {/* MESSAGE BUBBLE */}
               <div
                 className="chat-bubble max-w-[75%]"
                 onTouchStart={(e) =>
@@ -91,7 +93,7 @@ const ChatContainer = () => {
                 }
                 onTouchEnd={() => {
                   if (touchEndX.current - touchStartX.current > 60) {
-                    setReplyTo(message);
+                    setReplyTo(message); // swipe → reply
                   }
                 }}
               >
@@ -99,7 +101,7 @@ const ChatContainer = () => {
                 {message.replyTo && (
                   <div className="mb-1 px-2 py-1 border-l-4 border-primary bg-base-300 rounded text-xs opacity-80">
                     <div className="truncate">
-                      {message.replyTo.text || "Media"}
+                      {message.replyTo.text || message.replyTo.image || "Media"}
                     </div>
                   </div>
                 )}
@@ -131,10 +133,10 @@ const ChatContainer = () => {
       {hasMore && messages.length > 0 && (
         <div className="flex justify-center py-2 border-t border-base-300">
           <button
-            onClick={loadOlderMessages}
+            onClick={preloadOlderMessages}
             className="btn btn-sm btn-outline gap-2"
           >
-            <ArrowUp size={14} />
+            <ArrowDown size={14} />
             Load older messages
           </button>
         </div>
