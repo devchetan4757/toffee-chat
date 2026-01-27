@@ -20,6 +20,7 @@ const ChatContainer = () => {
     getMessages,
     deleteMessage,
     isMessagesLoading,
+    loadingOlder,
     initSocket,
     setReplyTo,
   } = useChatStore();
@@ -32,24 +33,28 @@ const ChatContainer = () => {
   const touchEndX = useRef(0);
 
   useEffect(() => {
-    getMessages();
+    getMessages(); // initial
     initSocket();
   }, []);
 
-  // 🔹 Scroll-based loading (still works)
+  // ================================
+  // SCROLL LOAD (OPTIONAL)
+  // ================================
   const handleScroll = async () => {
     const el = chatRef.current;
     if (!el || loadingOlderRef.current) return;
 
     const nearBottom =
-      el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+      el.scrollHeight - el.scrollTop - el.clientHeight < 40;
 
     if (!nearBottom) return;
 
     await loadOlderMessages();
   };
 
-  // 🔹 Manual button loader
+  // ================================
+  // BUTTON LOAD (FAST + RELIABLE)
+  // ================================
   const loadOlderMessages = async () => {
     if (loadingOlderRef.current) return;
 
@@ -57,7 +62,10 @@ const ChatContainer = () => {
     if (!oldestId) return;
 
     loadingOlderRef.current = true;
-    await getMessages(oldestId);
+
+    // 🔥 BIGGER CHUNK SIZE HERE
+    await getMessages(oldestId, 300);
+
     loadingOlderRef.current = false;
   };
 
@@ -138,15 +146,16 @@ const ChatContainer = () => {
         })}
       </div>
 
-      {/* 🔹 LOAD OLDER MESSAGES BUTTON (BOTTOM) */}
+      {/* 🔹 LOAD OLDER BUTTON (FAST) */}
       {messages.length > 0 && (
         <div className="flex justify-center py-2 border-t border-base-300">
           <button
             onClick={loadOlderMessages}
+            disabled={loadingOlder}
             className="btn btn-sm btn-outline gap-2"
           >
             <ArrowUp size={14} />
-            Load older messages
+            {loadingOlder ? "Loading…" : "Load older messages"}
           </button>
         </div>
       )}

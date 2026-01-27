@@ -11,7 +11,7 @@ import { io } from "../lib/socket.js";
  */
 export const getMessages = async (req, res) => {
   try {
-    const limit = Number(req.query.limit) || 50;
+    const limit = Number(req.query.limit) || 150;
     const { cursor } = req.query;
 
     const query = cursor ? { _id: { $lt: cursor } } : {};
@@ -19,7 +19,7 @@ export const getMessages = async (req, res) => {
     const messages = await Message.find(query)
       .sort({ createdAt: -1 }) // NEW → OLD
       .limit(limit)
-      .lean(); // convert to plain JS objects for safety
+      .lean(); 
 
     res.status(200).json(messages.reverse()); // OLD → NEW
   } catch (error) {
