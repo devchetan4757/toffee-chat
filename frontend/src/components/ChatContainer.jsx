@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2, ArrowUp, X } from "lucide-react";
+import { Trash2, X, ArrowUp } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import InstagramBubble from "./InstagramBubble";
 import MessageInput from "./MessageInput";
@@ -17,8 +17,10 @@ const detectInstagramMedia = (text) => {
 const ChatContainer = () => {
   const {
     messages,
-    preloadedMessages,
+    olderMessages,
+    hasMore,
     getMessages,
+    loadOlderMessages,
     deleteMessage,
     isMessagesLoading,
     initSocket,
@@ -26,54 +28,25 @@ const ChatContainer = () => {
   } = useChatStore();
 
   const chatRef = useRef(null);
-  const loadingOlderRef = useRef(false);
   const [viewImage, setViewImage] = useState(null);
 
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
   useEffect(() => {
-    getMessages();
+    getMessages(); // initial load
     initSocket();
   }, []);
 
-  // Scroll-based loading (still works)
-  const handleScroll = async () => {
+  // scroll-based detection (optional, for auto load older if needed)
+  const handleScroll = () => {
     const el = chatRef.current;
-    if (!el || loadingOlderRef.current) return;
+    if (!el || !hasMore) return;
 
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
     if (!nearBottom) return;
 
-    await appendPreloadedMessages();
-  };
-
-  const appendPreloadedMessages = async () => {
-    if (loadingOlderRef.current) return;
-
-    if (preloadedMessages.length === 0) {
-      // Preload next chunk manually if buffer empty
-      const oldestId = messages[messages.length - 1]?._id;
-      if (!oldestId) return;
-      loadingOlderRef.current = true;
-      await getMessages(oldestId);
-      loadingOlderRef.current = false;
-      return;
-    }
-
-    loadingOlderRef.current = true;
-    // Append preloaded messages instantly
-    setTimeout(() => {
-      useChatStore.setState((state) => ({
-        messages: [...state.messages, ...state.preloadedMessages],
-        preloadedMessages: [],
-      }));
-      loadingOlderRef.current = false;
-
-      // Preload next chunk in background
-      const oldestId = messages[messages.length - 1]?._id;
-      if (oldestId) getMessages(oldestId, true);
-    }, 0);
+    loadOlderMessages();
   };
 
   if (isMessagesLoading && messages.length === 0) {
@@ -97,6 +70,7 @@ const ChatContainer = () => {
 
           return (
             <div key={message._id} className="chat chat-start group">
+              {/* TIME & DELETE */}
               <div className="chat-header flex gap-2 text-[10px] opacity-60">
                 {formatMessageTime(message.createdAt)}
                 <button
@@ -107,21 +81,18 @@ const ChatContainer = () => {
                 </button>
               </div>
 
+              {/* MESSAGE BUBBLE */}
               <div
                 className="chat-bubble max-w-[75%]"
-                onTouchStart={(e) =>
-                  (touchStartX.current = e.touches[0].clientX)
-                }
-                onTouchMove={(e) =>
-                  (touchEndX.current = e.touches[0].clientX)
-                }
+                onTouchStart={(e) => (touchStartX.current = e.touches[0].clientX)}
+                onTouchMove={(e) => (touchEndX.current = e.touches[0].clientX)}
                 onTouchEnd={() => {
                   if (touchEndX.current - touchStartX.current > 60) {
-                    setReplyTo(message); // swipe right → reply
+                    setReplyTo(message);
                   }
                 }}
               >
-                {/* REPLY PREVIEW */}
+                {/* REPLY SNAPSHOT */}
                 {message.replyTo && (
                   <div className="bg-gray-200 px-2 py-1 rounded-md mb-2 border-l-2 border-blue-500">
                     {message.replyTo.text && (
@@ -136,16 +107,12 @@ const ChatContainer = () => {
                       />
                     )}
                     {message.replyTo.audio && (
-                      <audio
-                        controls
-                        src={message.replyTo.audio}
-                        className="mt-1 w-full"
-                      />
+                      <audio controls src={message.replyTo.audio} className="mt-1 w-full" />
                     )}
                   </div>
                 )}
 
-                {/* MESSAGE CONTENT */}
+                {/* CONTENT */}
                 {media ? (
                   <InstagramBubble url={media.url} type={media.type} />
                 ) : (
@@ -168,20 +135,21 @@ const ChatContainer = () => {
       </div>
 
       {/* LOAD OLDER MESSAGES BUTTON */}
-      {messages.length > 0 && (
+      {hasMore && messages.length > 0 && (
         <div className="flex justify-center py-2 border-t border-base-300">
           <button
-            onClick={appendPreloadedMessages}
+            onClick={loadOlderMessages}
             className="btn btn-sm btn-outline gap-2"
           >
-            <ArrowUp size={14} /> Load older messages
+            <ArrowUp size={14} />
+            Load Older Messages
           </button>
         </div>
       )}
 
       <MessageInput />
 
-      {/* FULLSCREEN IMAGE VIEW */}
+      {/* FULLSCREEN IMAGE */}
       {viewImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"

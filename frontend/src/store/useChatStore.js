@@ -4,73 +4,88 @@ import { axiosInstance } from "../lib/axios";
 import { socket } from "../lib/socket";
 
 export const useChatStore = create((set, get) => ({
-  messages: [],
-  preloadedMessages: [], // buffer for older messages
+  messages: [],          // currently displayed messages (newest first)
+  olderMessages: [],     // preloaded older messages
   isMessagesLoading: false,
-  isPreloading: false,
-
-  // 🔹 REPLY STATE
+  hasMore: true,         // are there older messages to load?
   replyTo: null,
+
   setReplyTo: (message) => set({ replyTo: message }),
   clearReplyTo: () => set({ replyTo: null }),
 
-  // Fetch messages
-  getMessages: async (cursor, preload = false) => {
-    if (!preload) set({ isMessagesLoading: true });
-    else set({ isPreloading: true });
-
+  // fetch messages
+  getMessages: async (cursor = null, limit = 50, prepend = false) => {
+    set({ isMessagesLoading: true });
     try {
       const res = await axiosInstance.get("/messages", {
-        params: cursor ? { cursor, limit: 50 } : { limit: 50 },
+        params: { cursor, limit },
       });
-
       const fetched = res.data || [];
 
-      if (!cursor) {
-        // Initial load (newest → oldest)
-        set({ messages: fetched.reverse() });
+      set((state) => {
+        const newMessages = fetched.filter(
+          (m) => !state.messages.some((msg) => msg._id === m._id)
+        );
 
-        // Start background preload of next chunk
-        if (fetched.length > 0) {
-          get().getMessages(fetched[fetched.length - 1]._id, true);
+        if (!cursor) {
+          // initial load → newest messages
+          return {
+            messages: newMessages,
+            hasMore: fetched.length === limit,
+          };
         }
-      } else if (preload) {
-        // Store older messages in preloaded buffer
-        set((state) => ({
-          preloadedMessages: fetched.reverse(),
-        }));
-      } else {
-        // User requested older messages
-        const existingIds = new Set(get().messages.map((m) => m._id));
-        const older = fetched
-          .filter((m) => !existingIds.has(m._id))
-          .reverse();
 
-        set((state) => ({
-          messages: [...state.messages, ...older],
-          preloadedMessages: [],
-        }));
-
-        // Preload next chunk in background
-        if (fetched.length > 0) {
-          get().getMessages(fetched[fetched.length - 1]._id, true);
+        // fetch older messages (background preload)
+        if (!prepend) {
+          return {
+            olderMessages: newMessages,
+            hasMore: fetched.length === limit,
+          };
         }
-      }
+
+        // user requested to load older → prepend to messages
+        return {
+          messages: [...state.messages, ...state.olderMessages],
+          olderMessages: [],
+          hasMore: state.hasMore,
+        };
+      });
     } catch (error) {
-      toast.error(
-        error?.response?.data?.message || "Failed to load messages"
-      );
+      toast.error(error?.response?.data?.message || "Failed to load messages");
     } finally {
-      if (!preload) set({ isMessagesLoading: false });
-      else set({ isPreloading: false });
+      set({ isMessagesLoading: false });
     }
+  },
+
+  // load older messages when user clicks button
+  loadOlderMessages: async (limit = 50) => {
+    const state = get();
+    if (!state.hasMore) return;
+
+    // if preloaded messages exist, just append
+    if (state.olderMessages.length > 0) {
+      set((s) => ({
+        messages: [...s.messages, ...s.olderMessages],
+        olderMessages: [],
+      }));
+
+      // preload next batch
+      const oldestId = state.messages[state.messages.length - 1]?._id;
+      get().getMessages(oldestId, limit);
+      return;
+    }
+
+    // otherwise fetch older from API
+    const oldestId = state.messages[state.messages.length - 1]?._id;
+    if (!oldestId) return;
+    await get().getMessages(oldestId, limit, true);
   },
 
   sendMessage: async (data) => {
     try {
       await axiosInstance.post("/messages/send", data);
       set({ replyTo: null });
-    } catch (error) {
+    } catch {
       toast.error("Failed to send message");
     }
   },
