@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2, X } from "lucide-react";
+import { Trash2, X, ArrowUp } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import InstagramBubble from "./InstagramBubble";
 import MessageInput from "./MessageInput";
@@ -36,6 +36,7 @@ const ChatContainer = () => {
     initSocket();
   }, []);
 
+  // 🔹 Scroll-based loading (still works)
   const handleScroll = async () => {
     const el = chatRef.current;
     if (!el || loadingOlderRef.current) return;
@@ -44,6 +45,13 @@ const ChatContainer = () => {
       el.scrollHeight - el.scrollTop - el.clientHeight < 50;
 
     if (!nearBottom) return;
+
+    await loadOlderMessages();
+  };
+
+  // 🔹 Manual button loader
+  const loadOlderMessages = async () => {
+    if (loadingOlderRef.current) return;
 
     const oldestId = messages[messages.length - 1]?._id;
     if (!oldestId) return;
@@ -98,7 +106,7 @@ const ChatContainer = () => {
                   }
                 }}
               >
-                {/* 🔹 REPLY DISPLAY */}
+                {/* 🔹 REPLY PREVIEW */}
                 {message.replyTo && (
                   <div className="mb-1 px-2 py-1 border-l-4 border-primary bg-base-300 rounded text-xs opacity-80">
                     <div className="truncate">
@@ -107,7 +115,6 @@ const ChatContainer = () => {
                   </div>
                 )}
 
-                {/* MAIN CONTENT */}
                 {media ? (
                   <InstagramBubble url={media.url} type={media.type} />
                 ) : (
@@ -131,9 +138,22 @@ const ChatContainer = () => {
         })}
       </div>
 
+      {/* 🔹 LOAD OLDER MESSAGES BUTTON (BOTTOM) */}
+      {messages.length > 0 && (
+        <div className="flex justify-center py-2 border-t border-base-300">
+          <button
+            onClick={loadOlderMessages}
+            className="btn btn-sm btn-outline gap-2"
+          >
+            <ArrowUp size={14} />
+            Load older messages
+          </button>
+        </div>
+      )}
+
       <MessageInput />
 
-      {/* 🔹 FULLSCREEN IMAGE VIEW (NO NEW COMPONENT) */}
+      {/* 🔹 FULLSCREEN IMAGE */}
       {viewImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
