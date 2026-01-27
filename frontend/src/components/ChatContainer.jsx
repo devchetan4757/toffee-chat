@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2, X, ArrowUp } from "lucide-react";
+import { Trash2, X, ArrowDown } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import InstagramBubble from "./InstagramBubble";
 import MessageInput from "./MessageInput";
@@ -17,8 +17,6 @@ const detectInstagramMedia = (text) => {
 const ChatContainer = () => {
   const {
     messages,
-    olderMessages,
-    hasMore,
     getMessages,
     loadOlderMessages,
     deleteMessage,
@@ -34,19 +32,19 @@ const ChatContainer = () => {
   const touchEndX = useRef(0);
 
   useEffect(() => {
-    getMessages(); // initial load
+    getMessages();  // load newest messages
     initSocket();
   }, []);
 
-  // scroll-based detection (optional, for auto load older if needed)
-  const handleScroll = () => {
+  // Scroll handler (optional auto-load older if near bottom)
+  const handleScroll = async () => {
     const el = chatRef.current;
-    if (!el || !hasMore) return;
+    if (!el) return;
 
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
     if (!nearBottom) return;
 
-    loadOlderMessages();
+    await loadOlderMessages(); // append at bottom
   };
 
   if (isMessagesLoading && messages.length === 0) {
@@ -70,7 +68,6 @@ const ChatContainer = () => {
 
           return (
             <div key={message._id} className="chat chat-start group">
-              {/* TIME & DELETE */}
               <div className="chat-header flex gap-2 text-[10px] opacity-60">
                 {formatMessageTime(message.createdAt)}
                 <button
@@ -81,7 +78,6 @@ const ChatContainer = () => {
                 </button>
               </div>
 
-              {/* MESSAGE BUBBLE */}
               <div
                 className="chat-bubble max-w-[75%]"
                 onTouchStart={(e) => (touchStartX.current = e.touches[0].clientX)}
@@ -107,12 +103,16 @@ const ChatContainer = () => {
                       />
                     )}
                     {message.replyTo.audio && (
-                      <audio controls src={message.replyTo.audio} className="mt-1 w-full" />
+                      <audio
+                        controls
+                        src={message.replyTo.audio}
+                        className="mt-1 w-full"
+                      />
                     )}
                   </div>
                 )}
 
-                {/* CONTENT */}
+                {/* MESSAGE CONTENT */}
                 {media ? (
                   <InstagramBubble url={media.url} type={media.type} />
                 ) : (
@@ -134,22 +134,21 @@ const ChatContainer = () => {
         })}
       </div>
 
-      {/* LOAD OLDER MESSAGES BUTTON */}
-      {hasMore && messages.length > 0 && (
+      {/* Load older messages button at bottom */}
+      {messages.length > 0 && (
         <div className="flex justify-center py-2 border-t border-base-300">
           <button
             onClick={loadOlderMessages}
             className="btn btn-sm btn-outline gap-2"
           >
-            <ArrowUp size={14} />
-            Load Older Messages
+            <ArrowDown size={14} /> Load older messages
           </button>
         </div>
       )}
 
       <MessageInput />
 
-      {/* FULLSCREEN IMAGE */}
+      {/* Fullscreen image */}
       {viewImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
