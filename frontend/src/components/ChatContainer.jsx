@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
 import InstagramBubble from "./InstagramBubble";
@@ -29,6 +29,8 @@ const ChatContainer = () => {
 
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+
+  const [fullImage, setFullImage] = useState(null);
 
   useEffect(() => {
     getMessages();
@@ -92,7 +94,7 @@ const ChatContainer = () => {
                 }
                 onTouchEnd={() => {
                   if (touchEndX.current - touchStartX.current > 60) {
-                    setReplyTo(message); // swipe right → reply
+                    setReplyTo(message);
                   }
                 }}
               >
@@ -132,7 +134,8 @@ const ChatContainer = () => {
                 {message.image && (
                   <img
                     src={message.image}
-                    className="mt-2 rounded-md max-w-[180px]"
+                    onClick={() => setFullImage(message.image)}
+                    className="mt-2 rounded-md max-w-[180px] cursor-pointer"
                   />
                 )}
               </div>
@@ -142,6 +145,18 @@ const ChatContainer = () => {
       </div>
 
       <MessageInput />
+
+      {fullImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+          onClick={() => setFullImage(null)}
+        >
+          <img
+            src={fullImage}
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
+      )}
     </div>
   );
 };
