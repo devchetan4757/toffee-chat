@@ -265,9 +265,9 @@ const MessageInput = () => {
   });
 
   const stickersArray = [
-    "aloo-dance.webp","cat-laugh.webp","rotlu.webp","smirk.webp",
+    "38.webp","cat-laugh.webp","rotlu.webp","smirk.webp",
     "amazed.webp","cat-laught.webp","shin1.webp","stare.webp",
-    "blush.webp","luv.webp","shin2.webp","tease.webp",
+    "blush.webp","luv.webp","shin2.webp","tease.webp","aloo-dance.webp",
     "cat-comp.webp","me.webp","shocked.webp","1.webp","2.webp",
     "3.webp","4.webp","5.webp","6.webp","7.webp","8.webp","9.webp",
     "10.webp","11.webp","12.webp","13.webp","14.webp","15.webp",
