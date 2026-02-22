@@ -14,6 +14,15 @@ const detectInstagramMedia = (text) => {
   return null;
 };
 
+const isStickerImage = (img) => {
+  if (!img) return false;
+
+  // most stickers are webp base64
+  if (img.startsWith("data:image/webp")) return true;
+
+  return false;
+};
+
 const ChatContainer = () => {
   const {
     messages,
@@ -132,12 +141,16 @@ const ChatContainer = () => {
                 {message.audio && <VoiceMessageBubble src={message.audio} />}
 
                 {message.image && (
-                  <img
-                    src={message.image}
-                    onClick={() => setFullImage(message.image)}
-                    className="mt-2 rounded-md max-w-[180px] cursor-pointer"
-                  />
-                )}
+    <img
+    src={message.image}
+    onClick={() => !isStickerImage(message.image) && setFullImage(message.image)}
+    className={`mt-2 rounded-md cursor-pointer
+      ${isStickerImage(message.image)
+        ? "w-[72px] h-auto object-contain"
+        : "max-w-[180px]"}
+    `}
+  />
+)}
               </div>
             </div>
           );

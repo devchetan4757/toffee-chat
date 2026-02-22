@@ -41,7 +41,7 @@ const StickerPicker = ({ stickers, onStickerSelect, onClose }) => {
           key={sticker}
           src={`/stickers/${sticker}`}
           alt={sticker}
-          className="w-5 h-5 object-contain cursor-pointer hover:scale-110 transition-transform"
+          className="w-12 h-12 object-contain cursor-pointer hover:scale-110 transition-transform"
           onClick={() => handleStickerClick(sticker)}
         />
       ))}
