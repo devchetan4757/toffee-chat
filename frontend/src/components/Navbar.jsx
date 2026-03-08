@@ -1,19 +1,25 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
-import { LogOut, MessageSquare, Settings, Users } from "lucide-react";
+import { LogOut, Settings, Users } from "lucide-react";
+import Rotlupfp from "../../public/pfp/Rotlu.png";
+import Chsmishpfp from "../../public/pfp/Chsmish.png";
 
 const Navbar = () => {
-  const { logout, isAuthenticated, onlineUsersCount } = useAuthStore();
+  const { role, logout, isAuthenticated } = useAuthStore(); // ← use role directly
 
   const handleLogout = async () => {
-    await logout(); // toast & socket disconnect handled in store
+    await logout();
   };
 
+  // Determine other role
+  const otherRole =
+    role === "Chsmish" ? "Rotlu" : role === "Rotlu" ? "Chsmish" : null;
+  const pfp =
+    otherRole === "Chsmish" ? Rotlupfp : Chsmishpfp;
+
   return (
-    <header
-      className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40
-      backdrop-blur-lg bg-base-100/80"
-    >
+      <header className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40
+ backdrop-blur-lg bg-base-100/80">
       <div className="container mx-auto px-4 h-16">
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-8">
@@ -21,27 +27,30 @@ const Navbar = () => {
               to="/"
               className="flex items-center gap-2.5 hover:opacity-80 transition-all"
             >
-              <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-primary" />
-              </div>
-              <h1 className="text-lg font-bold"></h1>
+
+              <img src={pfp} alt="logo" className="w-11 h-12 object-contain 
+bg-gray-200 rounded-lg"/>
+              <h2 className="text-lg font-bold">You</h2>
             </Link>
           </div>
 
           <div className="flex items-center gap-4">
             {isAuthenticated && (
               <>
-                {/* Online users display */}
-                <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-base-200 text-base-content text-sm">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-                  </span>
 
-                  <Users className="w-4 h-4 opacity-70" />
-                  <span className="font-medium">{onlineUsersCount} online</span>
-                </div>
+                {/* OTHER ROLE */}
+                {otherRole && (
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-base-200 opacity-70">
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        otherRole ? "bg-green-500" : "bg-gray-600"
+                      }`}
+                    ></span>
+                    <span className="font-medium">{otherRole}</span>
+                  </div>
+                )}
 
+                {/* SETTINGS */}
                 <Link
                   to={"/settings"}
                   className="btn btn-sm gap-2 transition-colors"
@@ -50,6 +59,7 @@ const Navbar = () => {
                   <span className="hidden sm:inline">Settings</span>
                 </Link>
 
+                {/* LOGOUT */}
                 <button
                   className="flex gap-2 items-center"
                   onClick={handleLogout}

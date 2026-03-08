@@ -2,44 +2,33 @@ import { create } from "zustand";
 import { toast } from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { socket } from "../lib/socket";
+import { useAuthStore } from "./useAuthStore";
 
 export const useChatStore = create((set, get) => ({
   messages: [],
   isMessagesLoading: false,
-
-  // 🔹 REPLY STATE
   replyTo: null,
   setReplyTo: (message) => set({ replyTo: message }),
   clearReplyTo: () => set({ replyTo: null }),
 
-  // Fetch messages
   getMessages: async (cursor) => {
     set({ isMessagesLoading: true });
     try {
       const res = await axiosInstance.get("/messages", {
         params: cursor ? { cursor } : {},
       });
-
       const fetched = res.data || [];
 
       set((state) => {
         if (!cursor) {
-          // initial load (newest → oldest)
           return { messages: fetched.reverse() };
         }
-
-        // fetch older on bottom hit
         const existingIds = new Set(state.messages.map((m) => m._id));
-        const older = fetched
-          .filter((m) => !existingIds.has(m._id))
-          .reverse();
-
+        const older = fetched.filter((m) => !existingIds.has(m._id)).reverse();
         return { messages: [...state.messages, ...older] };
       });
     } catch (error) {
-      toast.error(
-        error?.response?.data?.message || "Failed to load messages"
-      );
+      toast.error(error?.response?.data?.message || "Failed to load messages");
     } finally {
       set({ isMessagesLoading: false });
     }
@@ -47,7 +36,12 @@ export const useChatStore = create((set, get) => ({
 
   sendMessage: async (data) => {
     try {
-      await axiosInstance.post("/messages/send", data);
+      const { user } = useAuthStore.getState(); // 🔹 get current user role
+
+      // Assign logger so frontend can immediately show self message on right
+      const messageWithLogger = { ...data, logger: user?.role || null };
+
+      await axiosInstance.post("/messages/send", messageWithLogger);
       set({ replyTo: null });
     } catch (error) {
       toast.error("Failed to send message");

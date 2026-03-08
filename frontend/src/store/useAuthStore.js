@@ -7,16 +7,17 @@ export const useAuthStore = create((set, get) => ({
   isAuthenticated: false,
   isLoggingIn: false,
   isCheckingAuth: true,
+  role: null, // new addition
   onlineUsersCount: 0,
 
   // Check auth on app load
   checkAuth: async () => {
     try {
-      await axiosInstance.get("/auth/check");
-      set({ isAuthenticated: true });
+      const res = await axiosInstance.get("/auth/check");
+      set({ isAuthenticated: true, role: res.data.user?.role || null });
       get().connectSocket();
     } catch {
-      set({ isAuthenticated: false });
+      set({ isAuthenticated: false, role: null });
     } finally {
       set({ isCheckingAuth: false });
     }
@@ -26,8 +27,12 @@ export const useAuthStore = create((set, get) => ({
   login: async (data) => {
     set({ isLoggingIn: true });
     try {
-      await axiosInstance.post("/auth/login", data);
-      set({ isAuthenticated: true, isCheckingAuth: false });
+      const res = await axiosInstance.post("/auth/login", data);
+      set({
+        isAuthenticated: true,
+        isCheckingAuth: false,
+        role: res.data.role || null,
+      });
       toast.success("Logged in successfully");
       get().connectSocket();
       return true;
@@ -43,7 +48,7 @@ export const useAuthStore = create((set, get) => ({
   logout: async () => {
     try {
       await axiosInstance.post("/auth/logout");
-      set({ isAuthenticated: false });
+      set({ isAuthenticated: false, role: null });
       toast.success("Logged out successfully");
       get().disconnectSocket();
     } catch {
@@ -57,9 +62,7 @@ export const useAuthStore = create((set, get) => ({
 
     socket.connect();
 
-    // Remove previous listeners and attach fresh one
     socket.off("onlineUsersCount").on("onlineUsersCount", (count) => {
-      console.log("onlineUsersCount event received:"+ count);
       set({ onlineUsersCount: count });
     });
 
