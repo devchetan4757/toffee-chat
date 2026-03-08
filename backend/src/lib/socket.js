@@ -5,53 +5,32 @@ import express from "express";
 const app = express();
 const server = http.createServer(app);
 
-// =====================
-// Socket.io setup
-// =====================
 const io = new Server(server, {
   cors: {
-  origin: ["http://localhost:5173/","http://localhost:5173/"],
-  credentials: true, // ✅ ADD THIS
-}});
-
-// =====================
-// In-memory messages store
-// Replace with DB if needed
-// =====================
-let messages = []; // Each message: { _id, text, createdAt }
-let nextId = 1;
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  },
+});
 
 io.on("connection", (socket) => {
-  console.log("A user connected", socket.id);
+  console.log("User connected:", socket.id);
 
-  // Send current online users count
   io.emit("onlineUsersCount", io.engine.clientsCount);
 
   // =====================
-  // Listen for new messages from frontend
+  // Typing indicator
   // =====================
-  socket.on("sendMessage", (messageData) => {
-    const newMessage = {
-      _id: String(nextId++),
-      text: messageData.text,
-      createdAt: new Date(),
-    };
-    messages.push(newMessage);
-
-    // Broadcast to all clients
-    io.emit("newMessage", newMessage);
+  socket.on("typing", (role) => {
+    socket.broadcast.emit("typing", role);
   });
 
-  // =====================
-  // Listen for delete requests
-  // =====================
-  socket.on("deleteMessage", (id) => {
-    messages = messages.filter((m) => m._id !== id);
-    io.emit("deleteMessage", id);
+  socket.on("stopTyping", (role) => {
+    socket.broadcast.emit("stopTyping", role);
   });
 
   socket.on("disconnect", () => {
-    console.log("A user disconnected", socket.id);
+    console.log("User disconnected:", socket.id);
+
     io.emit("onlineUsersCount", io.engine.clientsCount);
   });
 });

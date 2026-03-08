@@ -9,6 +9,7 @@ const replySchema = new mongoose.Schema({
 
 const messageSchema = new mongoose.Schema(
   {
+    logger: { type: String, enum: ["Rotlu", "Chsmish"], default:null },
     text: { type: String },
     image: { type: String },
     audio: { type: String },
