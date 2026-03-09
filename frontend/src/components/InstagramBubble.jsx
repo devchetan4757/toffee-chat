@@ -4,9 +4,8 @@ import ReelPlayer from "./ReelPlayer";
 const InstagramBubble = ({ url, type }) => {
   const isReel = type === "reel";
 
-  // Page reload function
   const handleReplay = () => {
-    window.location.reload(); // reloads the whole page
+    window.location.reload();
   };
 
   if (isReel) {
@@ -35,14 +34,13 @@ const InstagramBubble = ({ url, type }) => {
           <ReelPlayer url={url} />
         </div>
 
-        {/* Replay Icon */}
         <button
           onClick={handleReplay}
           style={{
             position: "absolute",
             bottom: "8px",
             right: "8px",
-            background: "rgba(0,123,255,0.9)", // blue
+            background: "rgba(0,123,255,0.9)",
             borderRadius: "50%",
             padding: "6px",
             cursor: "pointer",
@@ -52,13 +50,13 @@ const InstagramBubble = ({ url, type }) => {
             boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
           }}
         >
-          <RotateCw size={18} color="#fff" /> {/* white icon on blue circle */}
+          <RotateCw size={18} color="#fff" />
         </button>
       </div>
     );
   }
 
-  // Posts
+  // Post bubble
   return (
     <div
       className="instagram-post-bubble"

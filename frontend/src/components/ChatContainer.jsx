@@ -1,17 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import MessageInput from "./MessageInput";
+import VoiceMessageBubble from "./VoiceMessageBubble";
+import InstagramBubble from "./InstagramBubble";
+import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
 
+const detectInstagramMedia = (text) => {
+  if (!text) return null;
+  if (text.includes("instagram.com/reel")) return { type: "reel", url: text };
+  if (text.includes("instagram.com/p")) return { type: "post", url: text };
+  return null;
+};
+
+const isStickerImage = (img) => img?.startsWith("data:image/webp");
+
 const ChatContainer = () => {
   const { messages, getMessages, deleteMessage, isMessagesLoading, initSocket, setReplyTo } =
     useChatStore();
-  const { role: myRole } = useAuthStore(); // ← use role directly
+  const { role: myRole } = useAuthStore(); // role for isSelf check
 
   const chatRef = useRef(null);
   const loadingOlderRef = useRef(false);
+
   const [fullImage, setFullImage] = useState(null);
 
   useEffect(() => {
@@ -34,14 +47,14 @@ const ChatContainer = () => {
     loadingOlderRef.current = false;
   };
 
-  const detectInstagramMedia = (text) => {
-    if (!text) return null;
-    if (text.includes("instagram.com/reel")) return { type: "reel", url: text };
-    if (text.includes("instagram.com/p")) return { type: "post", url: text };
-    return null;
-  };
-
-  const isStickerImage = (img) => img?.startsWith("data:image/webp");
+  if (isMessagesLoading && messages.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col">
+        <MessageSkeleton />
+        <MessageInput />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col h-full">
@@ -63,9 +76,10 @@ const ChatContainer = () => {
               </div>
 
               <div
-                className="chat-bubble max-w-[75%]"
+                className="chat-bubble max-w-[75%] cursor-pointer"
                 onClick={() => !isStickerImage(message.image) && setFullImage(message.image)}
               >
+                {/* Reply preview */}
                 {message.replyTo && (
                   <div className="bg-gray-200 px-2 py-1 rounded-md mb-2 border-l-2 border-blue-500">
                     {message.replyTo.text && (
@@ -85,24 +99,25 @@ const ChatContainer = () => {
                   </div>
                 )}
 
+                {/* Instagram bubble */}
                 {media ? (
-                  <p>Instagram {media.type}</p>
+                  <InstagramBubble url={media.url} type={media.type} />
                 ) : (
                   message.text && <p>{message.text}</p>
                 )}
 
+                {message.audio && <VoiceMessageBubble src={message.audio} />}
+
                 {message.image && (
                   <img
                     src={message.image}
-                    className={`mt-2 rounded-md cursor-pointer ${
+                    className={`mt-2 rounded-md ${
                       isStickerImage(message.image)
                         ? "w-[72px] h-auto object-contain"
                         : "max-w-[180px]"
                     }`}
                   />
                 )}
-
-                {message.audio && <audio controls src={message.audio} className="mt-1 w-full" />}
               </div>
             </div>
           );

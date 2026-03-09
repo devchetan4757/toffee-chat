@@ -4,11 +4,27 @@ const ReelPlayer = ({ url }) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    // Remove old Instagram script if exists
+    if (!url) return;
+
+    // Clear previous content
+    if (containerRef.current) containerRef.current.innerHTML = "";
+
+    // Create blockquote for Instagram embed
+    const blockquote = document.createElement("blockquote");
+    blockquote.className = "instagram-media";
+    blockquote.dataset.instgrmPermalink = url;
+    blockquote.dataset.instgrmVersion = "14";
+    blockquote.style.margin = "0";
+    blockquote.style.width = "100%";
+    blockquote.style.height = "100%";
+
+    containerRef.current.appendChild(blockquote);
+
+    // Remove old script if exists
     const oldScript = document.querySelector('script[src="https://www.instagram.com/embed.js"]');
     if (oldScript) oldScript.remove();
 
-    // Add new script
+    // Add Instagram embed script
     const script = document.createElement("script");
     script.src = "https://www.instagram.com/embed.js";
     script.async = true;
@@ -16,19 +32,12 @@ const ReelPlayer = ({ url }) => {
     document.body.appendChild(script);
 
     return () => {
-      script.remove(); // cleanup
+      script.remove();
+      if (containerRef.current) containerRef.current.innerHTML = "";
     };
   }, [url]);
 
-  return (
-    <blockquote
-      className="instagram-media"
-      data-instgrm-permalink={url}
-      data-instgrm-version="14"
-      style={{ margin: 0, width: "100%", height: "100%" }}
-      ref={containerRef}
-    ></blockquote>
-  );
+  return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
 };
 
 export default ReelPlayer;

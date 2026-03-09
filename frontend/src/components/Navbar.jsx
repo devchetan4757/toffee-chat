@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { LogOut, Settings, Users } from "lucide-react";
-import Rotlupfp from "../../public/pfp/Rotlu.png";
-import Chsmishpfp from "../../public/pfp/Chsmish.png";
+import Rotlupfp from "../pfp/Rotlu.png";
+import Chsmishpfp from "../pfp/Chsmish.png";
 
 const Navbar = () => {
   const { role, logout, isAuthenticated } = useAuthStore(); // ← use role directly
@@ -16,7 +16,7 @@ const Navbar = () => {
     role === "Chsmish" ? "Rotlu" : role === "Rotlu" ? "Chsmish" : null;
   const pfp =
     otherRole === "Chsmish" ? Rotlupfp : Chsmishpfp;
-
+  const otherOn = ["Chsmish", "Rotlu"].includes(otherRole);
   return (
       <header className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40
  backdrop-blur-lg bg-base-100/80">
@@ -40,10 +40,11 @@ bg-gray-200 rounded-lg"/>
 
                 {/* OTHER ROLE */}
                 {otherRole && (
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-base-200 opacity-70">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-md 
+bg-base-200 opacity-70">
                     <span
                       className={`h-2 w-2 rounded-full ${
-                        otherRole ? "bg-green-500" : "bg-gray-600"
+                        otherOn ? "bg-green-500" : "bg-black"
                       }`}
                     ></span>
                     <span className="font-medium">{otherRole}</span>
