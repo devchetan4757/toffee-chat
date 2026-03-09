@@ -18,12 +18,22 @@ const detectInstagramMedia = (text) => {
 const isStickerImage = (img) => img?.startsWith("data:image/webp");
 
 const ChatContainer = () => {
-  const { messages, getMessages, deleteMessage, isMessagesLoading, initSocket, setReplyTo } =
-    useChatStore();
-  const { role: myRole } = useAuthStore(); // role for isSelf check
+  const {
+    messages,
+    getMessages,
+    deleteMessage,
+    isMessagesLoading,
+    initSocket,
+    setReplyTo,
+  } = useChatStore();
+
+  const { role: myRole } = useAuthStore();
 
   const chatRef = useRef(null);
   const loadingOlderRef = useRef(false);
+
+  const touchStartX = useRef(null);
+  const touchEndX = useRef(null);
 
   const [fullImage, setFullImage] = useState(null);
 
@@ -47,6 +57,30 @@ const ChatContainer = () => {
     loadingOlderRef.current = false;
   };
 
+  // swipe start
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  // swipe move
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  // swipe end
+  const handleTouchEnd = (message) => {
+    if (!touchStartX.current || !touchEndX.current) return;
+
+    const distance = touchEndX.current - touchStartX.current;
+
+    if (distance > 60) {
+      setReplyTo(message);
+    }
+
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   if (isMessagesLoading && messages.length === 0) {
     return (
       <div className="flex-1 flex flex-col">
@@ -58,15 +92,23 @@ const ChatContainer = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full">
-      <div ref={chatRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div
+        ref={chatRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-3 space-y-3"
+      >
         {messages.map((message) => {
           const isSelf = message.logger && myRole && message.logger === myRole;
           const media = detectInstagramMedia(message.text);
 
           return (
-            <div key={message._id} className={`chat ${isSelf ? "chat-end" : "chat-start"} group`}>
+            <div
+              key={message._id}
+              className={`chat ${isSelf ? "chat-end" : "chat-start"} group`}
+            >
               <div className="chat-header flex gap-2 text-[10px] opacity-60">
                 {formatMessageTime(message.createdAt)}
+
                 <button
                   onClick={() => deleteMessage(message._id)}
                   className="opacity-0 group-hover:opacity-100"
@@ -77,7 +119,12 @@ const ChatContainer = () => {
 
               <div
                 className="chat-bubble max-w-[75%] cursor-pointer"
-                onClick={() => !isStickerImage(message.image) && setFullImage(message.image)}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={() => handleTouchEnd(message)}
+                onClick={() =>
+                  !isStickerImage(message.image) && setFullImage(message.image)
+                }
               >
                 {/* Reply preview */}
                 {message.replyTo && (
@@ -87,14 +134,20 @@ const ChatContainer = () => {
                         {message.replyTo.text}
                       </p>
                     )}
+
                     {message.replyTo.image && (
                       <img
                         src={message.replyTo.image}
                         className="mt-1 max-w-[100px] rounded-md"
                       />
                     )}
+
                     {message.replyTo.audio && (
-                      <audio controls src={message.replyTo.audio} className="mt-1 w-full" />
+                      <audio
+                        controls
+                        src={message.replyTo.audio}
+                        className="mt-1 w-full"
+                      />
                     )}
                   </div>
                 )}
@@ -131,7 +184,10 @@ const ChatContainer = () => {
           className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
           onClick={() => setFullImage(null)}
         >
-          <img src={fullImage} className="max-w-full max-h-full object-contain" />
+          <img
+            src={fullImage}
+            className="max-w-full max-h-full object-contain"
+          />
         </div>
       )}
     </div>
