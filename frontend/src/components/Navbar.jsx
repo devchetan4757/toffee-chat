@@ -15,7 +15,7 @@ const Navbar = () => {
   };
 
   // Determine other role
-  const otherRole =
+  let otherRole =
     role === "Chsmish"
       ? "Rotlu"
       : role === "Rotlu"
