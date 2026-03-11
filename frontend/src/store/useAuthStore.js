@@ -7,63 +7,91 @@ export const useAuthStore = create((set, get) => ({
   isAuthenticated: false,
   isLoggingIn: false,
   isCheckingAuth: true,
-  role: null, // new addition
-  onlineUsersCount: 0,
+  role: null,
 
-  // Check auth on app load
+  // CHECK AUTH
   checkAuth: async () => {
     try {
       const res = await axiosInstance.get("/auth/check");
-      set({ isAuthenticated: true, role: res.data.user?.role || null });
-      get().connectSocket();
+
+      const role = res.data.user?.role;
+
+      set({
+        isAuthenticated: true,
+        role,
+      });
+
+      get().connectSocket(role);
+
     } catch {
-      set({ isAuthenticated: false, role: null });
+      set({
+        isAuthenticated: false,
+      });
     } finally {
       set({ isCheckingAuth: false });
     }
   },
 
-  // Login
+  // LOGIN
   login: async (data) => {
     set({ isLoggingIn: true });
+
     try {
       const res = await axiosInstance.post("/auth/login", data);
+
+      const role = res.data.role;
+
       set({
         isAuthenticated: true,
         isCheckingAuth: false,
-        role: res.data.role || null,
+        role,
       });
+
       toast.success("Logged in successfully");
-      get().connectSocket();
+
+      get().connectSocket(role);
+
       return true;
-    } catch (error) {
+
+    } catch {
       toast.error("Login failed");
       return false;
+
     } finally {
       set({ isLoggingIn: false });
     }
   },
 
-  // Logout
+  // LOGOUT
   logout: async () => {
     try {
       await axiosInstance.post("/auth/logout");
-      set({ isAuthenticated: false, role: null });
+
+      set({
+        isAuthenticated: false,
+      });
+
       toast.success("Logged out successfully");
+
       get().disconnectSocket();
+
     } catch {
       toast.error("Logout failed");
     }
   },
 
-  // Connect socket to track online users
-  connectSocket: () => {
-    if (socket.connected) return;
+  // CONNECT SOCKET
+  connectSocket: (role) => {
+    if (!socket.connected) {
+      socket.connect();
+    }
 
-    socket.connect();
-
-    socket.off("onlineUsersCount").on("onlineUsersCount", (count) => {
-      set({ onlineUsersCount: count });
+    // always send join when connected/reconnected
+    socket.off("connect").on("connect", () => {
+      if (!role) return;
+      if (role) {
+        socket.emit("join", role);
+      }
     });
 
     socket.off("connect_error").on("connect_error", (err) => {
@@ -71,11 +99,10 @@ export const useAuthStore = create((set, get) => ({
     });
   },
 
-  // Disconnect socket
+  // DISCONNECT SOCKET
   disconnectSocket: () => {
     if (socket.connected) {
       socket.disconnect();
-      set({ onlineUsersCount: 0 });
     }
   },
 }));

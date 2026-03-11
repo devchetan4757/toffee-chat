@@ -8,9 +8,11 @@ export const useChatStore = create((set, get) => ({
   messages: [],
   isMessagesLoading: false,
 
-  // 🔹 typing state
+  // typing state
   isTyping: false,
   onlineUsers: [],
+
+  // reply feature
   replyTo: null,
   setReplyTo: (message) => set({ replyTo: message }),
   clearReplyTo: () => set({ replyTo: null }),
@@ -18,6 +20,7 @@ export const useChatStore = create((set, get) => ({
   // ---------------- GET MESSAGES ----------------
   getMessages: async (cursor) => {
     set({ isMessagesLoading: true });
+
     try {
       const res = await axiosInstance.get("/messages", {
         params: cursor ? { cursor } : {},
@@ -49,18 +52,18 @@ export const useChatStore = create((set, get) => ({
   // ---------------- SEND MESSAGE ----------------
   sendMessage: async (data) => {
     try {
-      const { user } = useAuthStore.getState();
+      const { role } = useAuthStore.getState();
 
       const messageWithLogger = {
         ...data,
-        logger: user?.role || null,
+        logger: role || null,
       };
 
       await axiosInstance.post("/messages/send", messageWithLogger);
 
       set({ replyTo: null });
 
-      // 🔹 stop typing when message sent
+      // stop typing when message sent
       get().sendTyping(false);
 
     } catch {
@@ -84,59 +87,64 @@ export const useChatStore = create((set, get) => ({
 
   // ---------------- SEND TYPING ----------------
   sendTyping: (typing = true) => {
-    const { user } = useAuthStore.getState();
+    const { role } = useAuthStore.getState();
 
     socket.emit("typing", {
-      role: user?.role,
+      role,
       typing,
     });
   },
 
-  // ---------------- SOCKET ----------------
+  // ---------------- INIT SOCKET ----------------
   initSocket: () => {
 
-  socket.off("newMessage");
-  socket.off("deleteMessage");
-  socket.off("typing");
-  socket.off("onlineUsers");
-
-  const { user } = useAuthStore.getState();
-
-  // 🔹 tell server who connected
-  socket.emit("join", user?.role);
-
-  socket.on("newMessage", (message) => {
-    set((state) => {
-      if (state.messages.some((m) => m._id === message._id)) return state;
-      return { messages: [message, ...state.messages] };
-    });
-  });
-
-  socket.on("deleteMessage", (id) => {
-    set((state) => ({
-      messages: state.messages.filter((m) => m._id !== id),
-    }));
-  });
-
-  // 🔹 typing indicator
-  socket.on("typing", (data) => {
-    const { user } = useAuthStore.getState();
-
-    if (data.role !== user?.role) {
-      set({ isTyping: data.typing });
-    }
-  });
-
-  // 🔹 online users
-  socket.on("onlineUsers", (users) => {
-    set({ onlineUsers: users });
-  });
-
-  return () => {
     socket.off("newMessage");
     socket.off("deleteMessage");
     socket.off("typing");
     socket.off("onlineUsers");
-  };
-},
+
+    const { role } = useAuthStore.getState();
+
+    // tell server who joined
+    if (role) {
+      socket.emit("join", role);
+    }
+
+    // new message
+    socket.on("newMessage", (message) => {
+      set((state) => {
+        if (state.messages.some((m) => m._id === message._id)) return state;
+        return { messages: [message, ...state.messages] };
+      });
+    });
+
+    // delete message
+    socket.on("deleteMessage", (id) => {
+      set((state) => ({
+        messages: state.messages.filter((m) => m._id !== id),
+      }));
+    });
+
+    // typing indicator
+    socket.on("typing", (data) => {
+      const { role } = useAuthStore.getState();
+
+      if (data.role !== role) {
+        set({ isTyping: data.typing });
+      }
+    });
+
+    // online users
+    socket.on("onlineUsers", (users) => {
+      set({ onlineUsers: users });
+    });
+
+    // cleanup
+    return () => {
+      socket.off("newMessage");
+      socket.off("deleteMessage");
+      socket.off("typing");
+      socket.off("onlineUsers");
+    };
+  },
 }));

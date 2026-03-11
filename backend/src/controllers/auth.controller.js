@@ -16,7 +16,7 @@ export const login = async (req, res) => {
       Rotlu: process.env.PASSWORD2,
     };
 
-    let role = null;
+    let role;
 
     for (const [r, hash] of Object.entries(rolePasswords)) {
       const match = await bcrypt.compare(password, hash);

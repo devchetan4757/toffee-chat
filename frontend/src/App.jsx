@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import 'react-h5-audio-player';
 import "react-h5-audio-player/lib/styles.css";
 
 import { useThemeStore } from "./store/useThemeStore";
@@ -19,12 +18,20 @@ const App = () => {
 
   const { theme } = useThemeStore();
   const { checkAuth, isAuthenticated } = useAuthStore();
-  const { initSocket } = useChatStore(); // ⭐ NEW
+  const { initSocket } = useChatStore();
 
+  // Check auth on load
   useEffect(() => {
     checkAuth();
-    initSocket(); // ⭐ start socket listeners
   }, []);
+
+  // Start socket AFTER login
+  useEffect(() => {
+    if (isAuthenticated) {
+      const cleanup = initSocket();
+      return cleanup;
+    }
+  }, [isAuthenticated]);
 
   return (
     <>
@@ -49,10 +56,11 @@ const App = () => {
               }
             />
 
-            {/* Default redirect */}
             <Route
               path="*"
-              element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
+              element={
+                <Navigate to={isAuthenticated ? "/home" : "/login"} />
+              }
             />
 
           </Routes>

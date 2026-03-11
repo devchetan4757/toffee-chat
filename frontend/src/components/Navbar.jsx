@@ -14,8 +14,8 @@ const Navbar = () => {
     await logout();
   };
 
-  // Determine other role
-  let otherRole =
+  // Determine the other user
+  const otherRole =
     role === "Chsmish"
       ? "Rotlu"
       : role === "Rotlu"
@@ -29,7 +29,8 @@ const Navbar = () => {
       : Chsmishpfp;
 
   // Check if other user is online
-  const otherOn = onlineUsers.includes(otherRole);
+  const otherOn =
+    otherRole && onlineUsers.includes(otherRole);
 
   return (
     <header className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40 backdrop-blur-lg bg-base-100/80">
@@ -38,7 +39,7 @@ const Navbar = () => {
 
         <div className="flex items-center justify-between h-full">
 
-          {/* LEFT SIDE */}
+          {/* LEFT */}
           <div className="flex items-center gap-8">
 
             <Link
@@ -58,8 +59,7 @@ const Navbar = () => {
 
           </div>
 
-
-          {/* RIGHT SIDE */}
+          {/* RIGHT */}
           <div className="flex items-center gap-4">
 
             {isAuthenticated && (
@@ -69,12 +69,16 @@ const Navbar = () => {
                 {otherRole && (
                   <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-base-200 opacity-90">
 
+                    {/* ONLINE DOT */}
                     <span
                       className={`h-2 w-2 rounded-full ${
-                        otherOn ? "bg-green-500" : "bg-gray-400"
+                        otherOn
+                          ? "bg-green-500"
+                          : "bg-gray-400"
                       }`}
-                    ></span>
+                    />
 
+                    {/* NAME / TYPING */}
                     <span className="font-medium">
                       {isTyping
                         ? `${otherRole} typing...`
@@ -90,9 +94,10 @@ const Navbar = () => {
                   className="btn btn-sm gap-2 transition-colors"
                 >
                   <Settings className="w-4 h-4" />
-                  <span className="hidden sm:inline">Settings</span>
+                  <span className="hidden sm:inline">
+                    Settings
+                  </span>
                 </Link>
-
 
                 {/* LOGOUT */}
                 <button
@@ -100,7 +105,9 @@ const Navbar = () => {
                   onClick={handleLogout}
                 >
                   <LogOut className="size-5" />
-                  <span className="hidden sm:inline">Logout</span>
+                  <span className="hidden sm:inline">
+                    Logout
+                  </span>
                 </button>
 
               </>

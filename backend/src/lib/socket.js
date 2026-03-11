@@ -12,37 +12,63 @@ const io = new Server(server, {
   },
 });
 
+// store online users
 let onlineUsers = {};
+let disconnectTimers = {};
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
 
-  // when user joins
+  // =========================
+  // USER JOIN
+  // =========================
   socket.on("join", (role) => {
+    socket.role = role;
+
+    console.log("JOIN:", role);
+
+    // cancel pending disconnect timer if reconnecting
+    if (disconnectTimers[role]) {
+      clearTimeout(disconnectTimers[role]);
+      delete disconnectTimers[role];
+    }
+
     onlineUsers[role] = socket.id;
+
 
     io.emit("onlineUsers", Object.keys(onlineUsers));
   });
 
-  // typing
-  socket.on("typing", (role) => {
-    socket.broadcast.emit("typing", role);
+  // =========================
+  // TYPING
+  // =========================
+  socket.on("typing", (data) => {
+    socket.broadcast.emit("typing", data);
   });
 
-  socket.on("stopTyping", (role) => {
-    socket.broadcast.emit("stopTyping", role);
+  socket.on("stopTyping", (data) => {
+    socket.broadcast.emit("typing", { ...data, typing: false });
   });
 
+  // =========================
+  // DISCONNECT
+  // =========================
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
 
-    for (const role in onlineUsers) {
+    const role = socket.role;
+
+    if (!role) return;
+
+    // delay removal to prevent flicker
+    disconnectTimers[role] = setTimeout(() => {
       if (onlineUsers[role] === socket.id) {
         delete onlineUsers[role];
       }
-    }
 
-    io.emit("onlineUsers", Object.keys(onlineUsers));
+
+      io.emit("onlineUsers", Object.keys(onlineUsers));
+
+      delete disconnectTimers[role];
+    }, 10000); // 5 second delay
   });
 });
 

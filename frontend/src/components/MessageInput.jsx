@@ -27,6 +27,8 @@ const MessageInput = () => {
   const [dragging, setDragging] = useState(false);
 
   const [scale, setScale] = useState(1);
+
+  const typingTimeoutRef = useRef(null);
   const lastTouchDistance = useRef(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
 
@@ -42,7 +44,9 @@ const MessageInput = () => {
       toast.error("Select a valid image");
       return;
     }
+
     setImageFile(file);
+
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result);
     reader.readAsDataURL(file);
@@ -80,11 +84,15 @@ const MessageInput = () => {
   // SEND MESSAGE
   const handleSendMessage = async (e) => {
     e.preventDefault();
+
     if (!text.trim() && !imagePreview && !audioBlob) return;
 
     try {
       let audioBase64 = null;
-      if (audioBlob) audioBase64 = await blobToBase64(audioBlob);
+
+      if (audioBlob) {
+        audioBase64 = await blobToBase64(audioBlob);
+      }
 
       await sendMessage({
         text: text.trim(),
@@ -104,9 +112,10 @@ const MessageInput = () => {
       setImagePreview(null);
       setImageFile(null);
       setAudioBlob(null);
-      clearReplyTo();
 
+      clearReplyTo();
       sendTyping(false);
+
     } catch {
       toast.error("Failed to send message");
     }
@@ -131,12 +140,13 @@ const MessageInput = () => {
 
       clearReplyTo();
       sendTyping(false);
+
     } catch {
       toast.error("Failed to send sticker");
     }
   };
 
-  // AUTOGROW
+  // AUTOGROW TEXTAREA
   useEffect(() => {
     if (!textareaRef.current) return;
 
@@ -148,8 +158,10 @@ const MessageInput = () => {
   // DRAG + SCALE
   const clampPosition = (pos, width = 350, height = 140) => {
     const vv = window.visualViewport;
+
     const viewportLeft = vv?.offsetLeft ?? 0;
     const viewportTop = vv?.offsetTop ?? 0;
+
     const vw = vv?.width ?? window.innerWidth;
     const vh = vv?.height ?? window.innerHeight;
 
@@ -163,7 +175,10 @@ const MessageInput = () => {
   };
 
   const onMouseDown = (e) => {
+    if (e.target.tagName === "TEXTAREA") return;
+
     setDragging(true);
+
     dragStartRef.current = {
       x: e.clientX - position.left,
       y: e.clientY - position.top,
@@ -183,6 +198,7 @@ const MessageInput = () => {
 
   const onMouseUp = () => setDragging(false);
 
+  // TOUCH
   const getDistance = (t1, t2) =>
     Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
 
@@ -238,77 +254,30 @@ const MessageInput = () => {
     lastTouchDistance.current = null;
   };
 
-  const onWheel = (e) => {
-    if (!e.ctrlKey) return;
-
-    e.preventDefault();
-
-    const rect = e.currentTarget.getBoundingClientRect();
-
-    const centerX = e.clientX - rect.left;
-    const centerY = e.clientY - rect.top;
-
-    setScale((prev) => {
-      const newScale = Math.min(1.6, Math.max(0.7, prev - e.deltaY * 0.001));
-
-      setPosition((pos) => {
-        const offsetX = (centerX / prev) * (newScale - prev);
-        const offsetY = (centerY / prev) * (newScale - prev);
-
-        return clampPosition({
-          left: pos.left - offsetX,
-          top: pos.top - offsetY,
-        });
-      });
-
-      return newScale;
-    });
-  };
-
-  useEffect(() => {
-    const handleViewportChange = () =>
-      setPosition((pos) => clampPosition(pos));
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", handleViewportChange);
-      window.visualViewport.addEventListener("scroll", handleViewportChange);
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", handleViewportChange);
-        window.visualViewport.removeEventListener("scroll", handleViewportChange);
-      }
-    };
-  }, [scale]);
-
   useEffect(() => {
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
     window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd);
-    window.addEventListener("wheel", onWheel, { passive: false });
 
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
-      window.removeEventListener("wheel", onWheel);
     };
   });
 
   const stickersArray = [
-  ...Array.from({ length: 37 }, (_, i) => `${i + 1}.webp`),
-
-  "amazed.webp",
-  "cat-laugh.webp",
-  "cat-laught.webp",
-  "rotlu.webp",
-  "smirk.webp",
-  "shin1.webp",
-  "stare.webp"
-];
+    ...Array.from({ length: 37 }, (_, i) => `${i + 1}.webp`),
+    "amazed.webp",
+    "cat-laugh.webp",
+    "cat-laught.webp",
+    "rotlu.webp",
+    "smirk.webp",
+    "shin1.webp",
+    "stare.webp"
+  ];
 
   return (
     <div
@@ -359,10 +328,22 @@ const MessageInput = () => {
             value={text}
             onChange={(e) => {
               const value = e.target.value;
+
               setText(value);
 
-              if (value.trim()) sendTyping(true);
-              else sendTyping(false);
+              if (value.trim()) {
+                sendTyping(true);
+
+                if (typingTimeoutRef.current) {
+                  clearTimeout(typingTimeoutRef.current);
+                }
+
+                typingTimeoutRef.current = setTimeout(() => {
+                  sendTyping(false);
+                }, 1500);
+              } else {
+                sendTyping(false);
+              }
             }}
             placeholder="Type a message"
             rows={1}
