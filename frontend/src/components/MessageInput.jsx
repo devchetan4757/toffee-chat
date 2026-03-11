@@ -299,9 +299,16 @@ const MessageInput = () => {
   });
 
   const stickersArray = [
-    "38.webp","cat-laugh.webp","rotlu.webp","smirk.webp",
-    "amazed.webp","cat-laught.webp","shin1.webp","stare.webp"
-  ];
+  ...Array.from({ length: 37 }, (_, i) => `${i + 1}.webp`),
+
+  "amazed.webp",
+  "cat-laugh.webp",
+  "cat-laught.webp",
+  "rotlu.webp",
+  "smirk.webp",
+  "shin1.webp",
+  "stare.webp"
+];
 
   return (
     <div
