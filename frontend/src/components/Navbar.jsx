@@ -81,7 +81,7 @@ const Navbar = () => {
                     {/* NAME / TYPING */}
                     <span className="font-medium">
                       {isTyping
-                        ? `${otherRole} typing...`
+                        ? `typing...`
                         : otherRole}
                     </span>
 
