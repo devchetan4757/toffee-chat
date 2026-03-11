@@ -12,14 +12,19 @@ const io = new Server(server, {
   },
 });
 
+let onlineUsers = {};
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  io.emit("onlineUsersCount", io.engine.clientsCount);
+  // when user joins
+  socket.on("join", (role) => {
+    onlineUsers[role] = socket.id;
 
-  // =====================
-  // Typing indicator
-  // =====================
+    io.emit("onlineUsers", Object.keys(onlineUsers));
+  });
+
+  // typing
   socket.on("typing", (role) => {
     socket.broadcast.emit("typing", role);
   });
@@ -31,7 +36,13 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
 
-    io.emit("onlineUsersCount", io.engine.clientsCount);
+    for (const role in onlineUsers) {
+      if (onlineUsers[role] === socket.id) {
+        delete onlineUsers[role];
+      }
+    }
+
+    io.emit("onlineUsers", Object.keys(onlineUsers));
   });
 });
 

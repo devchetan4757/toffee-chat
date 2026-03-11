@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
-import { LogOut, Settings, Users } from "lucide-react";
+import { useChatStore } from "../store/useChatStore";
+import { LogOut, Settings } from "lucide-react";
 import Rotlupfp from "../pfp/Rotlu.png";
 import Chsmishpfp from "../pfp/Chsmish.png";
 
 const Navbar = () => {
-  const { role, logout, isAuthenticated } = useAuthStore(); // ← use role directly
+
+  const { role, logout, isAuthenticated } = useAuthStore();
+  const { onlineUsers, isTyping } = useChatStore();
 
   const handleLogout = async () => {
     await logout();
@@ -13,52 +16,83 @@ const Navbar = () => {
 
   // Determine other role
   const otherRole =
-    role === "Chsmish" ? "Rotlu" : role === "Rotlu" ? "Chsmish" : null;
+    role === "Chsmish"
+      ? "Rotlu"
+      : role === "Rotlu"
+      ? "Chsmish"
+      : null;
+
+  // Select correct profile image
   const pfp =
-    otherRole === "Chsmish" ? Rotlupfp : Chsmishpfp;
-  const otherOn = ["Chsmish", "Rotlu"].includes(otherRole);
+    otherRole === "Chsmish"
+      ? Rotlupfp
+      : Chsmishpfp;
+
+  // Check if other user is online
+  const otherOn = onlineUsers.includes(otherRole);
+
   return (
-      <header className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40
- backdrop-blur-lg bg-base-100/80">
+    <header className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40 backdrop-blur-lg bg-base-100/80">
+
       <div className="container mx-auto px-4 h-16">
+
         <div className="flex items-center justify-between h-full">
+
+          {/* LEFT SIDE */}
           <div className="flex items-center gap-8">
+
             <Link
               to="/"
               className="flex items-center gap-2.5 hover:opacity-80 transition-all"
             >
 
-              <img src={pfp} alt="logo" className="w-11 h-12 object-contain 
-bg-gray-200 rounded-lg"/>
+              <img
+                src={pfp}
+                alt="logo"
+                className="w-11 h-12 object-contain bg-gray-200 rounded-lg"
+              />
+
               <h2 className="text-lg font-bold">You</h2>
+
             </Link>
+
           </div>
 
+
+          {/* RIGHT SIDE */}
           <div className="flex items-center gap-4">
+
             {isAuthenticated && (
               <>
 
-                {/* OTHER ROLE */}
+                {/* OTHER USER STATUS */}
                 {otherRole && (
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-md 
-bg-base-200 opacity-70">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-base-200 opacity-90">
+
                     <span
                       className={`h-2 w-2 rounded-full ${
-                        otherOn ? "bg-green-500" : "bg-black"
+                        otherOn ? "bg-green-500" : "bg-gray-400"
                       }`}
                     ></span>
-                    <span className="font-medium">{otherRole}</span>
+
+                    <span className="font-medium">
+                      {isTyping
+                        ? `${otherRole} typing...`
+                        : otherRole}
+                    </span>
+
                   </div>
                 )}
 
                 {/* SETTINGS */}
                 <Link
-                  to={"/settings"}
+                  to="/settings"
                   className="btn btn-sm gap-2 transition-colors"
                 >
                   <Settings className="w-4 h-4" />
                   <span className="hidden sm:inline">Settings</span>
                 </Link>
+
 
                 {/* LOGOUT */}
                 <button
@@ -68,11 +102,16 @@ bg-base-200 opacity-70">
                   <LogOut className="size-5" />
                   <span className="hidden sm:inline">Logout</span>
                 </button>
+
               </>
             )}
+
           </div>
+
         </div>
+
       </div>
+
     </header>
   );
 };

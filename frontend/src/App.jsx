@@ -1,12 +1,12 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { Loader } from "lucide-react";
 import 'react-h5-audio-player';
 import "react-h5-audio-player/lib/styles.css";
 
 import { useThemeStore } from "./store/useThemeStore";
 import { useAuthStore } from "./store/useAuthStore";
+import { useChatStore } from "./store/useChatStore";
 
 import LoginPage from "./pages/LoginPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -17,41 +17,46 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 const App = () => {
 
-
   const { theme } = useThemeStore();
   const { checkAuth, isAuthenticated } = useAuthStore();
+  const { initSocket } = useChatStore(); // ⭐ NEW
 
   useEffect(() => {
     checkAuth();
+    initSocket(); // ⭐ start socket listeners
   }, []);
 
   return (
     <>
-
       <Toaster position="top-center" />
 
       <div data-theme={theme}>
         {isAuthenticated && <Navbar />}
-     <div className={isAuthenticated ? "pt-5 h-screen" : ""}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route
-            path="/home"
-            element={
-              <ProtectedRoute>
-                <HomePage />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* Default redirect */}
-          <Route
-            path="*"
-            element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
-          />
-        </Routes>
-     </div>
+        <div className={isAuthenticated ? "pt-5 h-screen" : ""}>
+          <Routes>
+
+            <Route path="/login" element={<LoginPage />} />
+
+            <Route path="/settings" element={<SettingsPage />} />
+
+            <Route
+              path="/home"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Default redirect */}
+            <Route
+              path="*"
+              element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
+            />
+
+          </Routes>
+        </div>
       </div>
     </>
   );
