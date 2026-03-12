@@ -6,8 +6,8 @@ import InstagramBubble from "./InstagramBubble";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { socket } from "../lib/socket";
 import { formatMessageTime } from "../lib/utils";
+import { socket } from "../lib/socket";
 
 const detectInstagramMedia = (text) => {
   if (!text) return null;
@@ -19,72 +19,67 @@ const detectInstagramMedia = (text) => {
 const isStickerImage = (img) => img?.startsWith("data:image/webp");
 
 const ChatContainer = () => {
-
   const {
     messages,
     getMessages,
     deleteMessage,
     isMessagesLoading,
     setReplyTo,
+    replyTo,
   } = useChatStore();
 
   const { role: myRole } = useAuthStore();
 
   const chatRef = useRef(null);
   const loadingOlderRef = useRef(false);
-
-  const touchStartX = useRef(null);
-  const touchEndX = useRef(null);
-
   const [fullImage, setFullImage] = useState(null);
 
+  // Fetch initial messages
   useEffect(() => {
-    getMessages();
+    const initChat = async () => {
+      await getMessages(); // initial load
+
+      // mark all current messages as seen
+      messages.forEach((m) => {
+        if (m.logger !== myRole) socket.emit("messageSeen", m._id);
+      });
+    };
+    initChat();
   }, []);
 
-  // 🔵 mark messages as seen
-  useEffect(() => {
-
-    messages.forEach((m) => {
-      if (m.logger !== myRole && m.status !== "seen") {
-        socket.emit("messageSeen", m._id);
-      }
-    });
-
-  }, [messages]);
-
+  // Handle infinite scroll for older messages
   const handleScroll = async () => {
     const el = chatRef.current;
     if (!el || loadingOlderRef.current) return;
 
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
-    if (!nearBottom) return;
+    // near top = 50px
+    if (el.scrollTop > 50) return;
 
     const oldestId = messages[messages.length - 1]?._id;
     if (!oldestId) return;
 
     loadingOlderRef.current = true;
-    await getMessages(oldestId);
+
+    const prevHeight = el.scrollHeight;
+
+    await getMessages(oldestId); // fetch older messages
+
     loadingOlderRef.current = false;
+
+    // Maintain scroll position
+    el.scrollTop = el.scrollHeight - prevHeight;
   };
 
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.targetTouches[0].clientX;
-  };
+  // Swipe to reply
+  const touchStartX = useRef(null);
+  const touchEndX = useRef(null);
 
-  const handleTouchMove = (e) => {
-    touchEndX.current = e.targetTouches[0].clientX;
-  };
+  const handleTouchStart = (e) => (touchStartX.current = e.targetTouches[0].clientX);
+  const handleTouchMove = (e) => (touchEndX.current = e.targetTouches[0].clientX);
 
   const handleTouchEnd = (message) => {
     if (!touchStartX.current || !touchEndX.current) return;
-
-    const distance = touchEndX.current - touchStartX.current;
-
-    if (distance > 60) {
-      setReplyTo(message);
-    }
-
+    if (touchEndX.current - touchStartX.current > 60) setReplyTo(message);
     touchStartX.current = null;
     touchEndX.current = null;
   };
@@ -105,20 +100,33 @@ const ChatContainer = () => {
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-3 space-y-3"
       >
-        {messages.map((message) => {
-
-          const isSelf = message.logger && myRole && message.logger === myRole;
+        {messages.map((message, i) => {
+          const isSelf = message.logger === myRole;
           const media = detectInstagramMedia(message.text);
+
+          // ✅ Determine if this is the latest message from self
+          const isLatestSelf =
+            isSelf &&
+            i === 0 && // assuming messages[0] is newest
+            !messages.slice(0, i).some((m) => m.logger === myRole);
 
           return (
             <div
               key={message._id}
               className={`chat ${isSelf ? "chat-end" : "chat-start"} group`}
             >
-
+              {/* Time + delete */}
               <div className="chat-header flex gap-2 text-[10px] opacity-60">
                 {formatMessageTime(message.createdAt)}
-
+                {isSelf && isLatestSelf && (
+                  <span className="ml-1 text-xs">
+                    {message.seen ? (
+                      <span className="text-blue-500">✓✓</span> // seen
+                    ) : (
+                      <span className="text-gray-400">✓✓</span> // delivered/unseen
+                    )}
+                  </span>
+                )}
                 <button
                   onClick={() => deleteMessage(message._id)}
                   className="opacity-0 group-hover:opacity-100"
@@ -136,45 +144,34 @@ const ChatContainer = () => {
                   !isStickerImage(message.image) && setFullImage(message.image)
                 }
               >
-
                 {/* Reply preview */}
                 {message.replyTo && (
                   <div className="bg-gray-200 px-2 py-1 rounded-md mb-2 border-l-2 border-blue-500">
-
                     {message.replyTo.text && (
                       <p className="text-sm text-gray-700 truncate max-w-[90%]">
                         {message.replyTo.text}
                       </p>
                     )}
-
                     {message.replyTo.image && (
                       <img
                         src={message.replyTo.image}
                         className="mt-1 max-w-[100px] rounded-md"
                       />
                     )}
-
                     {message.replyTo.audio && (
-                      <audio
-                        controls
-                        src={message.replyTo.audio}
-                        className="mt-1 w-full"
-                      />
+                      <audio controls src={message.replyTo.audio} className="mt-1 w-full" />
                     )}
-
                   </div>
                 )}
 
-                {/* Instagram preview */}
+                {/* Instagram bubble */}
                 {media ? (
                   <InstagramBubble url={media.url} type={media.type} />
                 ) : (
                   message.text && <p>{message.text}</p>
                 )}
 
-                {message.audio && (
-                  <VoiceMessageBubble src={message.audio} />
-                )}
+                {message.audio && <VoiceMessageBubble src={message.audio} />}
 
                 {message.image && (
                   <img
@@ -186,22 +183,6 @@ const ChatContainer = () => {
                     }`}
                   />
                 )}
-
-                {/* ✅ MESSAGE TICKS */}
-                {isSelf && (
-                  <div className="text-[15px] text-right mt-1 opacity-100">
-
-                    {message.status === "sent" && "✓"}
-
-                    {message.status === "delivered" && "✓✓"}
-
-                    {message.status === "seen" && (
-                      <span className="text-black">✓✓</span>
-                    )}
-
-                  </div>
-                )}
-
               </div>
             </div>
           );
@@ -215,10 +196,7 @@ const ChatContainer = () => {
           className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
           onClick={() => setFullImage(null)}
         >
-          <img
-            src={fullImage}
-            className="max-w-full max-h-full object-contain"
-          />
+          <img src={fullImage} className="max-w-full max-h-full object-contain" />
         </div>
       )}
     </div>
