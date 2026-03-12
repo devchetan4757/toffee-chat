@@ -34,12 +34,11 @@ const ChatContainer = () => {
   const loadingOlderRef = useRef(false);
   const [fullImage, setFullImage] = useState(null);
 
-  // Fetch initial messages
+  // Fetch initial messages and mark as seen
   useEffect(() => {
     const initChat = async () => {
       await getMessages(); // initial load
 
-      // mark all current messages as seen
       messages.forEach((m) => {
         if (m.logger !== myRole) socket.emit("messageSeen", m._id);
       });
@@ -47,12 +46,12 @@ const ChatContainer = () => {
     initChat();
   }, []);
 
-  // Handle infinite scroll for older messages
+  // ---------------- SCROLL HANDLER ----------------
   const handleScroll = async () => {
     const el = chatRef.current;
     if (!el || loadingOlderRef.current) return;
 
-    // near top = 50px
+    // trigger when near top (newest messages at top)
     if (el.scrollTop > 50) return;
 
     const oldestId = messages[messages.length - 1]?._id;
@@ -66,11 +65,11 @@ const ChatContainer = () => {
 
     loadingOlderRef.current = false;
 
-    // Maintain scroll position
+    // adjust scroll so user stays in same view
     el.scrollTop = el.scrollHeight - prevHeight;
   };
 
-  // Swipe to reply
+  // ---------------- SWIPE TO REPLY ----------------
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
 
@@ -84,6 +83,7 @@ const ChatContainer = () => {
     touchEndX.current = null;
   };
 
+  // ---------------- LOADING SKELETON ----------------
   if (isMessagesLoading && messages.length === 0) {
     return (
       <div className="flex-1 flex flex-col">
@@ -95,6 +95,7 @@ const ChatContainer = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full">
+      {/* ---------------- MESSAGES ---------------- */}
       <div
         ref={chatRef}
         onScroll={handleScroll}
@@ -104,10 +105,10 @@ const ChatContainer = () => {
           const isSelf = message.logger === myRole;
           const media = detectInstagramMedia(message.text);
 
-          // ✅ Determine if this is the latest message from self
+          // latest self message for ticks
           const isLatestSelf =
             isSelf &&
-            i === 0 && // assuming messages[0] is newest
+            i === 0 && // newest message is at top
             !messages.slice(0, i).some((m) => m.logger === myRole);
 
           return (
@@ -115,15 +116,15 @@ const ChatContainer = () => {
               key={message._id}
               className={`chat ${isSelf ? "chat-end" : "chat-start"} group`}
             >
-              {/* Time + delete */}
+              {/* Time + delete + ticks */}
               <div className="chat-header flex gap-2 text-[10px] opacity-60">
                 {formatMessageTime(message.createdAt)}
                 {isSelf && isLatestSelf && (
                   <span className="ml-1 text-xs">
                     {message.seen ? (
-                      <span className="text-blue-500">✓✓</span> // seen
+                      <span className="text-blue-500">✓✓</span>
                     ) : (
-                      <span className="text-gray-400">✓✓</span> // delivered/unseen
+                      <span className="text-gray-400">✓✓</span>
                     )}
                   </span>
                 )}
@@ -135,6 +136,7 @@ const ChatContainer = () => {
                 </button>
               </div>
 
+              {/* Message Bubble */}
               <div
                 className="chat-bubble max-w-[75%] cursor-pointer"
                 onTouchStart={handleTouchStart}
@@ -171,8 +173,10 @@ const ChatContainer = () => {
                   message.text && <p>{message.text}</p>
                 )}
 
+                {/* Audio */}
                 {message.audio && <VoiceMessageBubble src={message.audio} />}
 
+                {/* Image / sticker */}
                 {message.image && (
                   <img
                     src={message.image}
@@ -189,8 +193,10 @@ const ChatContainer = () => {
         })}
       </div>
 
+      {/* ---------------- MESSAGE INPUT ---------------- */}
       <MessageInput />
 
+      {/* ---------------- FULL IMAGE MODAL ---------------- */}
       {fullImage && (
         <div
           className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"

@@ -18,38 +18,39 @@ export const useChatStore = create((set, get) => ({
   clearReplyTo: () => set({ replyTo: null }),
 
   // ---------------- GET MESSAGES ----------------
-  getMessages: async (cursor) => {
-  set({ isMessagesLoading: true });
+  // ---------------- GET MESSAGES ----------------
+getMessages: async (cursor) => {
+set({ isMessagesLoading: true });
 
-  try {
-    const res = await axiosInstance.get("/messages", {
-      params: cursor ? { cursor } : {},
-    });
+try {
+const res = await axiosInstance.get("/messages", {
+params: cursor ? { cursor } : {},
+});
 
-    const fetched = res.data || [];
+const fetched = res.data || [];
 
-    set((state) => {
-      if (!cursor) {
-        // initial load
-        return { messages: fetched.reverse() }; // newest at bottom
-      }
+set((state) => {
+if (!cursor) {
+return { messages: fetched.reverse() };
+}
 
-      // older messages
-      const existingIds = new Set(state.messages.map((m) => m._id));
+const existingIds = new Set(state.messages.map((m) => m._id));    
 
-      const older = fetched.filter((m) => !existingIds.has(m._id));
+const older = fetched    
+  .filter((m) => !existingIds.has(m._id))    
+  .reverse();    
 
-      // prepend older messages at the top
-      return { messages: [...older, ...state.messages] };
-    });
+return { messages: [...state.messages, ...older] };
 
-  } catch (error) {
-    toast.error(error?.response?.data?.message || "Failed to load messages");
-  } finally {
-    set({ isMessagesLoading: false });
-  }
+});
+
+} catch (error) {
+toast.error(error?.response?.data?.message || "Failed to load messages");
+} finally {
+set({ isMessagesLoading: false });
+}
+
 },
-
   // ---------------- SEND MESSAGE ----------------
   sendMessage: async (data) => {
     try {
