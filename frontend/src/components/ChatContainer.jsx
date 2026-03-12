@@ -59,14 +59,11 @@ const ChatContainer = () => {
 
     loadingOlderRef.current = true;
 
-    const prevHeight = el.scrollHeight;
 
     await getMessages(oldestId); // fetch older messages
 
     loadingOlderRef.current = false;
 
-    // adjust scroll so user stays in same view
-    el.scrollTop = el.scrollHeight - prevHeight;
   };
 
   // ---------------- SWIPE TO REPLY ----------------
