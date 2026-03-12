@@ -113,11 +113,21 @@ export const useChatStore = create((set, get) => ({
     // new message
     socket.on("newMessage", (message) => {
       set((state) => {
+      socket.emit("messageDelivered", message._id);
         if (state.messages.some((m) => m._id === message._id)) return state;
         return { messages: [message, ...state.messages] };
       });
     });
 
+    socket.on("messageStatus", ({ id, status }) => {
+
+  set((state) => ({
+    messages: state.messages.map((m) =>
+      m._id === id ? { ...m, status } : m
+    )
+  }));
+
+});
     // delete message
     socket.on("deleteMessage", (id) => {
       set((state) => ({

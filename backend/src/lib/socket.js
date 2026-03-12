@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import http from "http";
 import express from "express";
+import Message from "../models/message.model.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -48,7 +49,32 @@ io.on("connection", (socket) => {
   socket.on("stopTyping", (data) => {
     socket.broadcast.emit("typing", { ...data, typing: false });
   });
+  //messageSeen
+  socket.on("messageSeen", async (id) => {
 
+  await Message.findByIdAndUpdate(id, {
+    status: "seen"
+  });
+
+  io.emit("messageStatus", {
+    id,
+    status: "seen"
+  });
+
+});
+  //MessageDelivered
+  socket.on("messageDelivered", async (id) => {
+
+  await Message.findByIdAndUpdate(id, {
+    status: "delivered"
+  });
+
+  io.emit("messageStatus", {
+    id,
+    status: "delivered"
+  });
+
+});
   // =========================
   // DISCONNECT
   // =========================

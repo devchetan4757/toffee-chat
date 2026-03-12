@@ -51,6 +51,7 @@ export const sendMessage = async (req, res) => {
       audio: audio || null,
       stickers: stickers || [],
       logger: req.user.role, // 🔹 SET LOGGER HERE FROM JWT
+      status:"delivered",
       replyTo: replyTo
         ? {
             _id: replyTo._id,

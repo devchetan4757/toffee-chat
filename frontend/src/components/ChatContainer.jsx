@@ -6,6 +6,7 @@ import InstagramBubble from "./InstagramBubble";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
+import { socket } from "../lib/socket";
 import { formatMessageTime } from "../lib/utils";
 
 const detectInstagramMedia = (text) => {
@@ -18,12 +19,12 @@ const detectInstagramMedia = (text) => {
 const isStickerImage = (img) => img?.startsWith("data:image/webp");
 
 const ChatContainer = () => {
+
   const {
     messages,
     getMessages,
     deleteMessage,
     isMessagesLoading,
-    initSocket,
     setReplyTo,
   } = useChatStore();
 
@@ -39,8 +40,18 @@ const ChatContainer = () => {
 
   useEffect(() => {
     getMessages();
-    initSocket();
   }, []);
+
+  // 🔵 mark messages as seen
+  useEffect(() => {
+
+    messages.forEach((m) => {
+      if (m.logger !== myRole && m.status !== "seen") {
+        socket.emit("messageSeen", m._id);
+      }
+    });
+
+  }, [messages]);
 
   const handleScroll = async () => {
     const el = chatRef.current;
@@ -57,17 +68,14 @@ const ChatContainer = () => {
     loadingOlderRef.current = false;
   };
 
-  // swipe start
   const handleTouchStart = (e) => {
     touchStartX.current = e.targetTouches[0].clientX;
   };
 
-  // swipe move
   const handleTouchMove = (e) => {
     touchEndX.current = e.targetTouches[0].clientX;
   };
 
-  // swipe end
   const handleTouchEnd = (message) => {
     if (!touchStartX.current || !touchEndX.current) return;
 
@@ -98,6 +106,7 @@ const ChatContainer = () => {
         className="flex-1 overflow-y-auto p-3 space-y-3"
       >
         {messages.map((message) => {
+
           const isSelf = message.logger && myRole && message.logger === myRole;
           const media = detectInstagramMedia(message.text);
 
@@ -106,6 +115,7 @@ const ChatContainer = () => {
               key={message._id}
               className={`chat ${isSelf ? "chat-end" : "chat-start"} group`}
             >
+
               <div className="chat-header flex gap-2 text-[10px] opacity-60">
                 {formatMessageTime(message.createdAt)}
 
@@ -126,9 +136,11 @@ const ChatContainer = () => {
                   !isStickerImage(message.image) && setFullImage(message.image)
                 }
               >
+
                 {/* Reply preview */}
                 {message.replyTo && (
                   <div className="bg-gray-200 px-2 py-1 rounded-md mb-2 border-l-2 border-blue-500">
+
                     {message.replyTo.text && (
                       <p className="text-sm text-gray-700 truncate max-w-[90%]">
                         {message.replyTo.text}
@@ -149,17 +161,20 @@ const ChatContainer = () => {
                         className="mt-1 w-full"
                       />
                     )}
+
                   </div>
                 )}
 
-                {/* Instagram bubble */}
+                {/* Instagram preview */}
                 {media ? (
                   <InstagramBubble url={media.url} type={media.type} />
                 ) : (
                   message.text && <p>{message.text}</p>
                 )}
 
-                {message.audio && <VoiceMessageBubble src={message.audio} />}
+                {message.audio && (
+                  <VoiceMessageBubble src={message.audio} />
+                )}
 
                 {message.image && (
                   <img
@@ -171,6 +186,22 @@ const ChatContainer = () => {
                     }`}
                   />
                 )}
+
+                {/* ✅ MESSAGE TICKS */}
+                {isSelf && (
+                  <div className="text-[15px] text-right mt-1 opacity-100">
+
+                    {message.status === "sent" && "✓"}
+
+                    {message.status === "delivered" && "✓✓"}
+
+                    {message.status === "seen" && (
+                      <span className="text-black">✓✓</span>
+                    )}
+
+                  </div>
+                )}
+
               </div>
             </div>
           );

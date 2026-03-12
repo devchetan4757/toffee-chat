@@ -14,6 +14,11 @@ const messageSchema = new mongoose.Schema(
     image: { type: String },
     audio: { type: String },
     stickers: [{ type: String }],
+    status: {
+      type: String,
+      enum: ["sent", "delivered", "seen"],
+      default: "sent",
+    },
     mediaType: { type: String, enum: ["instagram", "youtube"], default: null },
     mediaStatus: { type: String, enum: ["pending", "ready", "failed"], default: null },
     mediaUrl: { type: String, default: null },
