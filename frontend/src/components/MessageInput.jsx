@@ -12,6 +12,8 @@ const blobToBase64 = (blob) =>
     reader.readAsDataURL(blob);
   });
 
+const isStickerImage = (img) => img?.startsWith("data:image/webp");
+
 const MessageInput = () => {
   const { sendMessage, replyTo, clearReplyTo, sendTyping } = useChatStore();
 
@@ -78,12 +80,38 @@ const MessageInput = () => {
     if (!text.trim() && !imagePreview && !audioBlob) return;
 
     try {
-      const audioBase64 = audioBlob ? await blobToBase64(audioBlob) : null;
+      let imageUrl = null;
+      let audioUrl = null;
 
+      // Only upload normal images, not stickers (webp)
+      if (imagePreview && !isStickerImage(imagePreview)) {
+        const imgRes = await fetch("/api/upload/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: imagePreview }),
+        });
+        const imgData = await imgRes.json();
+        if (!imgRes.ok) throw new Error(imgData.error || "Image upload failed");
+        imageUrl = imgData.url;
+      }
+
+      if (audioBlob) {
+        const audioBase64 = await blobToBase64(audioBlob);
+        const audioRes = await fetch("/api/upload/audio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ audio: audioBase64 }),
+        });
+        const audioData = await audioRes.json();
+        if (!audioRes.ok) throw new Error(audioData.error || "Audio upload failed");
+        audioUrl = audioData.url;
+      }
+
+      // Send message
       await sendMessage({
         text: text.trim(),
-        image: imagePreview,
-        audio: audioBase64,
+        image: imageUrl || (isStickerImage(imagePreview) ? imagePreview : null),
+        audio: audioUrl,
         replyTo: replyTo
           ? {
               _id: replyTo._id,
@@ -94,6 +122,7 @@ const MessageInput = () => {
           : null,
       });
 
+      // reset
       setText("");
       setImagePreview(null);
       setImageFile(null);
@@ -110,7 +139,7 @@ const MessageInput = () => {
     try {
       await sendMessage({
         text: "",
-        image: base64,
+        image: base64, // stickers remain as-is
         audio: null,
         replyTo: replyTo
           ? {
@@ -135,7 +164,7 @@ const MessageInput = () => {
     textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 140) + "px";
   }, [text]);
 
-  // DRAG + SCALE LOGIC
+  // DRAG + SCALE LOGIC (keep your full logic as-is)
   const clampPosition = (pos, width = 350, height = 140) => {
     const vv = window.visualViewport;
     const viewportLeft = vv?.offsetLeft ?? 0;
@@ -244,8 +273,7 @@ const MessageInput = () => {
     };
   });
 
-  const stickersArray = [...Array.from({ length: 37 }, (_, i) => `${i + 1}.webp`),
- "amazed.webp", "cat-laugh.webp", "rotlu.webp", "smirk.webp"];
+  const stickersArray = [...Array.from({ length: 51 }, (_, i) => `${i + 1}.webp`)];
 
   return (
     <div
