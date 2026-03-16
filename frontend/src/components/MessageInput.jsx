@@ -3,6 +3,7 @@ import { useChatStore } from "../store/useChatStore";
 import { Image, Send, Mic, Square, X, Smile } from "lucide-react";
 import toast from "react-hot-toast";
 import StickerPicker from "./StickerPicker";
+import { axiosInstance } from "../lib/axios"; // <--- use your axios instance
 
 const blobToBase64 = (blob) =>
   new Promise((resolve, reject) => {
@@ -85,26 +86,14 @@ const MessageInput = () => {
 
       // Only upload normal images, not stickers (webp)
       if (imagePreview && !isStickerImage(imagePreview)) {
-        const imgRes = await fetch("/api/upload/image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: imagePreview }),
-        });
-        const imgData = await imgRes.json();
-        if (!imgRes.ok) throw new Error(imgData.error || "Image upload failed");
-        imageUrl = imgData.url;
+        const imgRes = await axiosInstance.post("/upload/image", { image: imagePreview });
+        imageUrl = imgRes.data.url;
       }
 
       if (audioBlob) {
         const audioBase64 = await blobToBase64(audioBlob);
-        const audioRes = await fetch("/api/upload/audio", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ audio: audioBase64 }),
-        });
-        const audioData = await audioRes.json();
-        if (!audioRes.ok) throw new Error(audioData.error || "Audio upload failed");
-        audioUrl = audioData.url;
+        const audioRes = await axiosInstance.post("/upload/audio", { audio: audioBase64 });
+        audioUrl = audioRes.data.url;
       }
 
       // Send message
@@ -129,7 +118,8 @@ const MessageInput = () => {
       setAudioBlob(null);
       clearReplyTo();
       sendTyping(false);
-    } catch {
+    } catch (err) {
+      console.error("Failed to send message:", err);
       toast.error("Failed to send message");
     }
   };
@@ -139,7 +129,7 @@ const MessageInput = () => {
     try {
       await sendMessage({
         text: "",
-        image: base64, // stickers remain as-is
+        image: base64,
         audio: null,
         replyTo: replyTo
           ? {
@@ -164,7 +154,7 @@ const MessageInput = () => {
     textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 140) + "px";
   }, [text]);
 
-  // DRAG + SCALE LOGIC (keep your full logic as-is)
+  // DRAG + SCALE LOGIC
   const clampPosition = (pos, width = 350, height = 140) => {
     const vv = window.visualViewport;
     const viewportLeft = vv?.offsetLeft ?? 0;

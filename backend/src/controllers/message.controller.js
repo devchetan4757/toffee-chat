@@ -1,26 +1,23 @@
 import Message from "../models/message.model.js";
 import sanitizeHtml from "sanitize-html";
 import { io } from "../lib/socket.js";
+import cloudinary from "../lib/cloudinary.js";
 
 /**
- * GET /api/messages?cursor=<messageId>&limit=50
- *
- * Returns latest messages (newest 50) but sends back OLD -> NEW
- * Each message includes full reply snapshot if exists
+ * GET /api/messages?cursor=<messageId>&limit=150
  */
 export const getMessages = async (req, res) => {
   try {
     const limit = Number(req.query.limit) || 150;
     const { cursor } = req.query;
-
     const query = cursor ? { _id: { $lt: cursor } } : {};
 
     const messages = await Message.find(query)
-      .sort({ createdAt: -1 }) // NEW → OLD
+      .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
 
-    res.status(200).json(messages.reverse()); // OLD → NEW
+    res.status(200).json(messages.reverse());
   } catch (error) {
     console.error("getMessages error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -30,7 +27,7 @@ export const getMessages = async (req, res) => {
 /**
  * POST /api/messages/send
  *
- * Stores a new message with logger (role) from JWT
+ * Handles images/audio (Base64 or URLs) and stores message
  */
 export const sendMessage = async (req, res) => {
   try {
@@ -45,13 +42,44 @@ export const sendMessage = async (req, res) => {
       allowedAttributes: {},
     });
 
+    let imageUrl = null;
+    let audioUrl = null;
+
+    // IMAGE LOGIC
+    if (image) {
+      if (image.startsWith("data:")) {
+        // Base64 → upload to Cloudinary
+        const uploaded = await cloudinary.uploader.upload(image, {
+          folder: "chat_images",
+          resource_type: "image",
+        });
+        imageUrl = uploaded.secure_url;
+      } else {
+        // Already a URL (uploaded via /upload/image)
+        imageUrl = image;
+      }
+    }
+
+    // AUDIO LOGIC
+    if (audio) {
+      if (audio.startsWith("data:")) {
+        const uploaded = await cloudinary.uploader.upload(audio, {
+          folder: "chat_audio",
+          resource_type: "video",
+        });
+        audioUrl = uploaded.secure_url;
+      } else {
+        audioUrl = audio;
+      }
+    }
+
     const newMessage = new Message({
       text: cleanText,
-      image: image || null,
-      audio: audio || null,
+      image: imageUrl,
+      audio: audioUrl,
       stickers: stickers || [],
-      logger: req.user.role, // 🔹 SET LOGGER HERE FROM JWT
-      status:"delivered",
+      logger: req.user.role,
+      status: "delivered",
       replyTo: replyTo
         ? {
             _id: replyTo._id,
@@ -63,7 +91,6 @@ export const sendMessage = async (req, res) => {
     });
 
     await newMessage.save();
-
     io.emit("newMessage", newMessage);
 
     res.status(201).json(newMessage);
@@ -79,11 +106,8 @@ export const sendMessage = async (req, res) => {
 export const deleteMessage = async (req, res) => {
   try {
     const { id } = req.params;
-
     const message = await Message.findById(id);
-    if (!message) {
-      return res.status(404).json({ message: "Message not found" });
-    }
+    if (!message) return res.status(404).json({ message: "Message not found" });
 
     await message.deleteOne();
     io.emit("deleteMessage", id);

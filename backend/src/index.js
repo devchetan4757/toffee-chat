@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
-
+import uploadRoutes from "./routes/upload.routes.js";
 import express from "express";
 import path from "path";
 import cookieParser from "cookie-parser";
@@ -31,6 +31,7 @@ console.log("USER_PASSWORD loaded:", process.env.PASSWORD2);
 // ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/upload", uploadRoutes);
 
 // ✅ Production build serving
 if (process.env.NODE_ENV === "production") {
