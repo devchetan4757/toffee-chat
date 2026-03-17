@@ -3,7 +3,7 @@ import { useChatStore } from "../store/useChatStore";
 import { Image, Send, Mic, Square, X, Smile } from "lucide-react";
 import toast from "react-hot-toast";
 import StickerPicker from "./StickerPicker";
-import { axiosInstance } from "../lib/axios"; // <--- use your axios instance
+import { axiosInstance } from "../lib/axios";
 
 const blobToBase64 = (blob) =>
   new Promise((resolve, reject) => {
@@ -45,6 +45,7 @@ const MessageInput = () => {
       return;
     }
     setImageFile(file);
+
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result);
     reader.readAsDataURL(file);
@@ -56,13 +57,16 @@ const MessageInput = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
       audioChunksRef.current = [];
+
       mediaRecorderRef.current.ondataavailable = (e) => {
         if (e.data.size) audioChunksRef.current.push(e.data);
       };
+
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         setAudioBlob(blob);
       };
+
       mediaRecorderRef.current.start();
       setIsRecording(true);
     } catch {
@@ -84,22 +88,26 @@ const MessageInput = () => {
       let imageUrl = null;
       let audioUrl = null;
 
-      // Only upload normal images, not stickers (webp)
+      // upload only normal images (NOT stickers)
       if (imagePreview && !isStickerImage(imagePreview)) {
-        const imgRes = await axiosInstance.post("/upload/image", { image: imagePreview });
+        const imgRes = await axiosInstance.post("/upload/image", {
+          image: imagePreview,
+        });
         imageUrl = imgRes.data.url;
       }
 
       if (audioBlob) {
         const audioBase64 = await blobToBase64(audioBlob);
-        const audioRes = await axiosInstance.post("/upload/audio", { audio: audioBase64 });
+        const audioRes = await axiosInstance.post("/upload/audio", {
+          audio: audioBase64,
+        });
         audioUrl = audioRes.data.url;
       }
 
-      // Send message
       await sendMessage({
         text: text.trim(),
-        image: imageUrl || (isStickerImage(imagePreview) ? imagePreview : null),
+        image: imageUrl || null, // ✅ FIXED
+        stickers: isStickerImage(imagePreview) ? [imagePreview] : [], // ✅ FIXED
         audio: audioUrl,
         replyTo: replyTo
           ? {
@@ -111,7 +119,6 @@ const MessageInput = () => {
           : null,
       });
 
-      // reset
       setText("");
       setImagePreview(null);
       setImageFile(null);
@@ -129,7 +136,7 @@ const MessageInput = () => {
     try {
       await sendMessage({
         text: "",
-        image: base64,
+        stickers: [base64], // ✅ FIXED
         audio: null,
         replyTo: replyTo
           ? {
@@ -140,6 +147,7 @@ const MessageInput = () => {
             }
           : null,
       });
+
       clearReplyTo();
       sendTyping(false);
     } catch {
@@ -151,10 +159,11 @@ const MessageInput = () => {
   useEffect(() => {
     if (!textareaRef.current) return;
     textareaRef.current.style.height = "auto";
-    textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 140) + "px";
+    textareaRef.current.style.height =
+      Math.min(textareaRef.current.scrollHeight, 140) + "px";
   }, [text]);
 
-  // DRAG + SCALE LOGIC
+  // DRAG + SCALE LOGIC (UNCHANGED)
   const clampPosition = (pos, width = 350, height = 140) => {
     const vv = window.visualViewport;
     const viewportLeft = vv?.offsetLeft ?? 0;
@@ -173,15 +182,26 @@ const MessageInput = () => {
 
   const onMouseDown = (e) => {
     setDragging(true);
-    dragStartRef.current = { x: e.clientX - position.left, y: e.clientY - position.top };
+    dragStartRef.current = {
+      x: e.clientX - position.left,
+      y: e.clientY - position.top,
+    };
   };
+
   const onMouseMove = (e) => {
     if (!dragging) return;
-    setPosition(clampPosition({ left: e.clientX - dragStartRef.current.x, top: e.clientY - dragStartRef.current.y }));
+    setPosition(
+      clampPosition({
+        left: e.clientX - dragStartRef.current.x,
+        top: e.clientY - dragStartRef.current.y,
+      })
+    );
   };
+
   const onMouseUp = () => setDragging(false);
 
-  const getDistance = (t1, t2) => Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+  const getDistance = (t1, t2) =>
+    Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
 
   const onTouchStart = (e) => {
     if (e.touches.length === 2) {
@@ -190,25 +210,37 @@ const MessageInput = () => {
     }
     setDragging(true);
     const t = e.touches[0];
-    dragStartRef.current = { x: t.clientX - position.left, y: t.clientY - position.top };
+    dragStartRef.current = {
+      x: t.clientX - position.left,
+      y: t.clientY - position.top,
+    };
   };
 
   const onTouchMove = (e) => {
     if (e.touches.length === 2 && lastTouchDistance.current) {
       const newDist = getDistance(e.touches[0], e.touches[1]);
       const diff = newDist - lastTouchDistance.current;
+
       setScale((prev) => {
         const newScale = Math.min(1.6, Math.max(0.7, prev + diff * 0.002));
         setPosition(clampPosition(position));
         lastTouchDistance.current = newDist;
         return newScale;
       });
+
       e.preventDefault();
       return;
     }
+
     if (!dragging) return;
+
     const t = e.touches[0];
-    setPosition(clampPosition({ left: t.clientX - dragStartRef.current.x, top: t.clientY - dragStartRef.current.y }));
+    setPosition(
+      clampPosition({
+        left: t.clientX - dragStartRef.current.x,
+        top: t.clientY - dragStartRef.current.y,
+      })
+    );
   };
 
   const onTouchEnd = () => {
@@ -219,27 +251,36 @@ const MessageInput = () => {
   const onWheel = (e) => {
     if (!e.ctrlKey) return;
     e.preventDefault();
+
     const rect = e.currentTarget.getBoundingClientRect();
     const centerX = e.clientX - rect.left;
     const centerY = e.clientY - rect.top;
 
     setScale((prev) => {
       const newScale = Math.min(1.6, Math.max(0.7, prev - e.deltaY * 0.001));
+
       setPosition((pos) => {
         const offsetX = (centerX / prev) * (newScale - prev);
         const offsetY = (centerY / prev) * (newScale - prev);
-        return clampPosition({ left: pos.left - offsetX, top: pos.top - offsetY });
+
+        return clampPosition({
+          left: pos.left - offsetX,
+          top: pos.top - offsetY,
+        });
       });
+
       return newScale;
     });
   };
 
   useEffect(() => {
     const handleViewportChange = () => setPosition(clampPosition(position));
+
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", handleViewportChange);
       window.visualViewport.addEventListener("scroll", handleViewportChange);
     }
+
     return () => {
       if (window.visualViewport) {
         window.visualViewport.removeEventListener("resize", handleViewportChange);
@@ -254,6 +295,7 @@ const MessageInput = () => {
     window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd);
     window.addEventListener("wheel", onWheel, { passive: false });
+
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
@@ -263,7 +305,9 @@ const MessageInput = () => {
     };
   });
 
-  const stickersArray = [...Array.from({ length: 51 }, (_, i) => `${i + 1}.webp`)];
+  const stickersArray = [
+    ...Array.from({ length: 51 }, (_, i) => `${i + 1}.webp`),
+  ];
 
   return (
     <div
@@ -285,40 +329,77 @@ const MessageInput = () => {
 
         {replyTo && (
           <div className="bg-gray-200 px-3 py-1 rounded-lg flex justify-between items-center">
-            <span className="text-sm text-gray-700 truncate max-w-[80%]">
-              Replying: {replyTo.text || replyTo.image ? "Media" : "Message"}
+            <span className="text-sm truncate max-w-[80%]">
+              Replying: {replyTo.text || "Media"}
             </span>
-            <button type="button" onClick={clearReplyTo}><X size={16} /></button>
+            <button onClick={clearReplyTo}>
+              <X size={16} />
+            </button>
           </div>
         )}
 
         {imagePreview && (
           <div className="flex items-center mb-1">
-            <img src={imagePreview} className="w-20 h-20 object-cover rounded-md" />
-            <button onClick={() => { setImagePreview(null); setImageFile(null); }} className="ml-2 text-red-500">X</button>
+            <img src={imagePreview} className="w-20 h-20 rounded-md object-cover" />
+            <button
+              onClick={() => {
+                setImagePreview(null);
+                setImageFile(null);
+              }}
+              className="ml-2 text-red-500"
+            >
+              X
+            </button>
           </div>
         )}
 
-        <form onSubmit={handleSendMessage} className="flex items-center gap-2 bg-base-200 rounded-full shadow-lg px-4 py-3 w-full relative">
-          <button type="button" onClick={isRecording ? stopRecording : startRecording} className={`btn btn-circle btn-sm ${isRecording ? "btn-error" : "btn-ghost"}`}>
+        <form
+          onSubmit={handleSendMessage}
+          className="flex items-center gap-2 bg-base-200 rounded-full shadow-lg px-4 py-3 w-full"
+        >
+          <button type="button" onClick={isRecording ? stopRecording : startRecording}>
             {isRecording ? <Square size={18} /> : <Mic size={18} />}
           </button>
 
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={(e) => { setText(e.target.value); sendTyping(!!e.target.value.trim()); }}
+            onChange={(e) => {
+              setText(e.target.value);
+              sendTyping(!!e.target.value.trim());
+            }}
             placeholder="Type a message"
             rows={1}
-            className="flex-1 bg-base-100 rounded-full px-4 py-3 resize-none focus:outline-none min-h-[48px]"
+            className="flex-1 bg-base-100 rounded-full px-4 py-3 resize-none focus:outline-none"
           />
 
-          <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleImageChange} />
-          <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-circle btn-sm btn-ghost"><Image size={18} /></button>
-          <button type="button" onClick={() => setShowStickerPicker(prev => !prev)} className="btn btn-circle btn-sm btn-ghost"><Smile size={18} /></button>
-          <button type="submit" className="btn btn-circle btn-sm btn-primary" disabled={!text.trim() && !imageFile && !audioBlob}><Send size={18} /></button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleImageChange}
+          />
 
-          {showStickerPicker && <StickerPicker stickers={stickersArray} onStickerSelect={handleStickerSend} onClose={() => setShowStickerPicker(false)} />}
+          <button type="button" onClick={() => fileInputRef.current?.click()}>
+            <Image size={18} />
+          </button>
+
+          <button type="button" onClick={() => setShowStickerPicker((p) => !p)}>
+            <Smile size={18} />
+          </button>
+
+          <button type="submit">
+            <Send size={18} />
+          </button>
+
+          {showStickerPicker && (
+            <StickerPicker
+              stickers={stickersArray}
+              onStickerSelect={handleStickerSend}
+              onClose={() => setShowStickerPicker(false)}
+            />
+          )}
         </form>
       </div>
     </div>

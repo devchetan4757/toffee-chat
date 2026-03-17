@@ -37,7 +37,7 @@ const ChatContainer = () => {
   // Fetch initial messages and mark as seen
   useEffect(() => {
     const initChat = async () => {
-      await getMessages(); // initial load
+      await getMessages();
 
       messages.forEach((m) => {
         if (m.logger !== myRole) socket.emit("messageSeen", m._id);
@@ -51,7 +51,6 @@ const ChatContainer = () => {
     const el = chatRef.current;
     if (!el || loadingOlderRef.current) return;
 
-    // trigger when near top (newest messages at top)
     if (el.scrollTop > 50) return;
 
     const oldestId = messages[messages.length - 1]?._id;
@@ -59,23 +58,25 @@ const ChatContainer = () => {
 
     loadingOlderRef.current = true;
 
-
-    await getMessages(oldestId); // fetch older messages
+    await getMessages(oldestId);
 
     loadingOlderRef.current = false;
-
   };
 
   // ---------------- SWIPE TO REPLY ----------------
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
 
-  const handleTouchStart = (e) => (touchStartX.current = e.targetTouches[0].clientX);
-  const handleTouchMove = (e) => (touchEndX.current = e.targetTouches[0].clientX);
+  const handleTouchStart = (e) =>
+    (touchStartX.current = e.targetTouches[0].clientX);
+
+  const handleTouchMove = (e) =>
+    (touchEndX.current = e.targetTouches[0].clientX);
 
   const handleTouchEnd = (message) => {
     if (!touchStartX.current || !touchEndX.current) return;
-    if (touchEndX.current - touchStartX.current > 60) setReplyTo(message);
+    if (touchEndX.current - touchStartX.current > 60)
+      setReplyTo(message);
     touchStartX.current = null;
     touchEndX.current = null;
   };
@@ -102,16 +103,17 @@ const ChatContainer = () => {
           const isSelf = message.logger === myRole;
           const media = detectInstagramMedia(message.text);
 
-          // latest self message for ticks
           const isLatestSelf =
             isSelf &&
-            i === 0 && // newest message is at top
+            i === 0 &&
             !messages.slice(0, i).some((m) => m.logger === myRole);
 
           return (
             <div
               key={message._id}
-              className={`chat ${isSelf ? "chat-end" : "chat-start"} group`}
+              className={`chat ${
+                isSelf ? "chat-end" : "chat-start"
+              } group`}
             >
               {/* Time + delete + ticks */}
               <div className="chat-header flex gap-2 text-[10px] opacity-60">
@@ -140,7 +142,8 @@ const ChatContainer = () => {
                 onTouchMove={handleTouchMove}
                 onTouchEnd={() => handleTouchEnd(message)}
                 onClick={() =>
-                  !isStickerImage(message.image) && setFullImage(message.image)
+                  !isStickerImage(message.image) &&
+                  setFullImage(message.image)
                 }
               >
                 {/* Reply preview */}
@@ -158,22 +161,45 @@ const ChatContainer = () => {
                       />
                     )}
                     {message.replyTo.audio && (
-                      <audio controls src={message.replyTo.audio} className="mt-1 w-full" />
+                      <audio
+                        controls
+                        src={message.replyTo.audio}
+                        className="mt-1 w-full"
+                      />
                     )}
                   </div>
                 )}
 
                 {/* Instagram bubble */}
                 {media ? (
-                  <InstagramBubble url={media.url} type={media.type} />
+                  <InstagramBubble
+                    url={media.url}
+                    type={media.type}
+                  />
                 ) : (
                   message.text && <p>{message.text}</p>
                 )}
 
                 {/* Audio */}
-                {message.audio && <VoiceMessageBubble src={message.audio} />}
+                {message.audio && (
+                  <VoiceMessageBubble src={message.audio} />
+                )}
 
-                {/* Image / sticker */}
+                {/* ✅ STICKERS FIX */}
+                {message.stickers?.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {message.stickers.map((sticker, idx) => (
+                      <img
+                        key={idx}
+                        src={sticker}
+                        alt="sticker"
+                        className="w-[72px] h-auto object-contain"
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Image */}
                 {message.image && (
                   <img
                     src={message.image}
@@ -199,7 +225,10 @@ const ChatContainer = () => {
           className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
           onClick={() => setFullImage(null)}
         >
-          <img src={fullImage} className="max-w-full max-h-full object-contain" />
+          <img
+            src={fullImage}
+            className="max-w-full max-h-full object-contain"
+          />
         </div>
       )}
     </div>

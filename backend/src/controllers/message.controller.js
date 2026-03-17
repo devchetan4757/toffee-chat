@@ -10,6 +10,7 @@ export const getMessages = async (req, res) => {
   try {
     const limit = Number(req.query.limit) || 150;
     const { cursor } = req.query;
+
     const query = cursor ? { _id: { $lt: cursor } } : {};
 
     const messages = await Message.find(query)
@@ -26,17 +27,19 @@ export const getMessages = async (req, res) => {
 
 /**
  * POST /api/messages/send
- *
- * Handles images/audio (Base64 or URLs) and stores message
  */
 export const sendMessage = async (req, res) => {
   try {
     const { text, image, audio, stickers, replyTo } = req.body;
 
+    // 🔥 DEBUG (important for Render issues)
+    console.log("USER:", req.user);
+
     if (!req.user?.role) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
+    // sanitize text
     const cleanText = sanitizeHtml(text?.trim() || "", {
       allowedTags: [],
       allowedAttributes: {},
@@ -45,22 +48,21 @@ export const sendMessage = async (req, res) => {
     let imageUrl = null;
     let audioUrl = null;
 
-    // IMAGE LOGIC
-    if (image) {
+    // ================= IMAGE LOGIC =================
+    // ❌ DO NOT upload WEBP (stickers)
+    if (image && !image.startsWith("data:image/webp")) {
       if (image.startsWith("data:")) {
-        // Base64 → upload to Cloudinary
         const uploaded = await cloudinary.uploader.upload(image, {
           folder: "chat_images",
           resource_type: "image",
         });
         imageUrl = uploaded.secure_url;
       } else {
-        // Already a URL (uploaded via /upload/image)
         imageUrl = image;
       }
     }
 
-    // AUDIO LOGIC
+    // ================= AUDIO LOGIC =================
     if (audio) {
       if (audio.startsWith("data:")) {
         const uploaded = await cloudinary.uploader.upload(audio, {
@@ -73,11 +75,24 @@ export const sendMessage = async (req, res) => {
       }
     }
 
+    // ================= STICKERS SAFE =================
+    const safeStickers = Array.isArray(stickers)
+      ? stickers.filter(
+          (s) => typeof s === "string" && s.startsWith("data:image/webp")
+        )
+      : [];
+
+    // ================= EMPTY CHECK =================
+    if (!cleanText && !imageUrl && !audioUrl && safeStickers.length === 0) {
+      return res.status(400).json({ message: "Empty message not allowed" });
+    }
+
+    // ================= CREATE MESSAGE =================
     const newMessage = new Message({
       text: cleanText,
       image: imageUrl,
       audio: audioUrl,
-      stickers: stickers || [],
+      stickers: safeStickers,
       logger: req.user.role,
       status: "delivered",
       replyTo: replyTo
@@ -91,6 +106,8 @@ export const sendMessage = async (req, res) => {
     });
 
     await newMessage.save();
+
+    // emit to all clients
     io.emit("newMessage", newMessage);
 
     res.status(201).json(newMessage);
@@ -106,10 +123,14 @@ export const sendMessage = async (req, res) => {
 export const deleteMessage = async (req, res) => {
   try {
     const { id } = req.params;
+
     const message = await Message.findById(id);
-    if (!message) return res.status(404).json({ message: "Message not found" });
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
 
     await message.deleteOne();
+
     io.emit("deleteMessage", id);
 
     res.status(200).json({ message: "Message deleted", id });
