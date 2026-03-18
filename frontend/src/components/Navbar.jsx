@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, Image } from "lucide-react"; // ✅ added Image
 import Rotlupfp from "../pfp/Rotlu.png";
 import Chsmishpfp from "../pfp/Chsmish.png";
 
@@ -87,6 +87,17 @@ const Navbar = () => {
 
                   </div>
                 )}
+
+                {/* MEDIA ✅ ADDED */}
+                <Link
+                  to="/gallery"
+                  className="btn btn-sm gap-2 transition-colors"
+                >
+                  <Image className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    Media
+                  </span>
+                </Link>
 
                 {/* SETTINGS */}
                 <Link

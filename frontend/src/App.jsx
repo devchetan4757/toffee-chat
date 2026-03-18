@@ -10,6 +10,7 @@ import { useChatStore } from "./store/useChatStore";
 import LoginPage from "./pages/LoginPage";
 import SettingsPage from "./pages/SettingsPage";
 import HomePage from "./pages/HomePage";
+import GalleryPage from "./pages/GalleryPage"; // ✅ ADDED
 
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -52,6 +53,16 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <HomePage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ✅ GALLERY ROUTE ADDED */}
+            <Route
+              path="/gallery"
+              element={
+                <ProtectedRoute>
+                  <GalleryPage />
                 </ProtectedRoute>
               }
             />
