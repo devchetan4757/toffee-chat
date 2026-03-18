@@ -32,8 +32,6 @@ export const sendMessage = async (req, res) => {
   try {
     const { text, image, audio, stickers, replyTo } = req.body;
 
-    // 🔥 DEBUG (important for Render issues)
-    console.log("USER:", req.user);
 
     if (!req.user?.role) {
       return res.status(401).json({ message: "Unauthorized" });

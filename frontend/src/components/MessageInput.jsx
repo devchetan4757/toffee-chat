@@ -115,6 +115,7 @@ const MessageInput = () => {
               text: replyTo.text || null,
               image: replyTo.image || null,
               audio: replyTo.audio || null,
+              stickers: replyTo.stickers || null,
             }
           : null,
       });
@@ -144,6 +145,7 @@ const MessageInput = () => {
               text: replyTo.text || null,
               image: replyTo.image || null,
               audio: replyTo.audio || null,
+              stickers: replyTo.stickers || null,
             }
           : null,
       });
