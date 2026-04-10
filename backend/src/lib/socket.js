@@ -39,16 +39,7 @@ io.on("connection", (socket) => {
     io.emit("onlineUsers", Object.keys(onlineUsers));
   });
 
-  // =========================
-  // TYPING
-  // =========================
-  socket.on("typing", (data) => {
-    socket.broadcast.emit("typing", data);
-  });
 
-  socket.on("stopTyping", (data) => {
-    socket.broadcast.emit("typing", { ...data, typing: false });
-  });
   //messageSeen
   socket.on("messageSeen", async (id) => {
 

@@ -125,7 +125,6 @@ const MessageInput = () => {
       setImageFile(null);
       setAudioBlob(null);
       clearReplyTo();
-      sendTyping(false);
     } catch (err) {
       console.error("Failed to send message:", err);
       toast.error("Failed to send message");
@@ -151,7 +150,6 @@ const MessageInput = () => {
       });
 
       clearReplyTo();
-      sendTyping(false);
     } catch {
       toast.error("Failed to send sticker");
     }
@@ -368,7 +366,6 @@ const MessageInput = () => {
             value={text}
             onChange={(e) => {
               setText(e.target.value);
-              sendTyping(!!e.target.value.trim());
             }}
             placeholder="Type a message"
             rows={1}

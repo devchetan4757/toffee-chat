@@ -8,7 +8,7 @@ import Chsmishpfp from "../pfp/Chsmish.png";
 const Navbar = () => {
 
   const { role, logout, isAuthenticated } = useAuthStore();
-  const { onlineUsers, isTyping } = useChatStore();
+  const { onlineUsers } = useChatStore();
 
   const handleLogout = async () => {
     await logout();
@@ -80,9 +80,7 @@ const Navbar = () => {
 
                     {/* NAME / TYPING */}
                     <span className="font-medium">
-                      {isTyping
-                        ? `typing...`
-                        : otherRole}
+                      {otherRole}
                     </span>
 
                   </div>
