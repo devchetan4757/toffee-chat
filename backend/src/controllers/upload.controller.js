@@ -1,39 +1,47 @@
 import cloudinary from "../lib/cloudinary.js";
 
-// Upload normal image (not stickers)
+/**
+ * IMAGE UPLOAD
+ */
 export const uploadImage = async (req, res) => {
   try {
     const { image } = req.body;
-    if (!image) return res.status(400).json({ error: "No image provided" });
 
-    const uploadResponse = await cloudinary.uploader.upload(image, {
+    if (!image) {
+      return res.status(400).json({ message: "No image provided" });
+    }
+
+    const uploaded = await cloudinary.uploader.upload(image, {
       folder: "chat_images",
       resource_type: "image",
-      secure: true,
     });
 
-    res.status(200).json({ url: uploadResponse.secure_url });
-  } catch (err) {
-    console.error("Image upload failed:", err);
-    res.status(500).json({ error: "Failed to upload image" });
+    return res.status(200).json({ url: uploaded.secure_url });
+  } catch (error) {
+    console.error("uploadImage error:", error);
+    res.status(500).json({ message: "Image upload failed" });
   }
 };
 
-// Upload audio
+/**
+ * AUDIO UPLOAD
+ */
 export const uploadAudio = async (req, res) => {
   try {
     const { audio } = req.body;
-    if (!audio) return res.status(400).json({ error: "No audio provided" });
 
-    const uploadResponse = await cloudinary.uploader.upload(audio, {
+    if (!audio) {
+      return res.status(400).json({ message: "No audio provided" });
+    }
+
+    const uploaded = await cloudinary.uploader.upload(audio, {
       folder: "chat_audio",
-      resource_type: "video", // webm/mp3
-      secure: true,
+      resource_type: "video",
     });
 
-    res.status(200).json({ url: uploadResponse.secure_url });
-  } catch (err) {
-    console.error("Audio upload failed:", err);
-    res.status(500).json({ error: "Failed to upload audio" });
+    return res.status(200).json({ url: uploaded.secure_url });
+  } catch (error) {
+    console.error("uploadAudio error:", error);
+    res.status(500).json({ message: "Audio upload failed" });
   }
 };

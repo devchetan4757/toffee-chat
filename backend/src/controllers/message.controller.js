@@ -32,12 +32,10 @@ export const sendMessage = async (req, res) => {
   try {
     const { text, image, audio, stickers, replyTo } = req.body;
 
-
     if (!req.user?.role) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // sanitize text
     const cleanText = sanitizeHtml(text?.trim() || "", {
       allowedTags: [],
       allowedAttributes: {},
@@ -46,8 +44,7 @@ export const sendMessage = async (req, res) => {
     let imageUrl = null;
     let audioUrl = null;
 
-    // ================= IMAGE LOGIC =================
-    // ❌ DO NOT upload WEBP (stickers)
+    // ================= IMAGE =================
     if (image && !image.startsWith("data:image/webp")) {
       if (image.startsWith("data:")) {
         const uploaded = await cloudinary.uploader.upload(image, {
@@ -60,7 +57,7 @@ export const sendMessage = async (req, res) => {
       }
     }
 
-    // ================= AUDIO LOGIC =================
+    // ================= AUDIO =================
     if (audio) {
       if (audio.startsWith("data:")) {
         const uploaded = await cloudinary.uploader.upload(audio, {
@@ -73,11 +70,9 @@ export const sendMessage = async (req, res) => {
       }
     }
 
-    // ================= STICKERS SAFE =================
+    // ================= STICKERS (FINAL CLEAN VERSION) =================
     const safeStickers = Array.isArray(stickers)
-      ? stickers.filter(
-          (s) => typeof s === "string" && s.startsWith("data:image/webp")
-        )
+      ? stickers.filter((s) => typeof s === "string" && s.trim().length > 0)
       : [];
 
     // ================= EMPTY CHECK =================
@@ -105,7 +100,6 @@ export const sendMessage = async (req, res) => {
 
     await newMessage.save();
 
-    // emit to all clients
     io.emit("newMessage", newMessage);
 
     res.status(201).json(newMessage);

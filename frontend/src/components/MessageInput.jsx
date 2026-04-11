@@ -25,6 +25,18 @@ const MessageInput = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
 
+  // ✅ CLOUDINARY STICKERS (RESTORED)
+  const [stickers, setStickers] = useState([]);
+
+  const fetchStickers = async () => {
+    try {
+      const res = await axiosInstance.get("/upload/stickers");
+      setStickers(res.data.stickers || []);
+    } catch {
+      toast.error("Failed to load stickers");
+    }
+  };
+
   const [position, setPosition] = useState({ top: 100, left: 50 });
   const [dragging, setDragging] = useState(false);
   const [scale, setScale] = useState(1);
@@ -37,13 +49,14 @@ const MessageInput = () => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
-  // IMAGE PREVIEW
+  // ================= IMAGE =================
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file || !file.type.startsWith("image/")) {
       toast.error("Select a valid image");
       return;
     }
+
     setImageFile(file);
 
     const reader = new FileReader();
@@ -51,7 +64,7 @@ const MessageInput = () => {
     reader.readAsDataURL(file);
   };
 
-  // AUDIO RECORDING
+  // ================= AUDIO =================
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -79,7 +92,7 @@ const MessageInput = () => {
     setIsRecording(false);
   };
 
-  // SEND MESSAGE
+  // ================= SEND MESSAGE =================
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview && !audioBlob) return;
@@ -88,7 +101,7 @@ const MessageInput = () => {
       let imageUrl = null;
       let audioUrl = null;
 
-      // upload only normal images (NOT stickers)
+      // FIX: only upload real images
       if (imagePreview && !isStickerImage(imagePreview)) {
         const imgRes = await axiosInstance.post("/upload/image", {
           image: imagePreview,
@@ -106,8 +119,11 @@ const MessageInput = () => {
 
       await sendMessage({
         text: text.trim(),
-        image: imageUrl || null, // ✅ FIXED
-        stickers: isStickerImage(imagePreview) ? [imagePreview] : [], // ✅ FIXED
+        image: imageUrl || null,
+
+        // ✅ stickers ONLY from picker (Cloudinary)
+        stickers: [],
+
         audio: audioUrl,
         replyTo: replyTo
           ? {
@@ -131,13 +147,14 @@ const MessageInput = () => {
     }
   };
 
-  // SEND STICKER
-  const handleStickerSend = async (base64) => {
+  // ================= STICKER SEND (CLOUDINARY FIXED) =================
+  const handleStickerSend = async (url) => {
     try {
       await sendMessage({
         text: "",
-        stickers: [base64], // ✅ FIXED
+        image: null,
         audio: null,
+        stickers: [url], // ✅ CLOUDINARY URL
         replyTo: replyTo
           ? {
               _id: replyTo._id,
@@ -150,12 +167,13 @@ const MessageInput = () => {
       });
 
       clearReplyTo();
+      setShowStickerPicker(false);
     } catch {
       toast.error("Failed to send sticker");
     }
   };
 
-  // AUTOGROW TEXTAREA
+  // ================= AUTOGROW =================
   useEffect(() => {
     if (!textareaRef.current) return;
     textareaRef.current.style.height = "auto";
@@ -163,7 +181,7 @@ const MessageInput = () => {
       Math.min(textareaRef.current.scrollHeight, 140) + "px";
   }, [text]);
 
-  // DRAG + SCALE LOGIC (UNCHANGED)
+  // ================= DRAG / SCALE (UNCHANGED) =================
   const clampPosition = (pos, width = 350, height = 140) => {
     const vv = window.visualViewport;
     const viewportLeft = vv?.offsetLeft ?? 0;
@@ -274,22 +292,6 @@ const MessageInput = () => {
   };
 
   useEffect(() => {
-    const handleViewportChange = () => setPosition(clampPosition(position));
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", handleViewportChange);
-      window.visualViewport.addEventListener("scroll", handleViewportChange);
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", handleViewportChange);
-        window.visualViewport.removeEventListener("scroll", handleViewportChange);
-      }
-    };
-  }, [scale]);
-
-  useEffect(() => {
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
     window.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -304,10 +306,6 @@ const MessageInput = () => {
       window.removeEventListener("wheel", onWheel);
     };
   });
-
-  const stickersArray = [
-    ...Array.from({ length: 51 }, (_, i) => `${i + 1}.webp`),
-  ];
 
   return (
     <div
@@ -338,21 +336,6 @@ const MessageInput = () => {
           </div>
         )}
 
-        {imagePreview && (
-          <div className="flex items-center mb-1">
-            <img src={imagePreview} className="w-20 h-20 rounded-md object-cover" />
-            <button
-              onClick={() => {
-                setImagePreview(null);
-                setImageFile(null);
-              }}
-              className="ml-2 text-red-500"
-            >
-              X
-            </button>
-          </div>
-        )}
-
         <form
           onSubmit={handleSendMessage}
           className="flex items-center gap-2 bg-base-200 rounded-full shadow-lg px-4 py-3 w-full"
@@ -364,9 +347,7 @@ const MessageInput = () => {
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-            }}
+            onChange={(e) => setText(e.target.value)}
             placeholder="Type a message"
             rows={1}
             className="flex-1 bg-base-100 rounded-full px-4 py-3 resize-none focus:outline-none"
@@ -384,7 +365,13 @@ const MessageInput = () => {
             <Image size={18} />
           </button>
 
-          <button type="button" onClick={() => setShowStickerPicker((p) => !p)}>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!showStickerPicker) await fetchStickers();
+              setShowStickerPicker((p) => !p);
+            }}
+          >
             <Smile size={18} />
           </button>
 
@@ -394,7 +381,7 @@ const MessageInput = () => {
 
           {showStickerPicker && (
             <StickerPicker
-              stickers={stickersArray}
+              stickers={stickers}
               onStickerSelect={handleStickerSend}
               onClose={() => setShowStickerPicker(false)}
             />

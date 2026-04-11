@@ -1,48 +1,68 @@
 import toast from "react-hot-toast";
+import { axiosInstance } from "../lib/axios";
 
-// stickers: array of file names in public/stickers
-// onStickerSelect: function to send sticker
-// onClose: function to close picker after click
+const StickerPicker = ({ stickers, onStickerSelect, onClose, refresh }) => {
 
-const StickerPicker = ({ stickers, onStickerSelect, onClose }) => {
-  // Handle sticker click
-  const handleStickerClick = async (stickerFile) => {
-    try {
-      const res = await fetch(`/stickers/${stickerFile}`);
-      const blob = await res.blob();
+  const handleStickerClick = (url) => {
+    onStickerSelect(url);
+  };
 
-      // Convert to base64
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+  // ✅ UPLOAD FIXED (instant + backend sync)
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-      await onStickerSelect(base64);
+    const reader = new FileReader();
 
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to send sticker");
-      onClose();
-    }
+    reader.onloadend = async () => {
+      try {
+        const res = await axiosInstance.post("/upload/sticker", {
+          sticker: reader.result,
+        });
+
+        const newSticker = res.data.url;
+
+        toast.success("Sticker added");
+
+        // ✅ refresh from backend
+        await refresh?.();
+
+        // optional instant UI update (no delay feel)
+        stickers.unshift(newSticker);
+      } catch (err) {
+        console.log(err);
+        toast.error("Upload failed");
+      }
+    };
+
+    reader.readAsDataURL(file);
   };
 
   return (
     <div
-      className="absolute bottom-16 left-0 bg-base-200 shadow-lg p-2 rounded-lg grid grid-cols-4 gap-2 z-50 max-w-[280px] overflow-auto"
+      className="absolute bottom-16 left-0 bg-base-200 p-2 rounded-lg grid grid-cols-4 gap-2 z-50 max-w-[280px] overflow-auto"
       style={{ maxHeight: "200px" }}
-      onMouseDown={(e) => e.stopPropagation()}   // Prevent input drag
-      onTouchStart={(e) => e.stopPropagation()}  // Prevent input drag
-      onTouchMove={(e) => e.stopPropagation()}   // Prevent input drag
+      onMouseDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
     >
-      {stickers.map((sticker) => (
+      {/* UPLOAD BUTTON */}
+      <label className="w-12 h-12 flex items-center justify-center bg-gray-300 rounded cursor-pointer text-xl">
+        +
+        <input
+          type="file"
+          hidden
+          accept="image/*"
+          onChange={handleUpload}
+        />
+      </label>
+
+      {/* STICKERS */}
+      {stickers.map((url) => (
         <img
-          key={sticker}
-          src={`/stickers/${sticker}`}
-          alt={sticker}
-          className="w-12 h-12 object-contain cursor-pointer hover:scale-110 transition-transform"
-          onClick={() => handleStickerClick(sticker)}
+          key={url}
+          src={url}
+          className="w-12 h-12 object-contain cursor-pointer hover:scale-110"
+          onClick={() => handleStickerClick(url)}
         />
       ))}
     </div>

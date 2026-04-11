@@ -29,8 +29,8 @@ app.use(
   })
 );
 
-console.log("ADMIN_PASSWORD loaded:", process.env.PASSWORD1);
-console.log("USER_PASSWORD loaded:", process.env.PASSWORD2);
+console.log("ADMIN_PASSWORD loaded");
+console.log("USER_PASSWORD loaded");
 // ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
