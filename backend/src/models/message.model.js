@@ -6,6 +6,7 @@ const replySchema = new mongoose.Schema(
     text: { type: String, default: null },
     image: { type: String, default: null },
     audio: { type: String, default: null },
+    stickers: [{ type: String, default: [] }],
   },
   { _id: false }
 );

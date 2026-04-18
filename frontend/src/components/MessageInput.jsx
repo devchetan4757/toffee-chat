@@ -335,6 +335,25 @@ const MessageInput = () => {
             </button>
           </div>
         )}
+       {/* IMAGE PREVIEW */}
+{imagePreview && (
+  <div className="flex items-center gap-2 mb-1">
+    <img
+      src={imagePreview}
+      className="w-20 h-20 rounded-md object-cover"
+    />
+    <button
+      type="button"
+      onClick={() => {
+        setImagePreview(null);
+        setImageFile(null);
+      }}
+      className="text-red-500 text-sm"
+    >
+      <X size={14} />
+    </button>
+  </div>
+)}
 
         <form
           onSubmit={handleSendMessage}

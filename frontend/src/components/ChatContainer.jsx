@@ -19,7 +19,7 @@ const detectInstagramMedia = (text) => {
 // sticker detection (Cloudinary safe)
 const isStickerImage = (img) =>
   typeof img === "string" &&
-  (img.includes("chat_stickers") || img.includes("res.cloudinary.com"));
+  (img.includes("chat_stickers") && img.includes("res.cloudinary.com"));
 
 const ChatContainer = () => {
   const {
@@ -125,16 +125,38 @@ const ChatContainer = () => {
                   }
                 }}
               >
-                {/* Reply */}
                 {message.replyTo && (
-                  <div className="bg-gray-200 px-2 py-1 rounded-md mb-2 border-l-2 border-blue-500">
-                    {message.replyTo.text && (
-                      <p className="text-sm text-gray-700 truncate max-w-[90%]">
-                        {message.replyTo.text}
-                      </p>
-                    )}
-                  </div>
-                )}
+  <div className="bg-gray-200 px-2 py-1 rounded-md mb-2 border-l-2 border-blue-500 flex items-center gap-2">
+
+    {/* TEXT */}
+    {message.replyTo.text && (
+      <p className="text-sm text-gray-700 truncate max-w-[80%]">
+        {message.replyTo.text}
+      </p>
+    )}
+
+    {/* IMAGE */}
+    {message.replyTo.image && (
+      <img
+        src={message.replyTo.image}
+        className="w-10 h-10 rounded object-cover"
+      />
+    )}
+
+    {/* STICKER */}
+    {message.replyTo.stickers?.length > 0 && (
+      <img
+        src={message.replyTo.stickers[0]}
+        className="w-10 h-10 object-contain"
+      />
+    )}
+
+    {/* AUDIO (optional indicator only) */}
+    {message.replyTo.audio && (
+      <span className="text-xs opacity-70">🎵</span>
+    )}
+  </div>
+)}
 
                 {/* Instagram */}
                 {media ? (
