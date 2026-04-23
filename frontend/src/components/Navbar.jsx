@@ -84,7 +84,7 @@ const Navbar = () => {
                     <img
                       src={otherPfp}
                       alt="logo"
-                      className={`h-5 w-5 rounded-full ${
+                      className={`h-7 w-7 rounded-full ${
                         otherOn
                           ? "grayscale-0"
                           : "grayscale-[100%]"
