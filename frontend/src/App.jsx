@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import "react-h5-audio-player/lib/styles.css";
+import MusicPage from "./pages/MusicPage";
 
 import { useThemeStore } from "./store/useThemeStore";
 import { useAuthStore } from "./store/useAuthStore";
@@ -66,7 +67,14 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-
+           <Route
+  path="/music"
+  element={
+    <ProtectedRoute>
+      <MusicPage />
+    </ProtectedRoute>
+  }
+/>
             <Route
               path="*"
               element={

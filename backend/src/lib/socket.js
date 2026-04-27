@@ -24,8 +24,7 @@ io.on("connection", (socket) => {
   // =========================
   socket.on("join", (role) => {
     socket.role = role;
-
-    console.log("JOIN:", role);
+  console.log("JOIN:", role);
 
     // cancel pending disconnect timer if reconnecting
     if (disconnectTimers[role]) {

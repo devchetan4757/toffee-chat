@@ -127,7 +127,9 @@ const Navbar = () => {
                         <Image className="w-4 h-4" />
                         Media
                       </Link>
-
+                      <Link to="/music" className="flex gap-2 p-2 hover:bg-base-200">
+                       🎵 Music
+                      </Link>
                       {/* SETTINGS */}
                       <Link
                         to="/settings"

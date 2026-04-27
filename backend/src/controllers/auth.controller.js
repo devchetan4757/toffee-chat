@@ -30,8 +30,11 @@ export const login = async (req, res) => {
     if (!role) {
       return res.status(401).json({ message: "Invalid password" });
     }
-
-    generateToken(res, { role });
+    const user = {
+  _id: role,
+  role,
+};
+    generateToken(res, user);
 
     res.status(200).json({
       message: "Login successful",
