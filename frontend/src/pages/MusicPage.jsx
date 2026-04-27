@@ -90,7 +90,7 @@ const MusicPage = () => {
         showVideo: true,
       });
 
-      toast.success("Music added 🎧");
+      toast.success("Music added");
 
       setUrl("");
       setTitle("");
@@ -113,15 +113,11 @@ const MusicPage = () => {
   };
 
   return (
-    <div className="p-4 space-y-4 pt-[120px]">
+    <div className="p-4 space-y-2 pt-[50px]">
 
       {/* HEADER */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">🎧 Music Player</h2>
-
-        <span className="text-xs opacity-60">
-          {autoPlay ? "Auto Mode" : "Manual Mode"}
-        </span>
+      <div className="flex items-center pl-7 h-12">
+        <h2 className="text-xl font-bold bg-base-200 px-3 py-1 rounded-md">MUSIC PLAYER</h2>
       </div>
 
       {/* INPUT ROW */}
@@ -186,7 +182,7 @@ const MusicPage = () => {
               {/* TITLE + USER */}
               <div className="flex justify-between mb-2">
                 <p className="font-semibold truncate">
-                  🎵 {m.title}
+                   {m.title}
                 </p>
 
                 <span className="text-xs opacity-60">
