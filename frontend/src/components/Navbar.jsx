@@ -87,12 +87,18 @@ const Navbar = ( { autoPlay, setAutoPlay } ) => {
               <h2 className="text-lg font-bold">You</h2>
             </Link>
           </div>
-<div className="flex items-center gap-1">
-  <span className="text-xs opacity-70">
-    Music
-  </span>
+<div className="flex items-center gap-2 px-3 py-1 rounded-md bg-base-200 opacity-90">
+<span
+  className={`text-xs font-bold transition-all duration-300 ${
+    localAutoPlay
+      ? "text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-[length:200%_200%] animate-gradient-x opacity-100"
+      : "text-base-content opacity-70"
+  }`}
+>
+  Music
+</span>
 
-  <div className="relative">
+  <div className="relative flex items-center">
     <input
       type="checkbox"
       className={`toggle toggle-success toggle-sm transition-all duration-700 ease-in-out ${
@@ -103,7 +109,6 @@ const Navbar = ( { autoPlay, setAutoPlay } ) => {
       disabled={isMusicPage}
     />
 
-    {/* 🔒 MEME CAGE OVERLAY */}
     {isMusicPage && (
       <div className="absolute -top-1 -right-2 text-xs">
         🔒
@@ -118,7 +123,7 @@ const Navbar = ( { autoPlay, setAutoPlay } ) => {
               <>
                 {/* OTHER USER */}
                 {otherRole && (
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-base-200 opacity-90">
+               <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-base-200 opacity-90">
                     <img
                       src={otherPfp}
                       alt="logo"
