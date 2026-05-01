@@ -177,21 +177,21 @@ const Navbar = ( { autoPlay, setAutoPlay } ) => {
                         <Settings className="w-4 h-4" />
                         Settings
                       </Link>
-
+                      {/* LOGOUT */}
+<button
+  onClick={() => {
+    setOpen(false);
+    handleLogout();
+  }}
+  className="flex gap-2 p-2 w-full text-left hover:bg-red-100 text-red-500"
+>
+  <LogOut className="w-4 h-4" />
+  Logout
+</button>
                     </div>
                   )}
                 </div>
 
-                {/* LOGOUT */}
-                <button
-                  className="flex gap-2 items-center"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="size-5" />
-                  <span className="hidden sm:inline">
-                    Logout
-                  </span>
-                </button>
               </>
             )}
           </div>
