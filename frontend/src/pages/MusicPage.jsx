@@ -4,8 +4,6 @@ import toast from "react-hot-toast";
 
 const MusicPage = ({
   setCurrentSong,
-  autoPlay,
-  setAutoPlay,
 }) => {
   const [music, setMusic] = useState([]);
   const [url, setUrl] = useState("");
@@ -70,18 +68,13 @@ const MusicPage = ({
     }
   };
 
-  const playSong = (song) => {
-    setCurrentSong(song);
-    toast.success(`Playing: ${song.title}`);
-  };
-
   return (
     <div className="p-4 space-y-2 mt-15">
 
       {/* HEADER */}
       <div className="flex items-center pl-7 h-20">
         <h2 className="text-xl font-bold bg-base-200 px-3 py-1 rounded-md">
-          MUSIC PLAYER
+          MUSIC LIBRARY
         </h2>
       </div>
 
@@ -133,26 +126,19 @@ const MusicPage = ({
               </span>
             </div>
 
+            {/* PREVIEW ONLY (NO CONTROL) */}
             <div className="w-full h-[200px] rounded-md overflow-hidden">
               <iframe
                 width="100%"
                 height="100%"
-                src={`https://www.youtube.com/embed/${m.videoId}?mute=1`}
-                allow="autoplay; encrypted-media"
+                src={`https://www.youtube.com/embed/${m.videoId}?rel=0`}
+                allow="encrypted-media"
                 allowFullScreen
               />
             </div>
 
-            <div className="flex justify-between mt-2">
-
-              <button
-                onClick={() =>
-                  playSong(m)
-                }
-                className="btn btn-xs btn-success"
-              >
-                Play
-              </button>
+            {/* ONLY DELETE */}
+            <div className="flex justify-end mt-2">
 
               <button
                 onClick={() =>
