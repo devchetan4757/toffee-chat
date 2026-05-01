@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
+import { useLocation } from "react-router-dom";
 import { useChatStore } from "../store/useChatStore";
 import { LogOut, Settings, Image, MoreVertical, Home } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
@@ -7,10 +8,11 @@ import { useState, useEffect, useRef } from "react";
 import Rotlupfp from "../pfp/Rotlu.png";
 import Chsmishpfp from "../pfp/Chsmish.png";
 
-const Navbar = () => {
+const Navbar = ( { autoPlay, setAutoPlay } ) => {
   const { role, logout, isAuthenticated } = useAuthStore();
   const { onlineUsers } = useChatStore();
-
+  const location = useLocation();
+  const isMusicPage = location.pathname === "/music";
   const handleLogout = async () => {
     await logout();
   };
@@ -37,6 +39,18 @@ const Navbar = () => {
 
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [localAutoPlay, setLocalAutoPlay] = useState(autoPlay);
+
+  useEffect(() => {
+  setLocalAutoPlay(autoPlay);
+}, [autoPlay]);
+  
+  const handleAutoToggle = () => {
+  if (isMusicPage) return;
+  setLocalAutoPlay((prev) => !prev);
+
+  setAutoPlay((prev) => !prev);
+};
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -73,6 +87,30 @@ const Navbar = () => {
               <h2 className="text-lg font-bold">You</h2>
             </Link>
           </div>
+<div className="flex items-center gap-2">
+  <span className="text-xs opacity-70">
+    Auto
+  </span>
+
+  <div className="relative">
+    <input
+      type="checkbox"
+      className={`toggle toggle-success toggle-sm transition-all duration-700 ease-in-out ${
+        isMusicPage ? "opacity-40 cursor-not-allowed" : ""
+      }`}
+      checked={localAutoPlay}
+      onChange={handleAutoToggle}
+      disabled={isMusicPage}
+    />
+
+    {/* 🔒 MEME CAGE OVERLAY */}
+    {isMusicPage && (
+      <div className="absolute -top-1 -right-2 text-xs">
+        🔒
+      </div>
+    )}
+  </div>
+</div>
 
           {/* RIGHT */}
           <div className="flex items-center gap-4">
