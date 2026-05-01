@@ -133,7 +133,7 @@ const Navbar = ( { autoPlay, setAutoPlay } ) => {
                           : "grayscale-[100%]"
                       }`}
                     />
-                 
+
                   </div>
                 )}
 

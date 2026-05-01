@@ -13,12 +13,14 @@ const GlobalMusicPlayer = ({
   const currentIndexRef = useRef(0);
 
   const [musicList, setMusicList] = useState([]);
+  const [isMusicReady, setIsMusicReady] = useState(false);
 
-  // KEEP LIVE VALUES (fix stale state inside YT callbacks)
+  // keep latest autoplay
   useEffect(() => {
     autoPlayRef.current = autoPlay;
   }, [autoPlay]);
 
+  // keep latest music list
   useEffect(() => {
     musicListRef.current = musicList;
   }, [musicList]);
@@ -32,24 +34,23 @@ const GlobalMusicPlayer = ({
 
         setMusicList(songs);
         musicListRef.current = songs;
-      } catch {}
+        setIsMusicReady(true);
+      } catch {
+        setIsMusicReady(false);
+      }
     };
 
     fetchMusic();
   }, []);
 
-  // RANDOM START
+  // RANDOM INDEX
   const getRandomStartIndex = () => {
     const songs = musicListRef.current;
-
     if (!songs.length) return 0;
-
-    return Math.floor(
-      Math.random() * songs.length
-    );
+    return Math.floor(Math.random() * songs.length);
   };
 
-  // PLAY SONG DIRECT
+  // PLAY SONG
   const playSongByIndex = (index) => {
     const songs = musicListRef.current;
 
@@ -64,122 +65,105 @@ const GlobalMusicPlayer = ({
     currentIndexRef.current = index;
 
     const song = songs[index];
-
     setCurrentSong(song);
 
-    playerRef.current.loadVideoById(
-      song.videoId
-    );
+    playerRef.current.loadVideoById(song.videoId);
   };
 
-  // NEXT SONG LOOP
+  // NEXT SONG
   const playNextSong = () => {
     const songs = musicListRef.current;
-
     if (!songs.length) return;
 
     const nextIndex =
-      (currentIndexRef.current + 1) %
-      songs.length;
+      (currentIndexRef.current + 1) % songs.length;
 
     playSongByIndex(nextIndex);
   };
 
   // START AUTOPLAY
   const startAutoPlay = () => {
-    if (!musicListRef.current.length) return;
+    const songs = musicListRef.current;
+    if (!songs.length) return;
 
-    const randomIndex =
-      getRandomStartIndex();
-
+    const randomIndex = getRandomStartIndex();
     playSongByIndex(randomIndex);
   };
 
-  // INIT PLAYER
+  // INIT YOUTUBE PLAYER
   const initPlayer = () => {
-    if (
-      playerRef.current ||
-      !window.YT ||
-      !window.YT.Player
-    )
-      return;
+    if (playerRef.current || !window.YT?.Player) return;
 
-    playerRef.current =
-      new window.YT.Player(
-        "global-player",
-        {
-          height: "0",
-          width: "0",
-          videoId: "",
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            playsinline: 1,
-          },
-          events: {
-            onReady: () => {
-              isReadyRef.current = true;
+    playerRef.current = new window.YT.Player("global-player", {
+      height: "0",
+      width: "0",
+      videoId: "",
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        playsinline: 1,
+      },
+      events: {
+        onReady: () => {
+          isReadyRef.current = true;
 
-              if (autoPlayRef.current) {
-                startAutoPlay();
-              }
-            },
+          // IMPORTANT FIX
+          if (
+            autoPlayRef.current &&
+            musicListRef.current.length
+          ) {
+            startAutoPlay();
+          }
+        },
 
-            onStateChange: (event) => {
-              // IMPORTANT FIX:
-              // Use ref, not stale autoPlay
-              if (
-                event.data ===
-                  window.YT.PlayerState.ENDED &&
-                autoPlayRef.current
-              ) {
-                playNextSong();
-              }
-            },
-          },
-        }
-      );
+        onStateChange: (event) => {
+          if (
+            event.data ===
+              window.YT.PlayerState.ENDED &&
+            autoPlayRef.current
+          ) {
+            playNextSong();
+          }
+        },
+      },
+    });
   };
 
-  // LOAD YT API
+  // LOAD YT SCRIPT
   useEffect(() => {
-    if (window.YT && window.YT.Player) {
+    if (window.YT?.Player) {
       initPlayer();
       return;
     }
 
-    if (!document.getElementById("youtube-iframe-api")) {
+    if (!document.getElementById("yt-api")) {
       const tag = document.createElement("script");
-      tag.id = "youtube-iframe-api";
-      tag.src =
-        "https://www.youtube.com/iframe_api";
+      tag.id = "yt-api";
+      tag.src = "https://www.youtube.com/iframe_api";
       document.body.appendChild(tag);
     }
 
-    window.onYouTubeIframeAPIReady = () => {
-      initPlayer();
-    };
+    window.onYouTubeIframeAPIReady = initPlayer;
   }, []);
 
-  // MANUAL SONG PLAY
+  // MANUAL PLAY
   useEffect(() => {
     if (
       currentSong?.videoId &&
       playerRef.current &&
       isReadyRef.current
     ) {
-      playerRef.current.loadVideoById(
-        currentSong.videoId
-      );
+      playerRef.current.loadVideoById(currentSong.videoId);
     }
   }, [currentSong]);
 
-  // AUTO ON/OFF
+  // AUTO PLAY FIX (🔥 MAIN FIX)
   useEffect(() => {
     if (
       autoPlay &&
-      playerRef.current &&
-      isReadyRef.current
+      isReadyRef.current &&
+      isMusicReady &&
+      musicListRef.current.length
     ) {
       startAutoPlay();
     }
@@ -192,15 +176,15 @@ const GlobalMusicPlayer = ({
       playerRef.current.stopVideo();
       setCurrentSong(null);
     }
-  }, [autoPlay]);
+  }, [autoPlay, isMusicReady]);
 
   return (
     <div
       id="global-player"
       style={{
         position: "absolute",
-        width: "0",
-        height: "0",
+        width: 0,
+        height: 0,
         overflow: "hidden",
         pointerEvents: "none",
       }}

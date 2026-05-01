@@ -6,7 +6,6 @@ import {
   useLocation,
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import "react-h5-audio-player/lib/styles.css";
 
 import MusicPage from "./pages/MusicPage";
 import GlobalMusicPlayer from "./components/GlobalMusicPlayer";
@@ -25,70 +24,52 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 const App = () => {
   const { theme } = useThemeStore();
-  const { checkAuth, isAuthenticated } = useAuthStore();
+  const { checkAuth, isAuthenticated, role } = useAuthStore();
   const { initSocket } = useChatStore();
 
-  // ✅ ROUTE LOCATION
   const location = useLocation();
 
-  // ✅ KEEP SAVED SONG
-  const [currentSong, setCurrentSong] = useState(() => {
-    const saved =
-      localStorage.getItem("currentSong");
+  const [authReady, setAuthReady] = useState(false);
 
-    return saved
-      ? JSON.parse(saved)
-      : null;
+  const [currentSong, setCurrentSong] = useState(() => {
+    const saved = localStorage.getItem("currentSong");
+    return saved ? JSON.parse(saved) : null;
   });
 
-  // ✅ FORCE DEFAULT AUTO OFF
-  const [autoPlay, setAutoPlay] =
-    useState(false);
+  const [autoPlay, setAutoPlay] = useState(false);
 
-  // AUTH
+  // AUTH INIT
   useEffect(() => {
-    checkAuth();
+    const init = async () => {
+      await checkAuth();
+      setAuthReady(true); // ✅ important gate
+    };
+
+    init();
   }, []);
 
-  // SOCKET
+  // SOCKET ONLY AFTER AUTH
   useEffect(() => {
-    if (isAuthenticated) {
-      const cleanup = initSocket();
-      return cleanup;
+    if (isAuthenticated && authReady) {
+      return initSocket();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authReady]);
 
-  // ✅ CLEAR OLD SAVED AUTOPLAY ON FIRST LOAD
+  // RESET AUTOPLAY STORAGE ON FIRST LOAD
   useEffect(() => {
-    localStorage.setItem(
-      "musicAutoPlay",
-      JSON.stringify(false)
-    );
+    localStorage.setItem("musicAutoPlay", JSON.stringify(false));
   }, []);
 
-  // ✅ SAVE SONG
+  // SONG SAVE
   useEffect(() => {
     if (currentSong) {
-      localStorage.setItem(
-        "currentSong",
-        JSON.stringify(currentSong)
-      );
+      localStorage.setItem("currentSong", JSON.stringify(currentSong));
     }
   }, [currentSong]);
 
-  // ✅ SAVE CURRENT AUTOPLAY STATE
+  // FORCE OFF ON MUSIC PAGE
   useEffect(() => {
-    localStorage.setItem(
-      "musicAutoPlay",
-      JSON.stringify(autoPlay)
-    );
-  }, [autoPlay]);
-
-  // ✅ ENTERING MUSIC TAB = FORCE OFF
-  useEffect(() => {
-    if (
-      location.pathname === "/music"
-    ) {
+    if (location.pathname === "/music") {
       setAutoPlay(false);
     }
   }, [location.pathname]);
@@ -98,38 +79,29 @@ const App = () => {
       <Toaster position="top-center" />
 
       <div data-theme={theme}>
-        {/* GLOBAL PLAYER */}
-        <GlobalMusicPlayer
-          currentSong={currentSong}
-          setCurrentSong={setCurrentSong}
-          autoPlay={autoPlay}
-        />
 
-        {/* NAVBAR */}
-        {isAuthenticated && (
+        {/* NAVBAR (only after auth ready) */}
+        {authReady && isAuthenticated && (
           <Navbar
             autoPlay={autoPlay}
             setAutoPlay={setAutoPlay}
           />
         )}
 
-        <div
-          className={
-            isAuthenticated
-              ? "pt-10 min-h-screen"
-              : ""
-          }
-        >
-          <Routes>
-            <Route
-              path="/login"
-              element={<LoginPage />}
-            />
+        {/* GLOBAL PLAYER ONLY WHEN EVERYTHING IS READY */}
+        {authReady && isAuthenticated && role && (
+          <GlobalMusicPlayer
+            currentSong={currentSong}
+            setCurrentSong={setCurrentSong}
+            autoPlay={autoPlay}
+          />
+        )}
 
-            <Route
-              path="/settings"
-              element={<SettingsPage />}
-            />
+        <div className={isAuthenticated ? "pt-10 min-h-screen" : ""}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+
+            <Route path="/settings" element={<SettingsPage />} />
 
             <Route
               path="/home"
@@ -153,11 +125,7 @@ const App = () => {
               path="/music"
               element={
                 <ProtectedRoute>
-                  <MusicPage
-                    setCurrentSong={
-                      setCurrentSong
-                    }
-                  />
+                  <MusicPage setCurrentSong={setCurrentSong} />
                 </ProtectedRoute>
               }
             />
@@ -165,13 +133,7 @@ const App = () => {
             <Route
               path="*"
               element={
-                <Navigate
-                  to={
-                    isAuthenticated
-                      ? "/home"
-                      : "/login"
-                  }
-                />
+                <Navigate to={isAuthenticated ? "/home" : "/login"} />
               }
             />
           </Routes>
