@@ -44,7 +44,7 @@ const Navbar = ( { autoPlay, setAutoPlay } ) => {
   useEffect(() => {
   setLocalAutoPlay(autoPlay);
 }, [autoPlay]);
-  
+
   const handleAutoToggle = () => {
   if (isMusicPage) return;
   setLocalAutoPlay((prev) => !prev);
@@ -87,9 +87,9 @@ const Navbar = ( { autoPlay, setAutoPlay } ) => {
               <h2 className="text-lg font-bold">You</h2>
             </Link>
           </div>
-<div className="flex items-center gap-2">
+<div className="flex items-center gap-1">
   <span className="text-xs opacity-70">
-    Auto
+    Music
   </span>
 
   <div className="relative">
@@ -113,7 +113,7 @@ const Navbar = ( { autoPlay, setAutoPlay } ) => {
 </div>
 
           {/* RIGHT */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-0">
             {isAuthenticated && (
               <>
                 {/* OTHER USER */}
@@ -128,9 +128,7 @@ const Navbar = ( { autoPlay, setAutoPlay } ) => {
                           : "grayscale-[100%]"
                       }`}
                     />
-                    <span className="font-medium">
-                      {otherRole}
-                    </span>
+                 
                   </div>
                 )}
 
