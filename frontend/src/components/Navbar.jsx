@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { useLocation } from "react-router-dom";
 import { useChatStore } from "../store/useChatStore";
@@ -12,9 +12,19 @@ const Navbar = ( { autoPlay, setAutoPlay } ) => {
   const { role, logout, isAuthenticated } = useAuthStore();
   const { onlineUsers } = useChatStore();
   const location = useLocation();
+  const navigate = useNavigate();
   const isMusicPage = location.pathname === "/music";
   const handleLogout = async () => {
+    try {
+    window.location.replace(
+      "/login"
+    );
+
+    // then logout backend/store
     await logout();
+  } catch (err) {
+    console.log(err);
+  }
   };
 
   const otherRole =

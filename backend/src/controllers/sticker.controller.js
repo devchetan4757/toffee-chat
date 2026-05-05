@@ -46,3 +46,50 @@ export const getStickers = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch stickers" });
   }
 };
+
+export const deleteSticker = async (req, res) => {
+  try {
+    const { url } = req.body;
+
+    if (!url) {
+      return res.status(400).json({
+        message: "No sticker URL provided",
+      });
+    }
+
+    const splitUrl = url.split("/");
+
+    const fileName =
+      splitUrl[splitUrl.length - 1];
+
+    const folder =
+      splitUrl[splitUrl.length - 2];
+
+    const publicId = `${folder}/${fileName.replace(
+      /\.[^/.]+$/,
+      ""
+    )}`;
+
+    await cloudinary.uploader.destroy(
+      publicId,
+      {
+        resource_type: "image",
+      }
+    );
+
+    return res.status(200).json({
+      message:
+        "Sticker deleted successfully",
+    });
+  } catch (error) {
+    console.error(
+      "deleteSticker error:",
+      error
+    );
+
+    res.status(500).json({
+      message:
+        "Sticker delete failed",
+    });
+  }
+};
