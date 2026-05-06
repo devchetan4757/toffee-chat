@@ -76,8 +76,8 @@ const LoginPage = () => {
 
         {/* HEADER */}
         <div className="relative text-center mb-8">
-          <div className="mx-auto w-20 h-20 rounded-full bg-yellow-200 border-4 border-white/60 flex items-center justify-center shadow-lg">
-            <Candy className="w-10 h-10 text-orange-600" />
+          <div className="mx-auto w-10 h-10 rounded-full bg-yellow-200 border-4 border-white/60 flex items-center justify-center shadow-lg">
+            <Candy className="w-7 h-7 text-orange-600" />
           </div>
 
           <h1 className="mt-4 text-4xl font-extrabold text-white drop-shadow-lg tracking-wide">
