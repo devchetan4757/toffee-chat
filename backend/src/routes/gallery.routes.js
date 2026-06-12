@@ -7,10 +7,8 @@ import {
 
 const router = express.Router();
 
-// ✅ GET all images
 router.get("/", protect, getGalleryImages);
 
-// ✅ DELETE using query param (IMPORTANT FIX)
 router.delete("/", protect, deleteImage);
 
 export default router;

@@ -10,7 +10,7 @@ router.post("/image", uploadImage);
 router.post("/audio", uploadAudio);
 
 // stickers
-router.get("/stickers", getStickers);        // ✅ PUBLIC (important)
+router.get("/stickers", getStickers);    
 router.post("/sticker", protect, uploadSticker);
 router.delete("/sticker", deleteSticker);
 

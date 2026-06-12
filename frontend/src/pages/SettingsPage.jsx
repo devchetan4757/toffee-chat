@@ -4,10 +4,10 @@ import { Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const PREVIEW_MESSAGES = [
-  { id: 1, content: "Toffee Khayegi?", isSent: false },
+  { id: 1, content: "You want toffee?", isSent: false },
   {
     id: 2,
-    content: "haa",
+    content: "No, thanks",
     isSent: true,
   },
 ];
@@ -85,7 +85,7 @@ const SettingsPage = () => {
                       C
                     </div>
                     <div>
-                      <h3 className="font-medium text-sm">Rotlu</h3>
+                      <h3 className="font-medium text-sm">John</h3>
                       <p className="text-xs text-base-content/70">Online</p>
                     </div>
                   </div>

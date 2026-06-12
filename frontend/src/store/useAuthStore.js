@@ -7,6 +7,8 @@ export const useAuthStore = create((set, get) => ({
   isAuthenticated: false,
   isLoggingIn: false,
   isCheckingAuth: true,
+  authUser: null,
+  otherUser: null,
   role: null,
 
   // CHECK AUTH
@@ -14,18 +16,24 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.get("/auth/check");
 
-      const role = res.data.user?.role;
+      const user = res.data.user;
+      const otherUser = res.data.otherUser;
 
       set({
         isAuthenticated: true,
-        role,
+        role: user?.role,
+        authUser: user,
+        otherUser,
       });
 
-      get().connectSocket(role);
+      get().connectSocket(user?.role);
 
     } catch {
       set({
         isAuthenticated: false,
+        role: null,
+        authUser: null,
+        otherUser: null,
       });
     } finally {
       set({ isCheckingAuth: false });
@@ -39,17 +47,17 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post("/auth/login", data);
 
-      const role = res.data.role;
+      const user = res.data.user;
 
       set({
         isAuthenticated: true,
-        isCheckingAuth: false,
-        role,
+        role: user?.role,
+        authUser: user,
       });
 
       toast.success("Logged in successfully");
 
-      get().connectSocket(role);
+      get().connectSocket(user?.role);
 
       return true;
 
@@ -69,6 +77,8 @@ export const useAuthStore = create((set, get) => ({
 
       set({
         isAuthenticated: false,
+        role: null,
+        authUser: null,
       });
 
       toast.success("Logged out successfully");
@@ -80,26 +90,21 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  // CONNECT SOCKET
+  // SOCKET
   connectSocket: (role) => {
     if (!socket.connected) {
       socket.connect();
     }
 
-    // always send join when connected/reconnected
     socket.off("connect").on("connect", () => {
-      if (!role) return;
-      if (role) {
-        socket.emit("join", role);
-      }
+      if (role) socket.emit("join", role);
     });
 
     socket.off("connect_error").on("connect_error", (err) => {
-      console.error("Socket connection error:", err);
+      console.error("Socket error:", err);
     });
   },
 
-  // DISCONNECT SOCKET
   disconnectSocket: () => {
     if (socket.connected) {
       socket.disconnect();

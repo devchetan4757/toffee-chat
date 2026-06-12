@@ -17,7 +17,7 @@ import messageRoutes from "./routes/message.route.js";
 const PORT = process.env.PORT || 5000;
 const __dirname = path.resolve();
 
-// ✅ Middleware
+// Middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
@@ -30,16 +30,16 @@ app.use(
   })
 );
 
-console.log("ADMIN_PASSWORD loaded");
-console.log("USER_PASSWORD loaded");
-// ✅ Routes
+console.log("USER1_PASSWORD loaded");
+console.log("USER2_PASSWORD loaded");
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/music", musicRoutes);
 
-// ✅ Production build serving
+// Production build serving
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
@@ -48,7 +48,7 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-// ✅ Error handling
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res
@@ -56,7 +56,7 @@ app.use((err, req, res, next) => {
     .json({ message: err.message || "Internal Server Error" });
 });
 
-// ✅ Connect DB first, then start server
+// Connect DB first, then start server
 connectDB().then(() => {
   server.listen(PORT, () => {
     console.log(`Server running on PORT: ${PORT}`);

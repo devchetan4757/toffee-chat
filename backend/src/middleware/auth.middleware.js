@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { USERS } from "../config/users.js";
 
 export const protect = (req, res, next) => {
   const token = req.cookies.jwt;
@@ -9,10 +10,15 @@ export const protect = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const userMeta = USERS[decoded.role];
+
     req.user = {
-  _id: decoded._id,
-  role: decoded.role,
-};
+      _id: decoded._id,
+      role: decoded.role,
+      pfp: userMeta?.pfp || null,
+    };
+
     next();
   } catch {
     return res.status(401).json({ message: "Invalid token" });

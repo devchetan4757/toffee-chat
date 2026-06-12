@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
+import { USERS } from "../config/users.js";
 import bcrypt from "bcryptjs";
 import { generateToken } from "../lib/utils.js";
 
@@ -10,10 +11,11 @@ export const login = async (req, res) => {
     if (!password) {
       return res.status(400).json({ message: "Password is required" });
     }
-
+    const USER1 = process.env.USER_1;
+    const USER2 = process.env.USER_2;
     const rolePasswords = {
-      Chsmish: process.env.PASSWORD1,
-      Rotlu: process.env.PASSWORD2,
+      [USER1]: process.env.PASSWORD_1,
+      [USER2]: process.env.PASSWORD_2,
     };
 
     let role;
@@ -30,15 +32,18 @@ export const login = async (req, res) => {
     if (!role) {
       return res.status(401).json({ message: "Invalid password" });
     }
+
     const user = {
   _id: role,
   role,
+  pfp: USERS[role]?.pfp || null,
 };
     generateToken(res, user);
 
     res.status(200).json({
       message: "Login successful",
       role,
+      user,
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -63,8 +68,20 @@ export const logout = (req, res) => {
 };
 
 export const checkAuth = (req, res) => {
+  const authUser = req.user; // from protect middleware
+  const otherRole = Object.keys(USERS).find(r => r !== authUser.role);
+
   res.status(200).json({
     authenticated: true,
-    user: req.user,
+    user: {
+      _id: authUser._id,
+      role: authUser.role,
+      pfp: USERS[authUser.role]?.pfp || null,
+    },
+    otherUser: {
+      _id: otherRole,
+      role: otherRole,
+      pfp: USERS[otherRole]?.pfp || null,
+    },
   });
 };
