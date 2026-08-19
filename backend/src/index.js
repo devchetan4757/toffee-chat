@@ -5,6 +5,7 @@ import galleryRoutes from "./routes/gallery.routes.js";
 import musicRoutes from "./routes/music.routes.js";
 import express from "express";
 import path from "path";
+import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
@@ -15,7 +16,13 @@ import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 
 const PORT = process.env.PORT || 5000;
-const __dirname = path.resolve();
+
+// Anchor __dirname to this file's actual location (backend/src),
+// NOT process.cwd() — path.resolve() with no args returns cwd, which
+// changes depending on how/where the process was launched (e.g. via
+// `npm run start --prefix backend`) and broke the relative path below.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Middleware
 app.use(express.json({ limit: "10mb" }));
