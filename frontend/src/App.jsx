@@ -38,36 +38,34 @@ const App = () => {
 
   const [autoPlay, setAutoPlay] = useState(false);
 
-  // AUTH INIT
   useEffect(() => {
     const init = async () => {
       await checkAuth();
-      setAuthReady(true); // ✅ important gate
+      setAuthReady(true);
     };
 
     init();
   }, []);
 
-  // SOCKET ONLY AFTER AUTH
   useEffect(() => {
     if (isAuthenticated && authReady) {
       return initSocket();
     }
   }, [isAuthenticated, authReady]);
 
-  // RESET AUTOPLAY STORAGE ON FIRST LOAD
   useEffect(() => {
     localStorage.setItem("musicAutoPlay", JSON.stringify(false));
   }, []);
 
-  // SONG SAVE
   useEffect(() => {
     if (currentSong) {
-      localStorage.setItem("currentSong", JSON.stringify(currentSong));
+      localStorage.setItem(
+        "currentSong",
+        JSON.stringify(currentSong)
+      );
     }
   }, [currentSong]);
 
-  // FORCE OFF ON MUSIC PAGE
   useEffect(() => {
     if (location.pathname === "/music") {
       setAutoPlay(false);
@@ -79,8 +77,6 @@ const App = () => {
       <Toaster position="top-center" />
 
       <div data-theme={theme}>
-
-        {/* NAVBAR (only after auth ready) */}
         {authReady && isAuthenticated && (
           <Navbar
             autoPlay={autoPlay}
@@ -88,20 +84,35 @@ const App = () => {
           />
         )}
 
-        {/* GLOBAL PLAYER ONLY WHEN EVERYTHING IS READY */}
-        {authReady && isAuthenticated && role && (
-          <GlobalMusicPlayer
-            currentSong={currentSong}
-            setCurrentSong={setCurrentSong}
-            autoPlay={autoPlay}
-          />
-        )}
+        {authReady &&
+          isAuthenticated &&
+          role &&
+          location.pathname !== "/home" &&
+          autoPlay && (
+            <GlobalMusicPlayer
+              currentSong={currentSong}
+              setCurrentSong={setCurrentSong}
+              autoPlay={autoPlay}
+            />
+          )}
 
-        <div className={isAuthenticated ? "pt-10 min-h-screen" : ""}>
+        <div
+          className={
+            isAuthenticated
+              ? "pt-10 min-h-screen"
+              : ""
+          }
+        >
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/login"
+              element={<LoginPage />}
+            />
 
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route
+              path="/settings"
+              element={<SettingsPage />}
+            />
 
             <Route
               path="/home"
@@ -125,7 +136,9 @@ const App = () => {
               path="/music"
               element={
                 <ProtectedRoute>
-                  <MusicPage setCurrentSong={setCurrentSong} />
+                  <MusicPage
+                    setCurrentSong={setCurrentSong}
+                  />
                 </ProtectedRoute>
               }
             />
@@ -133,7 +146,13 @@ const App = () => {
             <Route
               path="*"
               element={
-                <Navigate to={isAuthenticated ? "/home" : "/login"} />
+                <Navigate
+                  to={
+                    isAuthenticated
+                      ? "/home"
+                      : "/login"
+                  }
+                />
               }
             />
           </Routes>

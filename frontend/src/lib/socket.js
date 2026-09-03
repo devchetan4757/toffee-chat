@@ -2,9 +2,12 @@
 import { io } from "socket.io-client";
 import { useAuthStore } from "../store/useAuthStore";
 
+// Must match the same host/port as axios.js — keep both in sync with
+// VITE_API_URL (or the backend's actual PORT) to avoid the socket
+// silently failing to connect against a dead port.
 const BASE_URL =
   import.meta.env.MODE === "development"
-    ? "http://localhost:5001"
+    ? (import.meta.env.VITE_SOCKET_URL || "http://localhost:5000")
     : "/";
 
 export const socket = io(BASE_URL, {
