@@ -27,8 +27,6 @@ const ChatContainer = () => {
     getMessages,
     deleteMessage,
     isMessagesLoading,
-    isFetchingMore,
-    hasMore,
     setReplyTo,
   } = useChatStore();
 
@@ -41,79 +39,27 @@ const ChatContainer = () => {
   useEffect(() => {
     const initChat = async () => {
       await getMessages();
+
+      messages.forEach((m) => {
+        if (m.logger !== myRole) socket.emit("messageSeen", m._id);
+      });
     };
     initChat();
   }, []);
 
-  // mark newly loaded messages as seen (runs on every messages change,
-  // not just the closure from initial load)
-  useEffect(() => {
-    messages.forEach((m) => {
-      if (m.logger !== myRole) socket.emit("messageSeen", m._id);
-    });
-  }, [messages, myRole]);
+  const handleScroll = async () => {
+    const el = chatRef.current;
+    if (!el || loadingOlderRef.current) return;
 
-  // no forced auto-scroll — newest messages are already at the top
-  // (array is newest-first), so the natural default scroll position
-  // (top) already shows the latest messages. No effect needed.
+    if (el.scrollTop > 50) return;
 
-  const sentinelRef = useRef(null);
-  const messagesRef = useRef(messages);
-  messagesRef.current = messages;
-
-  // Tracks the timestamp of the previous loadOlder() call. If the next
-  // one comes in quickly after it, the user is flinging the list fast
-  // rather than scrolling gently — in that case we ask for a bigger
-  // chunk (burst mode) instead of trickling one small page at a time,
-  // which is what caused a fast swipe to feel like it kept stalling.
-  const lastLoadAtRef = useRef(0);
-  const BURST_THRESHOLD_MS = 600;
-
-  const loadOlder = async () => {
-    if (loadingOlderRef.current || isFetchingMore || !hasMore) return;
-
-    const oldestId = messagesRef.current[messagesRef.current.length - 1]?._id;
+    const oldestId = messages[messages.length - 1]?._id;
     if (!oldestId) return;
 
-    const now = Date.now();
-    const isBurst = now - lastLoadAtRef.current < BURST_THRESHOLD_MS;
-    lastLoadAtRef.current = now;
-
     loadingOlderRef.current = true;
-
-    // older messages get appended BELOW the current view (at the end
-    // of the array), so unlike a "load older at top" pattern, no
-    // scroll-position compensation is needed — nothing above the
-    // user's current position shifts.
-    await getMessages(oldestId, { burst: isBurst });
-
+    await getMessages(oldestId);
     loadingOlderRef.current = false;
   };
-
-  // IntersectionObserver instead of scroll-position math: fires
-  // reliably regardless of scroll speed (mobile momentum scrolling
-  // can skip past a scrollTop threshold entirely on a single fling),
-  // and doesn't recompute scrollHeight/scrollTop on every scroll tick.
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    const root = chatRef.current;
-    if (!sentinel || !root) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) loadOlder();
-      },
-      { root, rootMargin: "0px 0px 400px 0px" } // trigger 400px before it's actually visible — gives a fast swipe enough runway to hit the prefetch queue before the user reaches the bottom
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-    // isMessagesLoading is included so this re-runs the moment the real
-    // chat UI (and therefore the refs) actually mounts — during the
-    // initial skeleton render, chatRef/sentinelRef don't exist yet, so
-    // the very first run of this effect would otherwise bail out and
-    // never get a second chance since hasMore alone doesn't change
-  }, [hasMore, isMessagesLoading]);
 
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
@@ -145,6 +91,7 @@ const ChatContainer = () => {
     <div className="flex-1 flex flex-col h-full">
       <div
         ref={chatRef}
+        onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-3 space-y-3"
       >
         {messages.map((message, i) => {
@@ -241,12 +188,10 @@ const ChatContainer = () => {
                 {message.image && (
                   <img
                     src={message.image}
-                    loading="lazy"
-                    decoding="async"
-                    className={`mt-2 rounded-md bg-base-300/40 ${
+                    className={`mt-2 rounded-md ${
                       isStickerImage(message.image)
                         ? "w-[72px] h-auto object-contain"
-                        : "max-w-[180px] min-h-[96px] object-cover"
+                        : "max-w-[180px]"
                     }`}
                   />
                 )}
@@ -254,17 +199,7 @@ const ChatContainer = () => {
             </div>
           );
         })}
-
-        {/* sentinel: crossing into view (200px early, per rootMargin
-            above) triggers loading the next older page */}
-        {hasMore && <div ref={sentinelRef} className="h-px" />}
       </div>
-
-      {isFetchingMore && (
-        <div className="flex justify-center py-1 bg-base-100">
-          <span className="loading loading-spinner loading-sm opacity-60" />
-        </div>
-      )}
 
       <MessageInput />
 
