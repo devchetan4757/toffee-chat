@@ -449,6 +449,10 @@ const MessageInput = () => {
         willChange: dragging ? "transform" : "auto",
         userSelect: dragging ? "none" : "auto",
         WebkitUserSelect: dragging ? "none" : "auto",
+        // Isolates this subtree from the rest of the page's layout/paint
+        // so the browser never has to consider outside elements while
+        // the transform is being updated every frame during a drag.
+        contain: "layout paint",
       }}
       onMouseDown={onMouseDown}
       onTouchStart={onTouchStart}
@@ -492,10 +496,24 @@ const MessageInput = () => {
           </div>
         )}
 
-        {/* ================= FORM ================= */}
+        {/* ================= FORM =================
+            While actively dragging, the form's controls are switched
+            to pointer-events: none. This isn't just cosmetic — it
+            means the browser skips hit-testing, hover/active style
+            recalculation, and focus handling for every button and the
+            textarea on every pointermove during the drag, so the only
+            work left per frame is the transform write in
+            applyTransform(). The moment the drag ends (onMouseUp /
+            onTouchEnd -> setDragging(false)), controls go straight
+            back to being fully interactive. */}
         <form
           onSubmit={handleSendMessage}
           className="flex items-center gap-2 bg-base-200 rounded-full shadow-lg px-4 py-3 w-full"
+          style={{
+            pointerEvents: dragging ? "none" : "auto",
+            opacity: dragging ? 0.85 : 1,
+            transition: "opacity 120ms ease-out",
+          }}
         >
           {/* MIC */}
           <button
