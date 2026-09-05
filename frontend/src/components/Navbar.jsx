@@ -78,7 +78,7 @@ const otherOn =
               <img
                 src={pfp || "/default.png"}
                 alt="logo"
-                className="w-11 h-12 object-contain bg-gray-200 rounded-lg"
+                className="w-11 h-11 object-cover bg-gray-200 rounded-lg"
               />
               <h2 className="text-lg font-bold">You</h2>
             </Link>
@@ -122,7 +122,7 @@ const otherOn =
     <img
       src={otherUser.pfp}
       alt="Other User"
-      className={`h-7 w-7 rounded-full ${
+      className={`h-7 w-7 rounded-full object-cover ${
         otherOn ? "grayscale-0" : "grayscale-[100%]"
       }`}
     />

@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { THEMES } from "../constants";
 import { useThemeStore } from "../store/useThemeStore";
-import { Send } from "lucide-react";
+import { useAuthStore } from "../store/useAuthStore";
+import AvatarPicker from "../components/AvatarPicker";
+import { Send, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const PREVIEW_MESSAGES = [
@@ -14,11 +17,44 @@ const PREVIEW_MESSAGES = [
 
 const SettingsPage = () => {
   const { theme, setTheme } = useThemeStore();
+  const { authUser } = useAuthStore();
   const navigate = useNavigate();
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   return (
     <div className="h-screen container mx-auto px-4 pt-20 max-w-5xl">
       <div className="space-y-6">
+
+        {/* Profile Photo */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div className="relative shrink-0">
+              <img
+                src={authUser?.pfp || "/ornge.png"}
+                alt="Your profile"
+                className="w-16 h-16 rounded-full object-cover bg-gray-200 border border-base-300"
+              />
+              <button
+                onClick={() => setPickerOpen(true)}
+                className="absolute -bottom-1 -right-1 btn btn-circle btn-xs btn-primary"
+                aria-label="Change profile photo"
+              >
+                <Camera className="w-3 h-3" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <h2 className="text-lg font-semibold">Profile Photo</h2>
+              <p className="text-sm text-base-content/70">
+                Use the default, pick from shared media, or upload from your device
+              </p>
+            </div>
+          </div>
+
+          <button className="btn btn-sm btn-outline" onClick={() => setPickerOpen(true)}>
+            Change
+          </button>
+        </div>
 
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -150,6 +186,8 @@ const SettingsPage = () => {
         </div>
 
       </div>
+
+      <AvatarPicker isOpen={pickerOpen} onClose={() => setPickerOpen(false)} />
     </div>
   );
 };
