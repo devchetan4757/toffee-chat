@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, Mic, Square, X, Smile } from "lucide-react";
 import toast from "react-hot-toast";
@@ -17,6 +17,18 @@ const isStickerImage = (img) => img?.startsWith("data:image/webp");
 
 const BOX_WIDTH = 350;
 const BOX_HEIGHT = 140;
+const MIN_SCALE = 0.7;
+const MAX_SCALE = 1.6;
+// How far (px) the pointer has to move before a press counts as a
+// drag instead of a tap. Below this, buttons click and the textarea
+// focuses normally; above it, the whole widget moves. The icon
+// buttons (mic/image/smile/send) have no padding around them, so
+// ordinary click wobble on a small target needs some headroom or it
+// keeps getting misread as a drag — which silently eats the click.
+const DRAG_THRESHOLD = 10;
+
+const clampScale = (s) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
+const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
 const MessageInput = () => {
   const { sendMessage, replyTo, clearReplyTo, sendTyping } = useChatStore();
@@ -30,28 +42,49 @@ const MessageInput = () => {
 
   // ================= CLOUDINARY STICKERS =================
   const [stickers, setStickers] = useState([]);
+  const [stickersLoading, setStickersLoading] = useState(false);
+  const stickersFetchedRef = useRef(false);
 
-  const fetchStickers = async () => {
+  // force=true bypasses the cache (used after upload/delete). Otherwise
+  // stickers are only fetched once per session — opening the picker
+  // again just shows what's already in state instantly.
+  const fetchStickers = async (force = false) => {
+    if (stickersFetchedRef.current && !force) return;
+    setStickersLoading(true);
     try {
       const res = await axiosInstance.get("/upload/stickers");
       setStickers(res.data.stickers || []);
+      stickersFetchedRef.current = true;
     } catch {
       toast.error("Failed to load stickers");
+    } finally {
+      setStickersLoading(false);
     }
   };
 
-  // ================= POSITION / SCALE (SMOOTH DRAG) =================
+  // ================= POSITION / SCALE (POINTER EVENTS) =================
+  // Dragging can start from ANYWHERE on the widget, including on top
+  // of the textarea or the buttons — there's no "closest(button) ?
+  // bail" gate anymore. Instead every pointerdown is a *candidate*
+  // drag: we only commit to dragging once the pointer has moved past
+  // DRAG_THRESHOLD px. A press that never moves that far is left
+  // completely alone (no preventDefault, no capture-driven side
+  // effects) so it plays, click, and focus fire exactly like normal.
+  // That's what makes it "work anywhere" instead of only in the thin
+  // gaps between controls, which is what made it feel inaccurate.
   const [position, setPosition] = useState({ top: 100, left: 50 });
   const [dragging, setDragging] = useState(false);
   const [scale, setScale] = useState(1);
 
-  // Refs mirror the current values so drag handlers never read stale
-  // closures and never need to be re-attached on every render.
   const positionRef = useRef(position);
   const scaleRef = useRef(scale);
   const draggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
-  const lastTouchDistance = useRef(null);
+  const pointersRef = useRef(new Map()); // pointerId -> {x, y}
+  const candidateRef = useRef(null); // {pointerId, startX, startY} while below threshold
+  const suppressClickRef = useRef(false); // eats the click that follows a real drag
+  const pinchStartDistRef = useRef(null);
+  const pinchStartScaleRef = useRef(1);
   const rafRef = useRef(null);
   const pendingPosRef = useRef(null);
 
@@ -114,7 +147,6 @@ const MessageInput = () => {
       let imageUrl = null;
       let audioUrl = null;
 
-      // Only upload real images (stickers are already Cloudinary URLs).
       if (imagePreview && !isStickerImage(imagePreview)) {
         const imgRes = await axiosInstance.post("/upload/image", {
           image: imagePreview,
@@ -130,9 +162,6 @@ const MessageInput = () => {
         audioUrl = audioRes.data.url;
       }
 
-      // Clear the composer immediately so the UI feels instant — the
-      // message itself is appended to the chat as soon as the store
-      // resolves (real-time echo happens in useChatStore/socket layer).
       setText("");
       setImagePreview(null);
       setImageFile(null);
@@ -198,28 +227,6 @@ const MessageInput = () => {
       Math.min(textareaRef.current.scrollHeight, 140) + "px";
   }, [text]);
 
-  // ================= INTERACTIVE ELEMENT GUARD =================
-  /*
-   * This is the fix for "buttons don't work / drag feels broken":
-   * previously ANY mousedown/touchstart inside the pill — including on
-   * Send, Mic, Image, Smile, and the textarea itself — started a drag.
-   * On mobile a normal tap always has a tiny bit of finger movement, so
-   * taps kept getting swallowed as drags instead of clicks.
-   *
-   * Now dragging can start from anywhere on the component (the pill
-   * background, the gaps around it, etc.) — just never from a control
-   * the user is trying to actually use (buttons, textarea, inputs, etc,
-   * marked via the selector below or a `data-no-drag` attribute).
-   */
-  const isInteractiveElement = (target) => {
-    if (!target) return false;
-    return Boolean(
-      target.closest(
-        "button, textarea, input, select, option, a, [role='button'], [data-no-drag]"
-      )
-    );
-  };
-
   // ================= POSITION HELPERS =================
   const clampPosition = useCallback((pos) => {
     const vv = window.visualViewport;
@@ -238,16 +245,6 @@ const MessageInput = () => {
     };
   }, []);
 
-  // Applies position straight to the DOM (no re-render) for a
-  // perfectly smooth drag, then schedules a single React state
-  // commit per animation frame so the rest of the UI stays in sync.
-  //
-  // Movement goes through `transform: translate3d(...) scale(...)`
-  // rather than `top`/`left`. Changing top/left on a fixed element
-  // forces the browser to recompute layout every single frame; a
-  // transform change can be handled entirely on the compositor
-  // thread (no layout, no paint), which is what actually makes the
-  // drag feel smooth — including after this ships to production.
   const applyTransform = (pos, currentScale) => {
     const el = containerRef.current;
     if (el) {
@@ -281,88 +278,130 @@ const MessageInput = () => {
     setPosition(positionRef.current);
   };
 
-  // ================= MOUSE DRAG =================
-  const onMouseDown = (e) => {
-    if (isInteractiveElement(e.target)) return;
-
+  // ================= POINTER DRAG / PINCH =================
+  const beginDrag = (x, y, pointerId) => {
+    // Capture is taken lazily, only once we know this is a real drag
+    // (not on every pointerdown). Taking it eagerly on every press was
+    // what made buttons feel less responsive — some browsers skip the
+    // native hover/active feedback on an element once its pointer is
+    // captured, even for a press that never moved.
+    if (pointerId != null) containerRef.current?.setPointerCapture?.(pointerId);
     draggingRef.current = true;
     setDragging(true);
     dragStartRef.current = {
-      x: e.clientX - positionRef.current.left,
-      y: e.clientY - positionRef.current.top,
+      x: x - positionRef.current.left,
+      y: y - positionRef.current.top,
     };
   };
 
-  const onMouseMove = (e) => {
+  const onPointerDown = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointersRef.current.size === 2) {
+      // second finger down -> this is a pinch, not a tap/drag
+      candidateRef.current = null;
+      containerRef.current?.setPointerCapture?.(e.pointerId);
+      const [p1, p2] = [...pointersRef.current.values()];
+      pinchStartDistRef.current = distance(p1, p2);
+      pinchStartScaleRef.current = scaleRef.current;
+      draggingRef.current = false;
+      setDragging(false);
+      return;
+    }
+
+    if (pointersRef.current.size === 1) {
+      // don't commit to dragging yet — wait for real movement so a
+      // plain tap/click on a button or the textarea still works.
+      candidateRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+      };
+    }
+  };
+
+  const onPointerMove = (e) => {
+    if (!pointersRef.current.has(e.pointerId)) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointersRef.current.size === 2) {
+      const [p1, p2] = [...pointersRef.current.values()];
+      if (pinchStartDistRef.current) {
+        const ratio = distance(p1, p2) / pinchStartDistRef.current;
+        const newScale = clampScale(pinchStartScaleRef.current * ratio);
+        scaleRef.current = newScale;
+        setScale(newScale);
+        applyTransform(positionRef.current, newScale);
+      }
+      e.preventDefault();
+      return;
+    }
+
+    // still deciding whether this press is a tap or a drag
+    const cand = candidateRef.current;
+    if (cand && cand.pointerId === e.pointerId && !draggingRef.current) {
+      const moved = distance(
+        { x: cand.startX, y: cand.startY },
+        { x: e.clientX, y: e.clientY }
+      );
+      if (moved < DRAG_THRESHOLD) return;
+
+      // threshold crossed -> this is a drag. Start it from the
+      // ORIGINAL press point so the widget doesn't jump to catch up.
+      suppressClickRef.current = true;
+      beginDrag(cand.startX, cand.startY, e.pointerId);
+    }
+
     if (!draggingRef.current) return;
     scheduleDragPosition({
       left: e.clientX - dragStartRef.current.x,
       top: e.clientY - dragStartRef.current.y,
     });
-  };
-
-  const onMouseUp = () => {
-    if (!draggingRef.current) return;
-    draggingRef.current = false;
-    setDragging(false);
-    commitPosition();
-  };
-
-  // ================= TOUCH DRAG / PINCH =================
-  const getDistance = (t1, t2) =>
-    Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-
-  const onTouchStart = (e) => {
-    if (isInteractiveElement(e.target)) return;
-
-    if (e.touches.length === 2) {
-      lastTouchDistance.current = getDistance(e.touches[0], e.touches[1]);
-      return;
-    }
-
-    draggingRef.current = true;
-    setDragging(true);
-    const t = e.touches[0];
-    dragStartRef.current = {
-      x: t.clientX - positionRef.current.left,
-      y: t.clientY - positionRef.current.top,
-    };
-  };
-
-  const onTouchMove = (e) => {
-    if (e.touches.length === 2 && lastTouchDistance.current) {
-      const newDist = getDistance(e.touches[0], e.touches[1]);
-      const diff = newDist - lastTouchDistance.current;
-      const oldScale = scaleRef.current;
-      const newScale = Math.min(1.6, Math.max(0.7, oldScale + diff * 0.002));
-
-      scaleRef.current = newScale;
-      setScale(newScale);
-      applyTransform(positionRef.current, newScale);
-
-      lastTouchDistance.current = newDist;
-      e.preventDefault();
-      return;
-    }
-
-    if (!draggingRef.current || e.touches.length !== 1) return;
-
-    const t = e.touches[0];
-    scheduleDragPosition({
-      left: t.clientX - dragStartRef.current.x,
-      top: t.clientY - dragStartRef.current.y,
-    });
-
     e.preventDefault();
   };
 
-  const onTouchEnd = () => {
+  const endPointer = (e) => {
+    pointersRef.current.delete(e.pointerId);
+    try {
+      containerRef.current?.releasePointerCapture?.(e.pointerId);
+    } catch {
+      /* no-op: pointer capture may already be released by the browser */
+    }
+
+    if (candidateRef.current?.pointerId === e.pointerId) {
+      candidateRef.current = null;
+    }
+
+    if (pointersRef.current.size >= 2) return; // still pinching
+
+    pinchStartDistRef.current = null;
+
+    if (pointersRef.current.size === 1) {
+      // one finger lifted mid-pinch — resume a normal drag with
+      // whichever pointer is still down.
+      const [[remainingId, remaining]] = [...pointersRef.current.entries()];
+      beginDrag(remaining.x, remaining.y, remainingId);
+      return;
+    }
+
     if (draggingRef.current) {
       draggingRef.current = false;
       setDragging(false);
       commitPosition();
     }
-    lastTouchDistance.current = null;
+  };
+
+  // Swallow the single click/tap that a browser fires right after a
+  // real drag ends over a button (mic/image/smile/send/X) — otherwise
+  // finishing a drag on top of a control would also trigger it.
+  const onClickCapture = (e) => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }
   };
 
   // ================= WHEEL (CTRL) SCALE =================
@@ -378,7 +417,7 @@ const MessageInput = () => {
     const centerY = e.clientY - rect.top;
 
     const oldScale = scaleRef.current;
-    const newScale = Math.min(1.6, Math.max(0.7, oldScale - e.deltaY * 0.001));
+    const newScale = clampScale(oldScale - e.deltaY * 0.001);
 
     const current = positionRef.current;
     const offsetX = (centerX / oldScale) * (newScale - oldScale);
@@ -396,31 +435,22 @@ const MessageInput = () => {
     setPosition(clamped);
   };
 
-  // ================= EVENTS (attached once) =================
+  // wheel needs { passive: false } to preventDefault, which React's
+  // synthetic onWheel prop can't guarantee, so it's attached manually.
   useEffect(() => {
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", onTouchEnd);
-    window.addEventListener("wheel", onWheel, { passive: false });
-
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onTouchEnd);
-      window.removeEventListener("wheel", onWheel);
-
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-    };
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep refs in sync if position/scale ever change from outside a drag
-  // (e.g. programmatically), so drag math never uses a stale value.
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     positionRef.current = position;
   }, [position]);
@@ -439,33 +469,31 @@ const MessageInput = () => {
         left: 0,
         zIndex: 9999,
         width: `${BOX_WIDTH}px`,
-        // All movement and scaling happens through this single
-        // transform (translate3d + scale) instead of top/left, so the
-        // browser can composite it on the GPU without recalculating
-        // layout on every frame — see applyTransform().
         transform: `translate3d(${position.left}px, ${position.top}px, 0) scale(${scale})`,
         transformOrigin: "top left",
         touchAction: "none",
         willChange: dragging ? "transform" : "auto",
         userSelect: dragging ? "none" : "auto",
         WebkitUserSelect: dragging ? "none" : "auto",
-        // Isolates this subtree from the rest of the page's layout/paint
-        // so the browser never has to consider outside elements while
-        // the transform is being updated every frame during a drag.
-        contain: "layout paint",
+        // NOTE: deliberately no `contain: layout paint` here — it
+        // isolates the subtree for perf, but it also clips any child
+        // that paints outside this box, which was cropping the sticker
+        // picker popup (it renders taller than the pill itself via
+        // `absolute bottom-16`). translate3d already keeps the drag on
+        // the compositor without needing containment.
       }}
-      onMouseDown={onMouseDown}
-      onTouchStart={onTouchStart}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endPointer}
+      onPointerCancel={endPointer}
+      onClickCapture={onClickCapture}
       className={dragging ? "cursor-grabbing" : "cursor-grab"}
     >
       <div className="flex flex-col w-full gap-1">
 
         {/* ================= REPLY ================= */}
         {replyTo && (
-          <div
-            data-no-drag
-            className="bg-gray-200 px-3 py-1 rounded-lg flex justify-between items-center"
-          >
+          <div className="bg-gray-200 px-3 py-1 rounded-lg flex justify-between items-center">
             <span className="text-sm truncate max-w-[80%]">
               Replying: {replyTo.text || "Media"}
             </span>
@@ -477,7 +505,7 @@ const MessageInput = () => {
 
         {/* ================= IMAGE PREVIEW ================= */}
         {imagePreview && (
-          <div data-no-drag className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1">
             <img
               src={imagePreview}
               className="w-20 h-20 rounded-md object-cover"
@@ -496,16 +524,7 @@ const MessageInput = () => {
           </div>
         )}
 
-        {/* ================= FORM =================
-            While actively dragging, the form's controls are switched
-            to pointer-events: none. This isn't just cosmetic — it
-            means the browser skips hit-testing, hover/active style
-            recalculation, and focus handling for every button and the
-            textarea on every pointermove during the drag, so the only
-            work left per frame is the transform write in
-            applyTransform(). The moment the drag ends (onMouseUp /
-            onTouchEnd -> setDragging(false)), controls go straight
-            back to being fully interactive. */}
+        {/* ================= FORM ================= */}
         <form
           onSubmit={handleSendMessage}
           className="flex items-center gap-2 bg-base-200 rounded-full shadow-lg px-4 py-3 w-full"
@@ -518,8 +537,7 @@ const MessageInput = () => {
           {/* MIC */}
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               isRecording ? stopRecording() : startRecording();
             }}
           >
@@ -556,8 +574,7 @@ const MessageInput = () => {
 
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={() => {
               fileInputRef.current?.click();
             }}
           >
@@ -567,23 +584,20 @@ const MessageInput = () => {
           {/* STICKERS */}
           <button
             type="button"
-            onClick={async (e) => {
-              e.stopPropagation();
-              if (!showStickerPicker) await fetchStickers();
+            onClick={() => {
+              // open immediately — don't wait on the network first,
+              // that's what made this feel slow to "activate". The
+              // picker shows a loading state itself while stickers
+              // load in behind it.
               setShowStickerPicker((p) => !p);
+              fetchStickers();
             }}
           >
             <Smile size={18} />
           </button>
 
           {/* SEND */}
-          <button
-            type="submit"
-            onClick={(e) => {
-              // Prevent the click from bubbling into the draggable container.
-              e.stopPropagation();
-            }}
-          >
+          <button type="submit">
             <Send size={18} />
           </button>
 
@@ -591,9 +605,10 @@ const MessageInput = () => {
           {showStickerPicker && (
             <StickerPicker
               stickers={stickers}
+              loading={stickersLoading}
               onStickerSelect={handleStickerSend}
               onClose={() => setShowStickerPicker(false)}
-              refresh={fetchStickers}
+              refresh={() => fetchStickers(true)}
             />
           )}
         </form>

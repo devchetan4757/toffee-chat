@@ -5,6 +5,7 @@ import { axiosInstance } from "../lib/axios";
 
 const StickerPicker = ({
   stickers,
+  loading,
   onStickerSelect,
   refresh,
 }) => {
@@ -101,12 +102,12 @@ const StickerPicker = ({
       style={{
         maxHeight: "200px",
       }}
-      onMouseDown={(e) =>
-        e.stopPropagation()
-      }
-      onTouchStart={(e) =>
-        e.stopPropagation()
-      }
+      // Stops the press from ever reaching MessageInput's drag
+      // tracking (which listens for pointerdown, not mousedown) —
+      // otherwise a tap on a small 48px sticker has just enough
+      // natural finger/mouse wobble to occasionally read as a drag,
+      // which suppresses the click and the sticker never sends.
+      onPointerDown={(e) => e.stopPropagation()}
     >
 
       {/* UPLOAD BTN */}
@@ -119,6 +120,13 @@ const StickerPicker = ({
           onChange={handleUpload}
         />
       </label>
+
+      {/* LOADING */}
+      {loading && stickers.length === 0 && (
+        <div className="col-span-4 flex items-center justify-center py-4 text-sm opacity-60">
+          Loading stickers…
+        </div>
+      )}
 
       {/* STICKERS */}
       {stickers.map((url) => {
