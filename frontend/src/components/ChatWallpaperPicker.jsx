@@ -30,24 +30,25 @@ const resizeImage = (dataUrl) =>
   });
 
 /**
- * Compact wallpaper control — a row of small round icon buttons that
- * fan out to the LEFT of the trigger button (meant to sit at the
- * right edge of its strip), instead of a big dropdown panel:
+ * Wallpaper control, meant to live in a `position: relative` wrapper
+ * right next to the trigger button that sits at the right edge of its
+ * strip:
  *
  *   <div className="relative">
  *     <ChatWallpaperPicker isOpen={open} onClose={...} />
  *     <button onClick={() => setOpen(true)}>...</button>
  *   </div>
  *
- * Icons, nearest-to-button first:
- *   1. Upload new photo (from device)
- *   2. Pick from app media (gallery of images already shared in chat)
- *   3. Saved wallpaper (whatever was last uploaded/picked) — switches it on
- *   4. No wallpaper (plain default background)
+ * Two pieces, both anchored off that same wrapper (so both stay
+ * pinned to the right edge, where there's guaranteed room, instead of
+ * drifting left with the icon row and risking going off-screen):
  *
- * A tiny thumbnail strip for "pick from app media" pops open above the
- * row when that icon is tapped — still a small anchored popover, not a
- * full-screen modal.
+ *   1. A row of small round icons fanned out to the LEFT of the
+ *      button — no wallpaper (default), saved wallpaper, upload new.
+ *   2. A proper (but still compact) picker WINDOW that drops down
+ *      below-right of the button when "from app media" is tapped —
+ *      this one needs real room for a thumbnail grid, so it isn't
+ *      forced into a tiny circle.
  */
 const ChatWallpaperPicker = ({ isOpen, onClose }) => {
   const { wallpaper, updateWallpaper, isUpdatingWallpaper } = useAuthStore();
@@ -56,7 +57,8 @@ const ChatWallpaperPicker = ({ isOpen, onClose }) => {
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [applyingUrl, setApplyingUrl] = useState(null);
-  const wrapRef = useRef(null);
+  const iconsRef = useRef(null);
+  const galleryRef = useRef(null);
 
   const isActive = !!wallpaper?.active;
   const hasSaved = !!wallpaper?.hasSaved;
@@ -69,7 +71,9 @@ const ChatWallpaperPicker = ({ isOpen, onClose }) => {
     }
 
     const handleClickOutside = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+      const insideIcons = iconsRef.current?.contains(e.target);
+      const insideGallery = galleryRef.current?.contains(e.target);
+      if (!insideIcons && !insideGallery) {
         setGalleryOpen(false);
         onClose();
       }
@@ -162,58 +166,12 @@ const ChatWallpaperPicker = ({ isOpen, onClose }) => {
     }`;
 
   return (
-    <div
-      ref={wrapRef}
-      className="absolute top-1/2 right-full -translate-y-1/2 mr-2 z-30"
-    >
-      {/* Gallery mini-popover — small, anchored above the icon row */}
-      {galleryOpen && (
-        <div className="absolute bottom-full right-0 mb-2 w-64 max-w-[80vw] bg-base-100 rounded-xl shadow-xl border border-base-300 p-2">
-          <div className="flex items-center justify-between px-1 pb-1.5">
-            <span className="text-xs font-medium opacity-70">From your media</span>
-            <button
-              onClick={() => setGalleryOpen(false)}
-              className="btn btn-ghost btn-xs btn-circle"
-              aria-label="Close"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {galleryLoading && (
-            <div className="flex justify-center py-4">
-              <Loader2 className="w-4 h-4 animate-spin opacity-60" />
-            </div>
-          )}
-
-          {!galleryLoading && galleryImages.length === 0 && (
-            <p className="text-[11px] text-center opacity-50 py-3">No shared images yet</p>
-          )}
-
-          {!galleryLoading && galleryImages.length > 0 && (
-            <div className="grid grid-cols-4 gap-1.5 max-h-40 overflow-y-auto">
-              {galleryImages.map((img) => (
-                <button
-                  key={img.public_id}
-                  onClick={() => handlePickFromGallery(img)}
-                  disabled={busy || applyingUrl === img.url}
-                  className="relative aspect-square rounded-md overflow-hidden border border-base-300 hover:border-primary/60"
-                >
-                  <img src={img.url} alt="" className="w-full h-full object-cover" />
-                  {applyingUrl === img.url && (
-                    <span className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
+    <>
       {/* Small round icons, fanned out to the left of the trigger button */}
-      <div className="flex items-center gap-2">
+      <div
+        ref={iconsRef}
+        className="absolute top-1/2 right-full -translate-y-1/2 mr-2 z-30 flex items-center gap-2"
+      >
         {/* NO WALLPAPER (default) */}
         <button
           onClick={handleUseNone}
@@ -273,7 +231,7 @@ const ChatWallpaperPicker = ({ isOpen, onClose }) => {
           />
         </label>
 
-        {/* FROM APP MEDIA */}
+        {/* FROM APP MEDIA — opens the picker window below-right */}
         <button
           onClick={openGallery}
           disabled={busy}
@@ -284,7 +242,64 @@ const ChatWallpaperPicker = ({ isOpen, onClose }) => {
           <Images className="w-4 h-4 opacity-70" />
         </button>
       </div>
-    </div>
+
+      {/* Picker WINDOW for "from app media" — anchored to the right
+          edge of the same wrapper the trigger button sits in (not to
+          the icon row), so it always opens on-screen toward the right
+          instead of drifting off the left edge. */}
+      {galleryOpen && (
+        <div
+          ref={galleryRef}
+          className="absolute top-full right-0 mt-2 w-72 max-w-[85vw] bg-base-100 rounded-xl shadow-xl border border-base-300 z-40 overflow-hidden"
+        >
+          <div className="flex items-center justify-between p-3 border-b border-base-300">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <Images className="w-4 h-4" />
+              Choose from app media
+            </h3>
+            <button
+              onClick={() => setGalleryOpen(false)}
+              className="btn btn-ghost btn-xs btn-circle"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="p-3">
+            {galleryLoading && (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-5 h-5 animate-spin opacity-60" />
+              </div>
+            )}
+
+            {!galleryLoading && galleryImages.length === 0 && (
+              <p className="text-xs text-center opacity-50 py-8">No shared images yet</p>
+            )}
+
+            {!galleryLoading && galleryImages.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+                {galleryImages.map((img) => (
+                  <button
+                    key={img.public_id}
+                    onClick={() => handlePickFromGallery(img)}
+                    disabled={busy || applyingUrl === img.url}
+                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-base-300 hover:border-primary/60 transition-colors"
+                  >
+                    <img src={img.url} alt="" className="w-full h-full object-cover" />
+                    {applyingUrl === img.url && (
+                      <span className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 text-white animate-spin" />
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

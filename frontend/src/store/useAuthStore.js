@@ -138,12 +138,36 @@ export const useAuthStore = create((set, get) => ({
   // { active: true/false } to toggle between the already-saved
   // wallpaper and the plain default chat background without touching
   // the saved bytes at all.
+  //
+  // Applies the change to local state IMMEDIATELY (optimistic update)
+  // instead of waiting on the round trip, so switching wallpapers/
+  // toggling default feels instant. The server call still happens
+  // right after to persist it and sync the other tab/device; on
+  // failure the optimistic change is rolled back and an error toast
+  // explains why.
   updateWallpaper: async ({ image, imageUrl, active } = {}) => {
+    const prevWallpaper = get().wallpaper;
+
+    let optimistic = null;
+    if (typeof image === "string") {
+      // We already have the exact bytes the user picked — show them
+      // right away rather than waiting for the server to save and
+      // hand back a data URL built from the stored copy.
+      optimistic = { savedUrl: image, active: true, hasSaved: true };
+    } else if (typeof imageUrl === "string") {
+      optimistic = { savedUrl: imageUrl, active: true, hasSaved: true };
+    } else if (typeof active === "boolean") {
+      optimistic = { ...prevWallpaper, active };
+    }
+    if (optimistic) set({ wallpaper: optimistic });
+
     set({ isUpdatingWallpaper: true });
 
     try {
       const res = await axiosInstance.patch("/auth/wallpaper", { image, imageUrl, active });
 
+      // Reconcile with the server's version (e.g. the real stored data
+      // URL, in case it differs from the optimistic guess).
       set({ wallpaper: res.data.wallpaper });
 
       toast.success(
@@ -157,6 +181,7 @@ export const useAuthStore = create((set, get) => ({
       return true;
 
     } catch (err) {
+      if (optimistic) set({ wallpaper: prevWallpaper }); // roll back
       toast.error(err?.response?.data?.message || "Couldn't update wallpaper");
       return false;
 
