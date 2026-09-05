@@ -3,14 +3,18 @@ import toast from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { socket } from "../lib/socket";
 
+const DEFAULT_WALLPAPER = { savedUrl: null, active: false, hasSaved: false };
+
 export const useAuthStore = create((set, get) => ({
   isAuthenticated: false,
   isLoggingIn: false,
   isCheckingAuth: true,
   isUpdatingPfp: false,
+  isUpdatingWallpaper: false,
   authUser: null,
   otherUser: null,
   role: null,
+  wallpaper: DEFAULT_WALLPAPER,
 
   // CHECK AUTH
   checkAuth: async () => {
@@ -25,6 +29,7 @@ export const useAuthStore = create((set, get) => ({
         role: user?.role,
         authUser: user,
         otherUser,
+        wallpaper: user?.wallpaper || DEFAULT_WALLPAPER,
       });
 
       get().connectSocket(user?.role);
@@ -35,6 +40,7 @@ export const useAuthStore = create((set, get) => ({
         role: null,
         authUser: null,
         otherUser: null,
+        wallpaper: DEFAULT_WALLPAPER,
       });
     } finally {
       set({ isCheckingAuth: false });
@@ -54,6 +60,7 @@ export const useAuthStore = create((set, get) => ({
         isAuthenticated: true,
         role: user?.role,
         authUser: user,
+        wallpaper: user?.wallpaper || DEFAULT_WALLPAPER,
       });
 
       toast.success("Logged in successfully");
@@ -80,6 +87,7 @@ export const useAuthStore = create((set, get) => ({
         isAuthenticated: false,
         role: null,
         authUser: null,
+        wallpaper: DEFAULT_WALLPAPER,
       });
 
       toast.success("Logged out successfully");
@@ -123,6 +131,40 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  // UPDATE CHAT WALLPAPER
+  // Pass { image: "data:...;base64,..." } to upload a new wallpaper from
+  // a file, { imageUrl: "https://..." } to reuse an image already in the
+  // app's media (the backend fetches those bytes itself), or
+  // { active: true/false } to toggle between the already-saved
+  // wallpaper and the plain default chat background without touching
+  // the saved bytes at all.
+  updateWallpaper: async ({ image, imageUrl, active } = {}) => {
+    set({ isUpdatingWallpaper: true });
+
+    try {
+      const res = await axiosInstance.patch("/auth/wallpaper", { image, imageUrl, active });
+
+      set({ wallpaper: res.data.wallpaper });
+
+      toast.success(
+        image || imageUrl
+          ? "Wallpaper updated"
+          : active
+          ? "Wallpaper turned on"
+          : "Wallpaper turned off"
+      );
+
+      return true;
+
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Couldn't update wallpaper");
+      return false;
+
+    } finally {
+      set({ isUpdatingWallpaper: false });
+    }
+  },
+
   // SOCKET
   connectSocket: (role) => {
     if (!socket.connected) {
@@ -148,6 +190,17 @@ export const useAuthStore = create((set, get) => ({
 
       if (otherUser && changedRole === otherUser.role) {
         set({ otherUser: { ...otherUser, pfp } });
+      }
+    });
+
+    // Wallpaper is personal — only ever applied when it's this same
+    // account's own role (e.g. another tab/device), never the other
+    // person's, since it's not shared conversation data.
+    socket.off("wallpaperUpdated").on("wallpaperUpdated", ({ role: changedRole, wallpaper }) => {
+      const { authUser } = get();
+
+      if (authUser && changedRole === authUser.role) {
+        set({ wallpaper: wallpaper || DEFAULT_WALLPAPER });
       }
     });
   },

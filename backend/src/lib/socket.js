@@ -6,9 +6,18 @@ import Message from "../models/message.model.js";
 const app = express();
 const server = http.createServer(app);
 
+// Was hardcoded to exactly "http://localhost:5173" — any other origin
+// (a LAN IP, a deployed domain, a different dev port) would fail
+// socket.io's CORS check. Mirrors the same allow-list as the REST CORS
+// setup in index.js so a real deploy doesn't need two places updated.
+const socketOrigin =
+  process.env.NODE_ENV === "development"
+    ? ["http://localhost:5173", "http://127.0.0.1:5173"]
+    : true;
+
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: socketOrigin,
     credentials: true,
   },
 });

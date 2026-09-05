@@ -37,3 +37,45 @@ export const getEffectivePfp = async (role) => {
 
   return getDefaultPfp(role);
 };
+
+/**
+ * The chat wallpaper state for a role. Unlike the profile photo,
+ * there's no static default image to fall back to — the default IS
+ * no wallpaper (the plain chat background).
+ *
+ * A role can have a saved wallpaper (custom bytes in Mongo) that is
+ * either active (currently applied) or inactive (kept in storage so
+ * the user can switch back to it later without re-uploading). Returns:
+ *   - savedUrl: data URL of the stored wallpaper, or null if nothing
+ *     has ever been saved — present even while toggled off, so the
+ *     frontend can still show a "recent wallpaper" thumbnail
+ *   - active: whether the saved wallpaper is the one currently applied
+ *   - hasSaved: whether any wallpaper is stored at all
+ *
+ * Falls back to the "nothing saved" shape on any DB error, same
+ * reasoning as getEffectivePfp above.
+ */
+export const getEffectiveWallpaper = async (role) => {
+  if (!role) return { savedUrl: null, active: false, hasSaved: false };
+
+  try {
+    const profile = await UserProfile.findOne({ role }).lean();
+    const hasSaved = !!profile?.wallpaperData?.length;
+
+    if (!hasSaved) {
+      return { savedUrl: null, active: false, hasSaved: false };
+    }
+
+    const buffer = Buffer.isBuffer(profile.wallpaperData)
+      ? profile.wallpaperData
+      : Buffer.from(profile.wallpaperData.buffer || profile.wallpaperData);
+
+    const contentType = profile.wallpaperContentType || "image/jpeg";
+    const savedUrl = `data:${contentType};base64,${buffer.toString("base64")}`;
+
+    return { savedUrl, active: !!profile.wallpaperActive, hasSaved: true };
+  } catch (err) {
+    console.error("getEffectiveWallpaper error:", err.message);
+    return { savedUrl: null, active: false, hasSaved: false };
+  }
+};

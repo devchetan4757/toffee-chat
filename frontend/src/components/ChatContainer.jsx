@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Image as ImageIcon } from "lucide-react";
 import MessageInput from "./MessageInput";
 import MessageBubble from "./MessageBubble";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
+import ChatWallpaperPicker from "./ChatWallpaperPicker";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { socket } from "../lib/socket";
@@ -17,11 +19,17 @@ const ChatContainer = () => {
     setReplyTo,
   } = useChatStore();
 
-  const { role: myRole } = useAuthStore();
+  const { role: myRole, wallpaper } = useAuthStore();
 
   const chatRef = useRef(null);
   const loadingOlderRef = useRef(false);
   const [fullImage, setFullImage] = useState(null);
+  const [wallpaperPickerOpen, setWallpaperPickerOpen] = useState(false);
+
+  // The only URL that should actually be painted behind the chat right
+  // now — null whenever the wallpaper is toggled off, even if one is
+  // saved for later.
+  const appliedWallpaperUrl = wallpaper?.active ? wallpaper.savedUrl : null;
 
   useEffect(() => {
     const initChat = async () => {
@@ -148,9 +156,47 @@ const ChatContainer = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full">
+      {/* Wallpaper control — its own thin strip in the gap above the
+          message list (below the navbar), right-aligned. Tapping it
+          fans out small round icons to its left instead of opening a
+          big dropdown panel or full-screen modal. */}
+      <div className="flex items-center justify-end px-2 py-1 border-b border-base-300">
+        <div className="relative">
+          <ChatWallpaperPicker
+            isOpen={wallpaperPickerOpen}
+            onClose={() => setWallpaperPickerOpen(false)}
+          />
+          <button
+            onClick={() => setWallpaperPickerOpen((prev) => !prev)}
+            className="btn btn-sm btn-circle btn-ghost"
+            aria-label="Chat wallpaper"
+          >
+            <ImageIcon className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
       <div
         ref={chatRef}
-        className="flex-1 overflow-y-auto p-3 space-y-3"
+        className="relative flex-1 overflow-y-auto p-3 space-y-3"
+        style={
+          appliedWallpaperUrl
+            ? {
+                backgroundImage: `url(${appliedWallpaperUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                // "scroll" (the default) sizes/positions the image
+                // against the element's own visible box, not the full
+                // scrollable content height — which is what keeps it
+                // looking normal instead of stretched. It also stays
+                // put in place while messages scroll over it, instead
+                // of moving/disappearing with the content ("local"
+                // attachment did both of those wrong).
+                backgroundAttachment: "scroll",
+              }
+            : undefined
+        }
       >
         {messages.map((message) => (
           <MessageBubble
