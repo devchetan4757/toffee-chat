@@ -170,13 +170,14 @@ export const useAuthStore = create((set, get) => ({
       // URL, in case it differs from the optimistic guess).
       set({ wallpaper: res.data.wallpaper });
 
-      toast.success(
-        image || imageUrl
-          ? "Wallpaper updated"
-          : active
-          ? "Wallpaper turned on"
-          : "Wallpaper turned off"
-      );
+      // No toast for "turned off" — it's the most-used toggle (back to
+      // default background) and skipping the toast avoids an extra
+      // render/reflow right when we want that switch to feel instant.
+      if (image || imageUrl) {
+        toast.success("Wallpaper updated");
+      } else if (active) {
+        toast.success("Wallpaper turned on");
+      }
 
       return true;
 

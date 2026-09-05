@@ -7,6 +7,7 @@ import ChatWallpaperPicker from "./ChatWallpaperPicker";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { socket } from "../lib/socket";
+import { useCachedWallpaperUrl } from "../lib/useCachedWallpaperUrl";
 
 const ChatContainer = () => {
   const {
@@ -26,10 +27,17 @@ const ChatContainer = () => {
   const [fullImage, setFullImage] = useState(null);
   const [wallpaperPickerOpen, setWallpaperPickerOpen] = useState(false);
 
+  // Cache/decode is keyed off the SAVED url, not the active-gated one —
+  // this runs as soon as a wallpaper is saved (including on page load,
+  // restored from the server) rather than waiting for the toggle, so
+  // the bytes and the decoded bitmap are already sitting locally by the
+  // time the user actually flips it on.
+  const cachedWallpaperUrl = useCachedWallpaperUrl(wallpaper?.savedUrl);
+
   // The only URL that should actually be painted behind the chat right
   // now — null whenever the wallpaper is toggled off, even if one is
   // saved for later.
-  const appliedWallpaperUrl = wallpaper?.active ? wallpaper.savedUrl : null;
+  const appliedWallpaperUrl = wallpaper?.active ? cachedWallpaperUrl : null;
 
   useEffect(() => {
     const initChat = async () => {
