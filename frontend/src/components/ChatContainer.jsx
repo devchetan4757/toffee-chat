@@ -126,28 +126,14 @@ const ChatContainer = () => {
     // never get a second chance since hasMore alone doesn't change
   }, [hasMore, isMessagesLoading]);
 
-  const touchStartX = useRef(null);
-  const touchEndX = useRef(null);
-
-  // Stable callback identities (useCallback) so MessageBubble's memo
-  // comparison isn't defeated by a brand-new function prop on every
-  // ChatContainer render.
-  const handleTouchStart = useCallback((e) => {
-    touchStartX.current = e.targetTouches[0].clientX;
-  }, []);
-
-  const handleTouchMove = useCallback((e) => {
-    touchEndX.current = e.targetTouches[0].clientX;
-  }, []);
-
-  const handleTouchEnd = useCallback(
-    (message) => {
-      if (!touchStartX.current || !touchEndX.current) return;
-      if (touchEndX.current - touchStartX.current > 60) setReplyTo(message);
-
-      touchStartX.current = null;
-      touchEndX.current = null;
-    },
+  // Swipe-to-reply now lives entirely inside MessageBubble (it needs
+  // a live per-bubble offset while dragging, which has to be local
+  // state to avoid re-rendering every other bubble on every touchmove).
+  // ChatContainer only needs to know when a swipe actually completed,
+  // via this one stable callback — kept with useCallback so the memo
+  // comparison on MessageBubble still holds across re-renders.
+  const handleSwipeReply = useCallback(
+    (message) => setReplyTo(message),
     [setReplyTo]
   );
 
@@ -213,9 +199,7 @@ const ChatContainer = () => {
             isSelf={message.logger === myRole}
             onDelete={deleteMessage}
             onImageClick={handleImageClick}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
+            onSwipeReply={handleSwipeReply}
           />
         ))}
 
