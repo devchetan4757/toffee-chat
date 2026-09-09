@@ -1,4 +1,6 @@
-import Message from "../models/message.model.js";
+import Message, {
+  MESSAGE_EFFECTS,
+} from "../models/message.model.js";
 import sanitizeHtml from "sanitize-html";
 import { io } from "../lib/socket.js";
 import cloudinary from "../lib/cloudinary.js";
@@ -11,7 +13,9 @@ export const getMessages = async (req, res) => {
     const limit = Number(req.query.limit) || 150;
     const { cursor } = req.query;
 
-    const query = cursor ? { _id: { $lt: cursor } } : {};
+    const query = cursor
+      ? { _id: { $lt: cursor } }
+      : {};
 
     const messages = await Message.find(query)
       .sort({ createdAt: -1 })
@@ -21,36 +25,117 @@ export const getMessages = async (req, res) => {
     res.status(200).json(messages.reverse());
   } catch (error) {
     console.error("getMessages error:", error);
-    res.status(500).json({ error: "Internal server error" });
+
+    res.status(500).json({
+      error: "Internal server error",
+    });
   }
 };
 
 /**
  * POST /api/messages/send
+ *
+ * Supports:
+ * {
+ *   text,
+ *   image,
+ *   audio,
+ *   stickers,
+ *   replyTo,
+ *   effect
+ * }
+ *
+ * `effect_type` is also accepted for compatibility.
+ *
+ * Current allowed effects:
+ *   fire, love, celebration, gift
  */
 export const sendMessage = async (req, res) => {
   try {
-    const { text, image, audio, stickers, replyTo } = req.body;
+    const {
+      text,
+      image,
+      audio,
+      stickers,
+      replyTo,
+      effect,
+      effect_type,
+    } = req.body;
+
+    // ================= AUTHENTICATION =================
 
     if (!req.user?.role) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
     }
 
-    const cleanText = sanitizeHtml(text?.trim() || "", {
-      allowedTags: [],
-      allowedAttributes: {},
-    });
+    // ================= EFFECT VALIDATION =================
+
+    /*
+     * Frontend sends `effect`.
+     *
+     * `effect_type` is accepted as a fallback so older
+     * frontend requests remain compatible.
+     */
+    const requestedEffect =
+      effect !== undefined
+        ? effect
+        : effect_type;
+
+    let safeEffect = null;
+
+    if (
+      requestedEffect !== undefined &&
+      requestedEffect !== null &&
+      requestedEffect !== ""
+    ) {
+      if (
+        typeof requestedEffect !== "string" ||
+        !MESSAGE_EFFECTS.includes(requestedEffect)
+      ) {
+        return res.status(400).json({
+          message: "Invalid message effect",
+          allowedEffects: MESSAGE_EFFECTS,
+        });
+      }
+
+      safeEffect = requestedEffect;
+    }
+
+    // ================= TEXT =================
+
+    const cleanText = sanitizeHtml(
+      text?.trim() || "",
+      {
+        allowedTags: [],
+        allowedAttributes: {},
+      }
+    );
 
     let imageUrl = null;
     let audioUrl = null;
 
     // ================= IMAGE =================
-    if (image && !image.startsWith("data:image/webp")) {
+
+    /*
+     * Sticker WebP data is intentionally excluded from
+     * the normal image upload pipeline.
+     */
+    if (
+      image &&
+      !image.startsWith("data:image/webp")
+    ) {
       if (image.startsWith("data:")) {
-        const uploaded = await cloudinary.uploader.upload(image, {
-          folder: "chat_images",
-          resource_type: "image",
-        });
+        const uploaded =
+          await cloudinary.uploader.upload(
+            image,
+            {
+              folder: "chat_images",
+              resource_type: "image",
+            }
+          );
+
         imageUrl = uploaded.secure_url;
       } else {
         imageUrl = image;
@@ -58,77 +143,169 @@ export const sendMessage = async (req, res) => {
     }
 
     // ================= AUDIO =================
+
     if (audio) {
       if (audio.startsWith("data:")) {
-        const uploaded = await cloudinary.uploader.upload(audio, {
-          folder: "chat_audio",
-          resource_type: "video",
-        });
+        const uploaded =
+          await cloudinary.uploader.upload(
+            audio,
+            {
+              folder: "chat_audio",
+              resource_type: "video",
+            }
+          );
+
         audioUrl = uploaded.secure_url;
       } else {
         audioUrl = audio;
       }
     }
 
-    // ================= STICKERS (FINAL CLEAN VERSION) =================
+    // ================= STICKERS =================
+
     const safeStickers = Array.isArray(stickers)
-      ? stickers.filter((s) => typeof s === "string" && s.trim().length > 0)
+      ? stickers.filter(
+          (sticker) =>
+            typeof sticker === "string" &&
+            sticker.trim().length > 0
+        )
       : [];
 
-    // ================= EMPTY CHECK =================
-    if (!cleanText && !imageUrl && !audioUrl && safeStickers.length === 0) {
-      return res.status(400).json({ message: "Empty message not allowed" });
+    // ================= EMPTY MESSAGE CHECK =================
+
+    /*
+     * An effect by itself is not message content.
+     *
+     * The message must contain text, image, audio,
+     * or at least one sticker.
+     */
+    if (
+      !cleanText &&
+      !imageUrl &&
+      !audioUrl &&
+      safeStickers.length === 0
+    ) {
+      return res.status(400).json({
+        message: "Empty message not allowed",
+      });
     }
 
+    // ================= REPLY =================
+
+    const safeReplyTo = replyTo
+      ? {
+          _id: replyTo._id,
+          text: replyTo.text || null,
+          image: replyTo.image || null,
+          audio: replyTo.audio || null,
+          stickers: Array.isArray(
+            replyTo.stickers
+          )
+            ? replyTo.stickers
+            : [],
+        }
+      : null;
+
     // ================= CREATE MESSAGE =================
+
     const newMessage = new Message({
       text: cleanText,
+
       image: imageUrl,
+
       audio: audioUrl,
+
       stickers: safeStickers,
+
       logger: req.user.role,
+
       status: "delivered",
-      replyTo: replyTo
-        ? {
-            _id: replyTo._id,
-            text: replyTo.text || null,
-            image: replyTo.image || null,
-            audio: replyTo.audio || null,
-            stickers: replyTo.stickers || null,
-          }
-        : null,
+
+      /*
+       * Persist the validated effect.
+       *
+       * Currently:
+       *   "fire"
+       *
+       * or:
+       *   null
+       */
+      effect: safeEffect,
+
+      replyTo: safeReplyTo,
     });
+
+    // ================= SAVE =================
 
     await newMessage.save();
 
-    io.emit("newMessage", newMessage);
+    // ================= REAL-TIME EVENT =================
 
-    res.status(201).json(newMessage);
+    /*
+     * Send the complete saved message, including
+     * its effect, to every connected client.
+     */
+    io.emit(
+      "newMessage",
+      newMessage
+    );
+
+    // ================= RESPONSE =================
+
+    res.status(201).json(
+      newMessage
+    );
   } catch (error) {
-    console.error("sendMessage error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error(
+      "sendMessage error:",
+      error
+    );
+
+    res.status(500).json({
+      error: "Internal server error",
+    });
   }
 };
 
 /**
  * DELETE /api/messages/:id
  */
-export const deleteMessage = async (req, res) => {
+export const deleteMessage = async (
+  req,
+  res
+) => {
   try {
     const { id } = req.params;
 
-    const message = await Message.findById(id);
+    const message =
+      await Message.findById(id);
+
     if (!message) {
-      return res.status(404).json({ message: "Message not found" });
+      return res.status(404).json({
+        message: "Message not found",
+      });
     }
 
     await message.deleteOne();
 
-    io.emit("deleteMessage", id);
+    // Notify all connected clients.
+    io.emit(
+      "deleteMessage",
+      id
+    );
 
-    res.status(200).json({ message: "Message deleted", id });
+    res.status(200).json({
+      message: "Message deleted",
+      id,
+    });
   } catch (error) {
-    console.error("deleteMessage error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error(
+      "deleteMessage error:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Internal server error",
+    });
   }
 };

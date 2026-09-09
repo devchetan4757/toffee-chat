@@ -1,3 +1,946 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+
+/* ==========================================================================\n   MESSAGE BUBBLE\n   ========================================================================== */
+
+.message-bubble {
+  position: relative;
+  isolation: isolate;
+  overflow: visible !important;
+  /* The skinned effects (fire/love/celebration/gift) all force
+     overflow: visible so flames/hearts/confetti/bows can stick out past
+     the bubble box. That means overflow alone no longer stops long,
+     space-less text (a run of emoji-less characters with no natural
+     break point) from spilling past the painted background — the text
+     just keeps going while the gradient/box behind it stays put. Forcing
+     the browser to break mid-word once it hits the bubble's edge keeps
+     the visible text inside the painted skin no matter what's typed. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+
+/* ==========================================================================
+   FIRE MESSAGE EFFECT — Instagram-style glowing flame bubble
+   ========================================================================== */
+
+/*
+ * Specificity note: the element carrying this class is a DaisyUI
+ * `chat-bubble`, which ships its own background-color, padding and a
+ * `::before` tail nub. A plain `.message-effect-fire` rule loses to
+ * DaisyUI's `.chat-bubble` selector in some builds (mixed specificity +
+ * !important), leaving a faint DaisyUI-colored rectangle visible behind
+ * the flame. Chaining `.chat-bubble.message-effect-fire` and explicitly
+ * killing the pseudo-elements closes that gap.
+ */
+.chat-bubble.message-effect-fire {
+  position: relative;
+  z-index: 1;
+  overflow: visible !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.chat-bubble.message-effect-fire::before,
+.chat-bubble.message-effect-fire::after {
+  content: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  display: none !important;
+}
+
+.message-effect-fire-host {
+  position: relative;
+  display: block;
+  min-width: 42px;
+  overflow: visible;
+  isolation: isolate;
+  /* Soft, constant warm halo around the whole bubble (no pulsing/blinking
+     — just a steady glow) so it still reads as "hot" without flickering
+     in and out. */
+  filter: drop-shadow(0 0 7px rgba(255, 140, 30, 0.6))
+    drop-shadow(0 0 16px rgba(255, 70, 0, 0.32));
+}
+
+.message-effect-fire-content {
+  position: relative;
+  z-index: 3;
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  /* .chat-bubble's own padding is zeroed out above (its box now only
+     supplies width/height), so this reproduces that spacing here instead,
+     on the element that actually paints the flat flame-orange surface.
+     A normal rounded-bubble corner radius — the end caps overlap this box
+     by more than the radius (see .message-effect-fire-cap-left/right)
+     so their opaque flame fill sits directly behind the rounded corner
+     cutout instead of leaving a bare/mismatched notch there. */
+  padding: 0.5rem 1rem;
+  border-radius: 14px;
+  animation: none !important;
+  filter: none !important;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  /* Flat body of the bubble: a subtle top-to-bottom gradient plus a soft
+     cream under-glow at both bottom corners, sampled directly from the
+     reference clip so it lines up with the traced end caps. */
+  background:
+    radial-gradient(ellipse at 12% 100%, rgba(255, 240, 200, 0.85), transparent 62%),
+    radial-gradient(ellipse at 88% 100%, rgba(255, 240, 200, 0.85), transparent 62%),
+    linear-gradient(#ff8a00, #ffa300);
+}
+
+/*
+ * The flame is built as two end caps (smooth SVG silhouettes) plus the
+ * flat, stretchy body supplied by .message-effect-fire-content itself.
+ * This is the layer that positions and sizes the two caps.
+ */
+.message-effect-fire-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.message-effect-fire-cap {
+  position: absolute;
+  /*
+   * viewBox is 68 x 100, and its flat cut edge runs from y=26 to y=91
+   * (65% of the height). Scaling the cap to 100/0.65 = 153.846% of the
+   * bubble's own height, then pulling it up by 26/65 = 40% of that, lines
+   * the flat band up exactly with the bubble's top and bottom no matter
+   * how tall the bubble is — this math is required for alignment, it is
+   * not what caused the earlier bug.
+   *
+   * The actual bug was tying WIDTH to that same height via aspect-ratio:
+   * that made a tall multi-line bubble's cap balloon sideways off screen.
+   * Width below is fixed and independent of height instead, so the cap
+   * always covers the full side of the bubble (any message length) at a
+   * constant, sane width. preserveAspectRatio="none" on the svg lets the
+   * art stretch to fit that box, which very slightly narrows the flame's
+   * proportions on a tall bubble instead of widening the bubble.
+   */
+  top: -40%;
+  height: 153.846%;
+  width: 2.4em;
+  display: block;
+  overflow: visible;
+}
+
+.message-effect-fire-cap-left {
+  /* Overlap the content box by more than its border-radius (14px) instead
+     of touching it exactly at 100%. The content's rounded corner cuts a
+     small quarter-circle notch out of its own background at each corner;
+     since z-index puts the content ABOVE this cap everywhere except that
+     notch, extending the cap this far in means its opaque flame fill is
+     what shows through the notch — so the corner reads as the flame
+     rounding into the bubble, not a bare/mismatched gap. The overlap sits
+     well inside the cap's flat, solid-color band (never the jagged
+     part), so it doesn't show as a seam anywhere else. */
+  right: calc(100% - 16px);
+}
+
+.message-effect-fire-cap-right {
+  left: calc(100% - 16px);
+}
+
+.message-effect-fire-cap-shape {
+  will-change: d;
+}
+
+.message-effect-fire-ember {
+  will-change: opacity, cy, cx;
+}
+
+
+/* ==========================================================================
+   LOVE MESSAGE EFFECT — Instagram-style heart-ringed bubble
+   ========================================================================== */
+
+/*
+ * Like Instagram's own love effect, the bubble itself is repainted a hot
+ * pink (the same warm pink family as the gift-box effect's wrap color)
+ * instead of keeping the theme's own blue/gray. No glow here on purpose —
+ * just a flat, normal bubble repaint. The heart glyphs then ring the
+ * corners on top of that.
+ */
+.chat-bubble.message-effect-love {
+  position: relative;
+  z-index: 1;
+  overflow: visible !important;
+  background: linear-gradient(180deg, #ff8fb8, #ff3d82) !important;
+  background-image: linear-gradient(180deg, #ff8fb8, #ff3d82) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #4a0620 !important;
+}
+
+.chat-bubble.message-effect-love::before,
+.chat-bubble.message-effect-love::after {
+  background: #ff3d82 !important;
+  box-shadow: none !important;
+}
+
+.message-effect-love-host {
+  position: relative;
+  display: block;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.message-effect-love-content {
+  position: relative;
+  z-index: 2;
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.message-effect-love-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.message-effect-love-heart {
+  position: absolute;
+  display: block;
+  transform-origin: center;
+  filter: drop-shadow(0 1px 2px rgba(199, 8, 68, 0.35));
+  animation-name: messageEffectLovePulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes messageEffectLovePulse {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 0.88;
+  }
+
+  50% {
+    transform: scale(1.16) translateY(-3px);
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   CELEBRATION MESSAGE EFFECT — bubble skin + one-off chat burst
+   ========================================================================== */
+
+/*
+ * Bubble skin: permanent for as long as the message exists (same pattern
+ * as fire/love) — a purple-to-gold gradient repaint with small confetti
+ * shapes twinkling at the four corners. The one-off falling-confetti burst
+ * that plays across the whole chat right after sending lives further down
+ * (.message-effect-celebration-burst*) and is a separate, temporary
+ * overlay rendered by ChatContainer, not part of this bubble skin.
+ */
+.chat-bubble.message-effect-celebration {
+  position: relative;
+  z-index: 1;
+  overflow: visible !important;
+  background: linear-gradient(135deg, #7c3aed, #ec4899 55%, #f6ad1a) !important;
+  background-image: linear-gradient(135deg, #7c3aed, #ec4899 55%, #f6ad1a) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #fff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.chat-bubble.message-effect-celebration::before,
+.chat-bubble.message-effect-celebration::after {
+  background: #ec4899 !important;
+  box-shadow: none !important;
+}
+
+.message-effect-celebration-host {
+  position: relative;
+  display: block;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.message-effect-celebration-content {
+  position: relative;
+  z-index: 2;
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.message-effect-celebration-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.message-effect-celebration-confetti {
+  position: absolute;
+  display: block;
+  transform-origin: center;
+  animation-name: messageEffectCelebrationTwinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.message-effect-celebration-confetti-rect {
+  border-radius: 2px;
+}
+
+.message-effect-celebration-confetti-circle {
+  border-radius: 50%;
+}
+
+@keyframes messageEffectCelebrationTwinkle {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.3) rotate(35deg);
+    opacity: 1;
+  }
+}
+
+/*
+ * One-off burst: an absolutely-positioned overlay meant to fill the
+ * relatively-positioned chat area it's dropped into. Confetti pieces rain
+ * down and fade; the component that renders this removes itself from the
+ * tree ~3.5s later (see CelebrationBurst's onDone in MessageEffects.jsx) —
+ * this CSS only handles the fall/spin/fade of each individual piece.
+ */
+.message-effect-celebration-burst {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.message-effect-celebration-burst-piece {
+  position: absolute;
+  top: -6%;
+  animation-name: messageEffectCelebrationFall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+.message-effect-celebration-burst-piece-rect {
+  border-radius: 2px;
+}
+
+.message-effect-celebration-burst-piece-circle {
+  border-radius: 50%;
+}
+
+.message-effect-celebration-burst-piece-streamer {
+  border-radius: 3px;
+}
+
+.message-effect-celebration-burst-piece-triangle {
+  width: 0 !important;
+  height: 0 !important;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 10px solid;
+  background: transparent !important;
+}
+
+/* Quick radial "pop" the instant the burst starts, so it reads as an
+   actual explosion of confetti rather than pieces just fading into
+   view — gone well before the confetti itself finishes falling. */
+.message-effect-celebration-burst-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 38%,
+    rgba(255, 255, 255, 0.65),
+    rgba(255, 210, 26, 0.32) 32%,
+    transparent 68%
+  );
+  animation: messageEffectCelebrationFlash 650ms ease-out forwards;
+}
+
+@keyframes messageEffectCelebrationFlash {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  25% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes messageEffectCelebrationFall {
+  0% {
+    transform: translate(0, 0) rotate(var(--celebration-rotate-from, 0deg));
+    opacity: 0;
+  }
+
+  8% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(var(--celebration-drift, 0px), 105vh)
+      rotate(var(--celebration-rotate-to, 480deg));
+    opacity: 0.85;
+  }
+}
+
+/* ==========================================================================
+   GIFT MESSAGE EFFECT — wrapped present that unwraps on tap
+   ========================================================================== */
+
+/*
+ * Same specificity note as Fire/Love/Celebration above: kill DaisyUI's
+ * own chat-bubble background/border/tail so only our own layers paint
+ * anything. Unlike the others, the "skin" here isn't painted directly on
+ * this element — it's painted on .message-effect-gift-content once
+ * opened (see further down) — so this rule only ever needs to clear the
+ * DaisyUI defaults out of the way.
+ */
+.chat-bubble.message-effect-gift {
+  position: relative;
+  z-index: 1;
+  overflow: visible !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: #fff !important;
+}
+
+.chat-bubble.message-effect-gift::before,
+.chat-bubble.message-effect-gift::after {
+  content: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  display: none !important;
+}
+
+.message-effect-gift-host {
+  position: relative;
+  display: block;
+  min-width: 64px;
+  overflow: visible;
+  isolation: isolate;
+}
+
+/* Real message content. Always in the DOM (so the bubble sizes itself to
+   the actual text the same way an un-effected bubble would) but hidden
+   behind the wrap until opened. */
+.message-effect-gift-content {
+  position: relative;
+  z-index: 2;
+  display: block;
+  padding: 0.5rem 1rem;
+  border-radius: 14px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.message-effect-gift-host.is-opened .message-effect-gift-content {
+  animation: messageEffectGiftReveal 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  /* The "opened present" permanent skin — deep red/maroon fill with a
+     bright red outline, same family as the wrap's red but darker, so it
+     reads as "the same gift, now open" rather than an unrelated color. */
+  background: linear-gradient(160deg, #8c1f31 0%, #5c1420 100%);
+  border: 1.5px solid #ff4d5e;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 120, 140, 0.12),
+    0 4px 14px rgba(120, 10, 30, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+@keyframes messageEffectGiftReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* The wrapped present itself: a red satin box + white ribbon cross + bow,
+   sized to cover the content box exactly (host is sized by the content
+   span above, this just overlays it). */
+.message-effect-gift-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Was `hidden` — that clipped the bow-pop and confetti burst the
+     instant they moved past the box's own bounds, so the "opening"
+     animation was basically invisible (only stage that actually needs
+     rounding are the flat box + ribbons, handled by
+     .message-effect-gift-clip below). This layer now stays open so the
+     bow and confetti genuinely fly out over the chat, matching the
+     reference video instead of vanishing at the box edge. */
+  overflow: visible;
+  border-radius: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 3px 10px rgba(140, 10, 30, 0.45));
+}
+
+/* Rounded-corner clipping now lives on this inner layer alone, wrapping
+   just the box + ribbon cross, so the box still reads as a
+   rounded-corner present while the bow/sparkles/burst sitting outside it
+   are free to escape into the chat during the unwrap. */
+.message-effect-gift-clip {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.message-effect-gift-wrap.is-idle {
+  animation: messageEffectGiftIdle 2.6s ease-in-out infinite;
+}
+
+@keyframes messageEffectGiftIdle {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.025);
+  }
+}
+
+/*
+ * The falling clone: spawned via a React portal straight onto
+ * document.body at the exact screen rect the wrapped box occupied, sized
+ * with an inline top/left/width/height so it starts pixel-perfect over
+ * the real bubble (see GiftEffect in MessageEffects.jsx). Being a portal
+ * means it's a sibling of the whole app, not a descendant of
+ * ChatContainer's scrolling area — so it's never clipped by that
+ * container's overflow and can pop bigger than its own bubble (drawing
+ * over neighboring messages, the same way the reference video's box
+ * balloons up over the bubbles above/below it) and then keep falling
+ * straight down through the composer and off the bottom of the screen
+ * entirely, instead of stopping dead at the edge of its own bubble.
+ */
+.message-effect-gift-falling {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border-radius: 14px;
+  filter: drop-shadow(0 3px 10px rgba(140, 10, 30, 0.45));
+  /* Duration is also set inline (see GiftEffect) so JS and CSS always
+     agree on how long this takes; the value here is just the fallback. */
+  animation: messageEffectGiftPopFall 1500ms cubic-bezier(0.33, 0, 0.65, 1)
+    forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes messageEffectGiftPopFall {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+
+  /* Balloons up in place first — same beat as the reference video, where
+     the box visibly grows over the bubbles around it before it ever
+     starts to move. Leans opposite the direction it's about to fall
+     (--gift-pop-rotate), like it's winding up before the tumble. */
+  22% {
+    transform: translate(0, -2%) scale(1.32) rotate(var(--gift-pop-rotate, -4deg));
+    opacity: 1;
+  }
+
+  36% {
+    transform: translate(1%, 0) scale(1.16) rotate(0deg);
+    opacity: 1;
+  }
+
+  /* Then gravity takes over: a diagonal drop that travels far enough
+     (--gift-fall-distance, set inline per-message) to clear the bottom
+     of the screen no matter where in the chat it was tapped, tumbling
+     and shrinking away as it goes. Direction and spin
+     (--gift-drift-x / --gift-rotate-end) are randomized per tap so it
+     doesn't fall the same way every time. */
+  100% {
+    transform: translate(var(--gift-drift-x, 20vw), var(--gift-fall-distance, 100vh))
+      scale(0.45) rotate(var(--gift-rotate-end, 42deg));
+    opacity: 0;
+  }
+}
+
+.message-effect-gift-box {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.35), transparent 40%),
+    linear-gradient(160deg, #ff5164 0%, #e21f39 55%, #b8112b 100%);
+}
+
+/* Shine sweep that idles across the box to invite a tap, same spirit as
+   the fire's steady glow / love's pulse / celebration's twinkle — a
+   constant small motion rather than a static image. */
+.message-effect-gift-box::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  width: 40%;
+  left: -60%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+  transform: skewX(-18deg);
+  animation: messageEffectGiftShine 3.2s ease-in-out infinite;
+}
+
+@keyframes messageEffectGiftShine {
+  0% {
+    left: -60%;
+  }
+
+  55%,
+  100% {
+    left: 130%;
+  }
+}
+
+/* White satin ribbon, crossed in a plus over the box. */
+.message-effect-gift-ribbon-v,
+.message-effect-gift-ribbon-h {
+  position: absolute;
+  background: linear-gradient(180deg, #ffffff, #ffe1e8 60%, #ffc7d3);
+  box-shadow: 0 0 0 1px rgba(180, 30, 55, 0.18);
+  z-index: 1;
+}
+
+.message-effect-gift-ribbon-v {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 22%;
+  transform: translateX(-50%);
+}
+
+.message-effect-gift-ribbon-h {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 34%;
+  transform: translateY(-50%);
+}
+
+.message-effect-gift-falling .message-effect-gift-ribbon-v {
+  animation: messageEffectGiftRibbonV 620ms ease-in forwards;
+}
+
+.message-effect-gift-falling .message-effect-gift-ribbon-h {
+  animation: messageEffectGiftRibbonH 620ms ease-in forwards;
+}
+
+@keyframes messageEffectGiftRibbonV {
+  to {
+    transform: translateX(-50%) scaleY(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes messageEffectGiftRibbonH {
+  to {
+    transform: translateY(-50%) scaleX(0.2);
+    opacity: 0;
+  }
+}
+
+.message-effect-gift-bow {
+  position: relative;
+  z-index: 2;
+  width: 46%;
+  min-width: 34px;
+  max-width: 58px;
+  height: auto;
+  overflow: visible;
+  transform-origin: 50% 60%;
+  animation: messageEffectGiftBowIdle 2.6s ease-in-out infinite;
+}
+
+@keyframes messageEffectGiftBowIdle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-1px) rotate(-2deg);
+  }
+}
+
+.message-effect-gift-falling .message-effect-gift-bow {
+  animation: messageEffectGiftBowPop 620ms cubic-bezier(0.3, 0.9, 0.4, 1) forwards;
+}
+
+@keyframes messageEffectGiftBowPop {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-24px) rotate(-38deg) scale(0.7);
+    opacity: 0;
+  }
+}
+
+.message-effect-gift-sparkle {
+  position: absolute;
+  z-index: 2;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8f0 0%, rgba(255, 248, 240, 0) 70%);
+  animation-name: messageEffectGiftTwinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes messageEffectGiftTwinkle {
+  0%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+
+/* One-shot confetti-ish sparkle burst confined to the bubble, playing
+   only during the unwrap — same idea as the celebration burst pieces but
+   small, local to this bubble, and much shorter-lived. */
+.message-effect-gift-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.message-effect-gift-burst-piece {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 2px;
+  animation: messageEffectGiftBurstPop 560ms ease-out forwards;
+}
+
+@keyframes messageEffectGiftBurstPop {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%)
+      translate(var(--gift-tx, 0), var(--gift-ty, 0))
+      rotate(var(--gift-rotate, 0deg));
+    opacity: 0;
+  }
+}
+
+/* ==========================================================================
+   EFFECT PICKER — FIRE + LOVE
+   ========================================================================== */
+
+.message-effect-picker {
+  animation: messageEffectPickerIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: bottom center;
+}
+
+@keyframes messageEffectPickerIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.message-effect-picker-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: #1c1c22;
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.message-effect-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 54px;
+  min-height: 48px;
+  padding: 5px 4px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: #e8e8ec;
+  opacity: 0.78;
+  transition:
+    transform 150ms ease,
+    opacity 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.message-effect-option:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+  background: rgba(255, 210, 26, 0.14);
+}
+
+.message-effect-option:active {
+  transform: translateY(0) scale(0.94);
+}
+
+.message-effect-option.is-selected {
+  opacity: 1;
+  background: rgba(255, 210, 26, 0.16);
+  border-color: rgba(255, 210, 26, 0.32);
+}
+
+.message-effect-option-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  color: #ffd21a;
+  background: rgba(255, 210, 26, 0.16);
+}
+
+.message-effect-option-label {
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  opacity: 0.72;
+}
+
+.message-effect-option.effect-fire .message-effect-option-icon {
+  color: #ffd21a;
+  background: rgba(255, 210, 26, 0.12);
+}
+
+.message-effect-option.effect-love .message-effect-option-icon {
+  color: #ff3d78;
+  background: rgba(255, 61, 120, 0.12);
+}
+
+.message-effect-option.effect-celebration .message-effect-option-icon {
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.message-effect-option.effect-gift .message-effect-option-icon {
+  color: #ff3b5c;
+  background: rgba(255, 59, 92, 0.14);
+}
+
+/* ==========================================================================\n   MOBILE\n   ========================================================================== */
+
+@media (max-width: 600px) {
+  .message-effect-picker-inner {
+    gap: 2px;
+    padding: 5px;
+  }
+
+  .message-effect-option {
+    width: 49px;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .message-effect-picker {
+    animation: none !important;
+  }
+
+  .message-effect-love-heart {
+    animation: none !important;
+  }
+
+  .message-effect-celebration-confetti {
+    animation: none !important;
+  }
+
+  .message-effect-celebration-burst {
+    display: none !important;
+  }
+
+  .message-effect-gift-wrap.is-idle,
+  .message-effect-gift-box::after,
+  .message-effect-gift-bow,
+  .message-effect-gift-sparkle {
+    animation: none !important;
+  }
+
+  .message-effect-gift-host.is-opened .message-effect-gift-content {
+    animation: none !important;
+  }
+}
+
+/*
+ * Note: the flame flicker itself is driven by SMIL <animate> elements
+ * inside the traced SVG (see MessageEffects.jsx), not CSS animations, so it
+ * is skipped at the source via a `prefers-reduced-motion` check in that
+ * component rather than here. The love pulse instead uses this CSS
+ * @keyframes (see above), gated by the same reduced-motion state which is
+ * also applied inline in MessageEffects.jsx by zeroing the animation
+ * duration/delay — both belt-and-suspenders for the same preference.
+ */

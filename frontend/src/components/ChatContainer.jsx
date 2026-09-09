@@ -2,12 +2,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Image as ImageIcon } from "lucide-react";
 import MessageInput from "./MessageInput";
 import MessageBubble from "./MessageBubble";
+import { isBurstEffect, CelebrationBurst } from "./MessageEffects";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import ChatWallpaperPicker from "./ChatWallpaperPicker";
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { socket } from "../lib/socket";
 import { useCachedWallpaperUrl } from "../lib/useCachedWallpaperUrl";
+
+// Minimum gap enforced between two runs of the chat-wide celebration
+// burst, whether triggered by a new message or a re-tap on the bubble —
+// stops a flurry of taps from restarting the animation every few hundred
+// ms, which looks stuttery instead of "replaying".
+const CELEBRATION_MIN_GAP_MS = 2000;
 
 const ChatContainer = () => {
   const {
@@ -26,6 +33,27 @@ const ChatContainer = () => {
   const loadingOlderRef = useRef(false);
   const [fullImage, setFullImage] = useState(null);
   const [wallpaperPickerOpen, setWallpaperPickerOpen] = useState(false);
+
+  // ================= CELEBRATION BURST (chat-wide, one-off) =================
+  // The bubble's own confetti skin (see MessageBubble/MessageEffects) is
+  // permanent for that message. This is the separate few-seconds-and-gone
+  // overlay that rains confetti over the whole chat area right after a
+  // celebration-effect message shows up — for the sender the moment they
+  // send it, and for the other side the moment it arrives over the socket.
+  // `key` forces a fresh remount (fresh random confetti + fresh timer) if
+  // a second celebration message lands while one is still playing.
+  const [celebrationActive, setCelebrationActive] = useState(false);
+  const [celebrationRunId, setCelebrationRunId] = useState(0);
+  const celebrationSeenRef = useRef(new Set());
+  const lastCelebrationAtRef = useRef(0);
+
+  const triggerCelebration = useCallback(() => {
+    const now = Date.now();
+    if (now - lastCelebrationAtRef.current < CELEBRATION_MIN_GAP_MS) return;
+    lastCelebrationAtRef.current = now;
+    setCelebrationRunId((id) => id + 1);
+    setCelebrationActive(true);
+  }, []);
 
   // Cache/decode is keyed off the SAVED url, not the active-gated one —
   // this runs as soon as a wallpaper is saved (including on page load,
@@ -63,6 +91,36 @@ const ChatContainer = () => {
       }
     });
   }, [messages, myRole]);
+
+  // Fire the chat-wide confetti burst once per celebration message — the
+  // moment it first shows up in `messages`, whether that's this device
+  // sending it or the other side's message arriving over the socket.
+  // Guarded by `celebrationSeenRef` so it never replays on re-renders, and
+  // by the createdAt check so scrolling old history back into view (or a
+  // fresh page load) doesn't replay bursts for celebrations sent long ago.
+  useEffect(() => {
+    const now = Date.now();
+
+    messages.forEach((m) => {
+      if (celebrationSeenRef.current.has(m._id)) return;
+      celebrationSeenRef.current.add(m._id);
+
+      if (!isBurstEffect(m.effect)) return;
+
+      const createdAt = m.createdAt ? new Date(m.createdAt).getTime() : now;
+      if (now - createdAt < 8000) {
+        triggerCelebration();
+      }
+    });
+  }, [messages, triggerCelebration]);
+
+  // Tapping a celebration bubble replays the same chat-wide burst —
+  // bumping the run id remounts CelebrationBurst even if one is already
+  // mid-flight, so a re-tap always restarts it with fresh confetti,
+  // subject to the same minimum-gap cooldown as above.
+  const handleCelebrationReplay = useCallback(() => {
+    triggerCelebration();
+  }, [triggerCelebration]);
 
   // no forced auto-scroll — newest messages are already at the top
   // (array is newest-first), so the natural default scroll position
@@ -149,7 +207,14 @@ const ChatContainer = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex-1 flex flex-col h-full relative">
+      {celebrationActive && (
+        <CelebrationBurst
+          key={celebrationRunId}
+          onDone={() => setCelebrationActive(false)}
+        />
+      )}
+
       {/* Wallpaper control — its own thin strip in the gap above the
           message list (below the navbar), right-aligned. Tapping it
           fans out small round icons to its left instead of opening a
@@ -200,6 +265,7 @@ const ChatContainer = () => {
             onDelete={deleteMessage}
             onImageClick={handleImageClick}
             onSwipeReply={handleSwipeReply}
+            onCelebrationReplay={handleCelebrationReplay}
           />
         ))}
 

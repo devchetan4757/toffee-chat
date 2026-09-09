@@ -1,9 +1,10 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
-import { Image, Send, Mic, Square, X, Smile } from "lucide-react";
+import { Image, Send, Mic, Square, X, Smile, Sparkles, Flame, Heart, PartyPopper, Gift } from "lucide-react";
 import toast from "react-hot-toast";
 import StickerPicker from "./StickerPicker";
 import { axiosInstance } from "../lib/axios";
+import { EFFECT_OPTIONS } from "./MessageEffects";
 
 const blobToBase64 = (blob) =>
   new Promise((resolve, reject) => {
@@ -30,6 +31,13 @@ const DRAG_THRESHOLD = 10;
 const clampScale = (s) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
+const EFFECT_ICONS = {
+  fire: Flame,
+  love: Heart,
+  celebration: PartyPopper,
+  gift: Gift,
+};
+
 const MessageInput = () => {
   const { sendMessage, replyTo, clearReplyTo, sendTyping } = useChatStore();
 
@@ -39,6 +47,12 @@ const MessageInput = () => {
   const [audioBlob, setAudioBlob] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
+
+  // ================= SEND EFFECTS (Instagram-style) =================
+  // Picked effect applies to the next message only — cleared right
+  // after it's sent, same as Instagram's picker.
+  const [selectedEffect, setSelectedEffect] = useState(null);
+  const [showEffectPicker, setShowEffectPicker] = useState(false);
 
   // ================= CLOUDINARY STICKERS =================
   const [stickers, setStickers] = useState([]);
@@ -168,11 +182,16 @@ const MessageInput = () => {
       setAudioBlob(null);
       clearReplyTo();
 
+      const effectToSend = selectedEffect;
+      setSelectedEffect(null);
+      setShowEffectPicker(false);
+
       await sendMessage({
         text: text.trim(),
         image: imageUrl || null,
         stickers: [],
         audio: audioUrl,
+        effect: effectToSend,
         replyTo: replyTo
           ? {
               _id: replyTo._id,
@@ -534,15 +553,42 @@ const MessageInput = () => {
             transition: "opacity 120ms ease-out",
           }}
         >
-          {/* MIC */}
-          <button
-            type="button"
-            onClick={() => {
-              isRecording ? stopRecording() : startRecording();
-            }}
-          >
-            {isRecording ? <Square size={18} /> : <Mic size={18} />}
-          </button>
+          {/* MIC / SEND EFFECT TOGGLE — the mic only makes sense before
+              you've typed anything; once there's text, that slot becomes
+              the effect picker instead of stacking a second icon on the
+              bar next to Send. */}
+          {text.trim().length === 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                isRecording ? stopRecording() : startRecording();
+              }}
+            >
+              {isRecording ? <Square size={18} /> : <Mic size={18} />}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowEffectPicker((p) => !p)}
+              className={`relative ${selectedEffect ? "text-primary" : ""}`}
+              title="Send effect"
+            >
+              {selectedEffect ? (
+                (() => {
+                  const option = EFFECT_OPTIONS.find(
+                    (o) => o.id === selectedEffect
+                  );
+                  const Icon = option
+                    ? EFFECT_ICONS[option.icon]
+                    : Sparkles;
+
+                  return <Icon size={18} strokeWidth={2} />;
+                })()
+              ) : (
+                <Sparkles size={18} />
+              )}
+            </button>
+          )}
 
           {/* TEXT */}
           <textarea
@@ -600,6 +646,44 @@ const MessageInput = () => {
           <button type="submit">
             <Send size={18} />
           </button>
+
+          {/* SEND EFFECT MENU */}
+          {showEffectPicker && (
+            <div className="message-effect-picker absolute bottom-16 left-1/2 z-20">
+              <div className="message-effect-picker-inner">
+                {EFFECT_OPTIONS.map((opt) => {
+                  const Icon = EFFECT_ICONS[opt.icon];
+
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      aria-label={opt.label}
+                      title={opt.label}
+                      onClick={() => {
+                        setSelectedEffect((current) =>
+                          current === opt.id ? null : opt.id
+                        );
+                        setShowEffectPicker(false);
+                      }}
+                      className={`message-effect-option ${
+                        selectedEffect === opt.id
+                          ? `is-selected effect-${opt.id}`
+                          : ""
+                      }`}
+                    >
+                      <span className="message-effect-option-icon">
+                        <Icon size={17} strokeWidth={2} />
+                      </span>
+                      <span className="message-effect-option-label">
+                        {opt.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* STICKER PICKER */}
           {showStickerPicker && (
