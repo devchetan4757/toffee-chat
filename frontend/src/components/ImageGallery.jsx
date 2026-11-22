@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { axiosInstance } from "../lib/axios";
 import { toast } from "react-hot-toast";
+import VideoPlayer from "./VideoPlayer";
 
-const ImageGallery = () => {
+const ImageGallery = ({ section = "all" }) => {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,12 +26,17 @@ const ImageGallery = () => {
     fetchImages();
   }, []);
 
+  useEffect(() => {
+    setCurrentIndex(null);
+    setActiveIndex(null);
+  }, [section]);
+
   // 🗑️ DELETE
-  const handleDelete = async (public_id) => {
-    if (!confirm("Delete this image?")) return;
+  const handleDelete = async (public_id, type) => {
+    if (!confirm(`Delete this ${type}?`)) return;
 
     try {
-      await axiosInstance.delete(`/gallery?id=${public_id}`);
+      await axiosInstance.delete(`/gallery?id=${public_id}&type=${type}`);
 
       setImages((prev) =>
         prev.filter((img) => img.public_id !== public_id)
@@ -46,13 +52,13 @@ const ImageGallery = () => {
   // NAVIGATION
   const nextImage = () => {
     setCurrentIndex((prev) =>
-      prev === images.length - 1 ? 0 : prev + 1
+      prev === visibleMedia.length - 1 ? 0 : prev + 1
     );
   };
 
   const prevImage = () => {
     setCurrentIndex((prev) =>
-      prev === 0 ? images.length - 1 : prev - 1
+      prev === 0 ? visibleMedia.length - 1 : prev - 1
     );
   };
 
@@ -65,27 +71,50 @@ const ImageGallery = () => {
     );
   }
 
+  const visibleMedia =
+    section === "all"
+      ? images
+      : images.filter((item) => item.type === section);
+
   // 📭 EMPTY
-  if (!images.length) {
-    return <div className="text-center mt-10 opacity-70">No images yet</div>;
+  if (!visibleMedia.length) {
+    return (
+      <div className="text-center mt-10 opacity-70">
+        {section === "image"
+          ? "No photos yet"
+          : section === "video"
+            ? "No videos yet"
+            : "No media yet"}
+      </div>
+    );
   }
 
   return (
     <>
       {/* GRID */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-start">
 
-        {images.map((img, i) => (
+        {visibleMedia.map((img, i) => (
           <div
             key={i}
-            className="relative rounded-xl overflow-hidden"
+            className="relative rounded-xl overflow-hidden bg-black/5 border border-base-300"
             onClick={() => setActiveIndex(i)} // 👈 tap to show options
           >
-            <img
-              src={img.url}
-              alt=""
-              className="w-full h-40 object-cover"
-            />
+            {img.type === "video" ? (
+              <VideoPlayer
+                src={img.url}
+                fit="cover"
+                compact
+                naturalRatio
+                className="min-h-[160px] w-full"
+              />
+            ) : (
+              <img
+                src={img.url}
+                alt=""
+                className="w-full h-auto max-h-64 object-contain"
+              />
+            )}
 
             {/* ACTION BUTTONS (mobile style) */}
             {activeIndex === i && (
@@ -107,7 +136,7 @@ const ImageGallery = () => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDelete(img.public_id);
+                    handleDelete(img.public_id, img.type);
                   }}
                   className="bg-red-500 text-white px-4 py-1 rounded-lg text-sm"
                 >
@@ -152,12 +181,19 @@ const ImageGallery = () => {
             ‹
           </button>
 
-          {/* IMAGE */}
-          <img
-            src={images[currentIndex].url}
-            alt=""
-            className="max-h-[90%] max-w-[90%] rounded-lg"
-          />
+          {/* MEDIA */}
+          {visibleMedia[currentIndex].type === "video" ? (
+            <VideoPlayer
+              src={visibleMedia[currentIndex].url}
+              className="h-[85vh] w-[90vw] max-w-5xl rounded-xl"
+            />
+          ) : (
+            <img
+              src={visibleMedia[currentIndex].url}
+              alt=""
+              className="max-h-[90%] max-w-[90%] rounded-lg"
+            />
+          )}
 
           {/* NEXT */}
           <button

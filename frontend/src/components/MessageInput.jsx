@@ -3,6 +3,7 @@ import { useChatStore } from "../store/useChatStore";
 import { Image, Send, Mic, Square, X, Smile, Sparkles, Flame, Heart, PartyPopper, Gift } from "lucide-react";
 import toast from "react-hot-toast";
 import StickerPicker from "./StickerPicker";
+import VideoPlayer from "./VideoPlayer";
 import { axiosInstance } from "../lib/axios";
 import { EFFECT_OPTIONS } from "./MessageEffects";
 
@@ -44,6 +45,8 @@ const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
   const [audioBlob, setAudioBlob] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
@@ -111,8 +114,14 @@ const MessageInput = () => {
   // ================= IMAGE =================
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) {
-      toast.error("Select a valid image");
+    if (!file) return;
+
+    if (file.type.startsWith("video/")) {
+      handleVideoChange(e);
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Select a valid image or video");
       return;
     }
 
@@ -120,6 +129,25 @@ const MessageInput = () => {
 
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  // ================= VIDEO =================
+  const handleVideoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("video/")) {
+      toast.error("Select a valid video");
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Video must be smaller than 50 MB");
+      return;
+    }
+
+    setVideoFile(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => setVideoPreview(reader.result);
     reader.readAsDataURL(file);
   };
 
@@ -155,11 +183,12 @@ const MessageInput = () => {
   // ================= SEND MESSAGE =================
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!text.trim() && !imagePreview && !audioBlob) return;
+    if (!text.trim() && !imagePreview && !videoPreview && !audioBlob) return;
 
     try {
       let imageUrl = null;
       let audioUrl = null;
+      let videoUrl = null;
 
       if (imagePreview && !isStickerImage(imagePreview)) {
         const imgRes = await axiosInstance.post("/upload/image", {
@@ -176,9 +205,18 @@ const MessageInput = () => {
         audioUrl = audioRes.data.url;
       }
 
+      if (videoPreview) {
+        const videoRes = await axiosInstance.post("/upload/video", {
+          video: videoPreview,
+        });
+        videoUrl = videoRes.data.url;
+      }
+
       setText("");
       setImagePreview(null);
       setImageFile(null);
+      setVideoPreview(null);
+      setVideoFile(null);
       setAudioBlob(null);
       clearReplyTo();
 
@@ -189,6 +227,7 @@ const MessageInput = () => {
       await sendMessage({
         text: text.trim(),
         image: imageUrl || null,
+        video: videoUrl,
         stickers: [],
         audio: audioUrl,
         effect: effectToSend,
@@ -198,6 +237,7 @@ const MessageInput = () => {
               text: replyTo.text || null,
               image: replyTo.image || null,
               audio: replyTo.audio || null,
+              video: replyTo.video || null,
               stickers: replyTo.stickers || null,
             }
           : null,
@@ -226,6 +266,7 @@ const MessageInput = () => {
               text: replyTo.text || null,
               image: replyTo.image || null,
               audio: replyTo.audio || null,
+              video: replyTo.video || null,
               stickers: replyTo.stickers || null,
             }
           : null,
@@ -543,6 +584,28 @@ const MessageInput = () => {
           </div>
         )}
 
+        {/* ================= VIDEO PREVIEW ================= */}
+        {videoPreview && (
+          <div className="flex items-center gap-2 mb-1">
+            <VideoPlayer
+              src={videoPreview}
+              fit="cover"
+              compact
+              className="h-20 w-24 rounded-md"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setVideoPreview(null);
+                setVideoFile(null);
+              }}
+              className="text-red-500 text-sm"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
         {/* ================= FORM ================= */}
         <form
           onSubmit={handleSendMessage}
@@ -613,7 +676,7 @@ const MessageInput = () => {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             hidden
             onChange={handleImageChange}
           />
@@ -623,6 +686,7 @@ const MessageInput = () => {
             onClick={() => {
               fileInputRef.current?.click();
             }}
+            title="Add photo or video"
           >
             <Image size={18} />
           </button>

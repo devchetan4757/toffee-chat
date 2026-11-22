@@ -40,6 +40,7 @@ export const getMessages = async (req, res) => {
  *   text,
  *   image,
  *   audio,
+ *   video,
  *   stickers,
  *   replyTo,
  *   effect
@@ -56,6 +57,7 @@ export const sendMessage = async (req, res) => {
       text,
       image,
       audio,
+      video,
       stickers,
       replyTo,
       effect,
@@ -115,6 +117,7 @@ export const sendMessage = async (req, res) => {
 
     let imageUrl = null;
     let audioUrl = null;
+    let videoUrl = null;
 
     // ================= IMAGE =================
 
@@ -161,6 +164,25 @@ export const sendMessage = async (req, res) => {
       }
     }
 
+    // ================= VIDEO =================
+
+    if (video) {
+      if (video.startsWith("data:")) {
+        const uploaded =
+          await cloudinary.uploader.upload(
+            video,
+            {
+              folder: "chat_videos",
+              resource_type: "video",
+            }
+          );
+
+        videoUrl = uploaded.secure_url;
+      } else {
+        videoUrl = video;
+      }
+    }
+
     // ================= STICKERS =================
 
     const safeStickers = Array.isArray(stickers)
@@ -177,12 +199,13 @@ export const sendMessage = async (req, res) => {
      * An effect by itself is not message content.
      *
      * The message must contain text, image, audio,
-     * or at least one sticker.
+     * video, or at least one sticker.
      */
     if (
       !cleanText &&
       !imageUrl &&
       !audioUrl &&
+      !videoUrl &&
       safeStickers.length === 0
     ) {
       return res.status(400).json({
@@ -198,6 +221,7 @@ export const sendMessage = async (req, res) => {
           text: replyTo.text || null,
           image: replyTo.image || null,
           audio: replyTo.audio || null,
+          video: replyTo.video || null,
           stickers: Array.isArray(
             replyTo.stickers
           )
@@ -214,6 +238,8 @@ export const sendMessage = async (req, res) => {
       image: imageUrl,
 
       audio: audioUrl,
+
+      video: videoUrl,
 
       stickers: safeStickers,
 

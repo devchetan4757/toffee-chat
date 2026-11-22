@@ -145,9 +145,14 @@ const otherOn =
                         Home
                       </Link>
 
-                      <Link to="/gallery" onClick={() => setOpen(false)} className="flex gap-2 p-2 hover:bg-base-200">
+                      <Link to="/gallery?section=photo" onClick={() => setOpen(false)} className="flex gap-2 p-2 hover:bg-base-200">
                         <Image className="w-4 h-4" />
-                        Media
+                        Photos
+                      </Link>
+
+                      <Link to="/gallery?section=video" onClick={() => setOpen(false)} className="flex gap-2 p-2 hover:bg-base-200">
+                        <span aria-hidden="true">🎬</span>
+                        Videos
                       </Link>
 
                       <Link to="/music" className="flex gap-2 p-2 hover:bg-base-200">

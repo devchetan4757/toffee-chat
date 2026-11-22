@@ -1,0 +1,1578 @@
+/* ---------- tokens ---------- */
+.mojang-login {
+  --sky-top: #6fb4f2;
+  --sky-mid: #9fd0f8;
+  --sky-low: #c9e7fb;
+  --grass-a: #6cc644;
+  --grass-b: #5fb83a;
+  --grass-edge: #3f8a2f;
+  --dirt-a: #8b5a35;
+  --dirt-b: #7d4f2d;
+  --water-a: #2d5fd0;
+  --water-b: #3a6fe0;
+  --ui-green: #3c8527;
+  --ui-green-dark: #1f4d14;
+  --ui-stone: #d0c9c6;
+  --ui-stone-dark: #8c8582;
+  --ui-paper: #eee9e8;
+  --ink: #1e1d1b;
+  --ground-h: 34%;
+  --pixel: "Silkscreen", "Press Start 2P", ui-monospace, monospace;
+  --body: "Noto Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: var(--sky-mid);
+  font-family: var(--body);
+  color: var(--ink);
+  isolation: isolate;
+}
+
+/* ---------- scene layers ---------- */
+.mojang-sky,
+.mojang-cloud,
+.mojang-back-trees,
+.mojang-mid-trees,
+.mojang-hill,
+.mojang-ground,
+.mojang-river,
+.mojang-house,
+.mojang-tree {
+  position: absolute;
+  pointer-events: none;
+}
+
+.mojang-sky {
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    180deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 55%,
+    var(--sky-low) 100%
+  );
+}
+
+/* blocky clouds */
+.mojang-cloud {
+  z-index: 1;
+  background: #fff;
+  opacity: 0.88;
+  clip-path: polygon(
+    0 60%, 8% 60%, 8% 30%, 25% 30%, 25% 0, 70% 0, 70% 30%,
+    88% 30%, 88% 60%, 100% 60%, 100% 100%, 0 100%
+  );
+  animation: mojang-drift 48s ease-in-out infinite alternate;
+}
+.mojang-cloud-a { top: 7%;  left: 4%;   width: 340px; height: 72px; }
+.mojang-cloud-b { top: 20%; left: 62%;  width: 420px; height: 84px; animation-duration: 62s; }
+.mojang-cloud-c { top: 3%;  left: 36%;  width: 220px; height: 52px; animation-duration: 54s; }
+
+@keyframes mojang-drift {
+  from { transform: translateX(-36px); }
+  to   { transform: translateX(36px); }
+}
+
+/* distant pixel mountain */
+.mojang-hill {
+  z-index: 2;
+  left: 50%;
+  bottom: calc(var(--ground-h) - 2%);
+  width: max(240px, 24vw);
+  height: 36vh;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, #d9c9a3 0%, #b9b79a 35%, #8fa7b8 70%, #7f9fc4 100%);
+  clip-path: polygon(
+    42% 0, 58% 0, 58% 14%, 66% 14%, 66% 28%, 74% 28%, 74% 44%,
+    84% 44%, 84% 60%, 94% 60%, 94% 78%, 100% 78%, 100% 100%,
+    0 100%, 0 78%, 6% 78%, 6% 60%, 16% 60%, 16% 44%, 26% 44%,
+    26% 28%, 34% 28%, 34% 14%, 42% 14%
+  );
+  opacity: 0.85;
+}
+
+/* hazy far treeline */
+.mojang-back-trees {
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--ground-h) - 3%);
+  height: 20%;
+  background: #7fb573;
+  clip-path: polygon(
+    0 55%, 5% 55%, 5% 20%, 11% 20%, 11% 45%, 17% 45%, 17% 5%, 24% 5%,
+    24% 35%, 31% 35%, 31% 60%, 38% 60%, 38% 25%, 45% 25%, 45% 0,
+    52% 0, 52% 40%, 60% 40%, 60% 15%, 67% 15%, 67% 50%, 74% 50%,
+    74% 10%, 81% 10%, 81% 38%, 88% 38%, 88% 22%, 95% 22%, 95% 58%,
+    100% 58%, 100% 100%, 0 100%
+  );
+}
+
+/* nearer treeline */
+.mojang-mid-trees {
+  z-index: 4;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--ground-h) - 3%);
+  height: 15%;
+  background: linear-gradient(180deg, #5aa845, #3f8a2f);
+  clip-path: polygon(
+    0 60%, 4% 60%, 4% 30%, 9% 30%, 9% 0, 15% 0, 15% 40%, 21% 40%,
+    21% 15%, 28% 15%, 28% 50%, 34% 50%, 34% 25%, 41% 25%, 41% 0,
+    47% 0, 47% 35%, 55% 35%, 55% 10%, 62% 10%, 62% 45%, 69% 45%,
+    69% 20%, 76% 20%, 76% 0, 83% 0, 83% 40%, 90% 40%, 90% 15%,
+    96% 15%, 96% 55%, 100% 55%, 100% 100%, 0 100%
+  );
+}
+
+/* grass block ground */
+.mojang-ground {
+  z-index: 5;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--ground-h);
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0 32px,
+      var(--grass-edge) 32px 40px,
+      transparent 40px
+    ),
+    conic-gradient(
+      var(--grass-a) 25%, var(--grass-b) 0 50%,
+      var(--grass-a) 0 75%, var(--grass-b) 0
+    )
+      0 0 / 32px 32px no-repeat repeat-x,
+    conic-gradient(
+      var(--dirt-a) 25%, var(--dirt-b) 0 50%,
+      var(--dirt-a) 0 75%, var(--dirt-b) 0
+    )
+      0 0 / 32px 32px;
+  background-repeat: repeat-x, repeat-x, repeat;
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+}
+.mojang-ground::before {
+  /* grass cap that sits over the dirt */
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 32px;
+  background: conic-gradient(
+      var(--grass-a) 25%, var(--grass-b) 0 50%,
+      var(--grass-a) 0 75%, var(--grass-b) 0
+    )
+    0 0 / 32px 32px;
+  box-shadow: 0 8px 0 var(--grass-edge);
+}
+
+/* river cut into the right side */
+.mojang-river {
+  z-index: 6;
+  right: 0;
+  bottom: 4%;
+  width: 46%;
+  height: 22%;
+  background: conic-gradient(
+      var(--water-a) 25%, var(--water-b) 0 50%,
+      var(--water-a) 0 75%, var(--water-b) 0
+    )
+    0 0 / 24px 24px;
+  clip-path: polygon(
+    0 55%, 8% 55%, 8% 30%, 22% 30%, 22% 12%, 45% 12%, 45% 0,
+    100% 0, 100% 100%, 0 100%
+  );
+}
+
+/* little wooden house */
+.mojang-house {
+  z-index: 7;
+  right: 2.5%;
+  bottom: 30%;
+  width: 150px;
+  height: 108px;
+  background: repeating-linear-gradient(
+    180deg,
+    #a87340 0 12px,
+    #8f5f33 12px 14px
+  );
+  border: 3px solid #4a2c12;
+  box-shadow: inset -10px 0 0 rgba(0, 0, 0, 0.12);
+}
+.mojang-house-roof {
+  position: absolute;
+  left: -16px;
+  right: -16px;
+  top: -58px;
+  height: 58px;
+  background: #6b3f1d;
+  clip-path: polygon(
+    0 100%, 12% 100%, 12% 66%, 25% 66%, 25% 33%, 37% 33%, 37% 0,
+    63% 0, 63% 33%, 75% 33%, 75% 66%, 88% 66%, 88% 100%
+  );
+}
+.mojang-house-window {
+  position: absolute;
+  top: 28px;
+  left: 24px;
+  width: 36px;
+  height: 36px;
+  background:
+    linear-gradient(#4a2c12, #4a2c12) center / 4px 100% no-repeat,
+    linear-gradient(#4a2c12, #4a2c12) center / 100% 4px no-repeat,
+    #9fd8ff;
+  border: 4px solid #4a2c12;
+}
+
+/* birch trees: big and tall, like the reference */
+.mojang-house { display: none; }
+
+.mojang-hill {
+  left: 45%;
+  bottom: 46%;
+  width: max(220px, 19vw);
+  height: 38vh;
+  transform: none;
+  opacity: 0.9;
+}
+
+.mojang-tree {
+  z-index: 8;
+  top: 0;
+  bottom: 16%;
+  width: 56px;
+}
+.mojang-tree-left  { left: 6%; }
+.mojang-tree-right { right: 7%; }
+
+.mojang-trunk {
+  position: absolute;
+  inset: 0;
+  background: #ebebe3;
+  box-shadow: inset -8px 0 0 rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+.mojang-trunk::before,
+.mojang-trunk::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.mojang-trunk::before {
+  left: 6px;
+  width: 22px;
+  background: repeating-linear-gradient(180deg, transparent 0 14px, #1f1f1f 14px 20px, transparent 20px 58px);
+}
+.mojang-trunk::after {
+  left: 30px;
+  width: 18px;
+  background: repeating-linear-gradient(180deg, transparent 0 42px, #1f1f1f 42px 48px, transparent 48px 58px);
+}
+
+/* second birch trunk beside the left tree */
+.mojang-tree-left::after {
+  content: "";
+  position: absolute;
+  top: 8vh;
+  bottom: 0;
+  left: 130px;
+  width: 56px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 14px, #1f1f1f 14px 20px, transparent 20px 58px) 6px 0 / 22px 100% no-repeat,
+    repeating-linear-gradient(180deg, transparent 0 42px, #1f1f1f 42px 48px, transparent 48px 58px) 30px 0 / 18px 100% no-repeat,
+    #ebebe3;
+  box-shadow: inset -8px 0 0 rgba(0, 0, 0, 0.08);
+}
+
+.mojang-leaves {
+  position: absolute;
+  background:
+    conic-gradient(rgba(255,255,255,.08) 25%, transparent 0 50%, rgba(0,0,0,.07) 0 75%, transparent 0) 0 0 / 40px 40px,
+    linear-gradient(180deg, #4aa032 0%, #2f7d22 100%);
+  clip-path: polygon(
+    0 0, 100% 0, 100% 40%, 88% 40%, 88% 62%, 74% 62%, 74% 100%,
+    38% 100%, 38% 78%, 18% 78%, 18% 55%, 0 55%
+  );
+}
+.mojang-tree-left .mojang-leaves {
+  top: -2vh;
+  left: -10vw;
+  width: 36vw;
+  height: 34vh;
+}
+.mojang-tree-right .mojang-leaves {
+  top: 6vh;
+  right: -4vw;
+  left: auto;
+  width: 34vw;
+  height: 38vh;
+  background:
+    conic-gradient(rgba(255,255,255,.1) 25%, transparent 0 50%, rgba(0,0,0,.05) 0 75%, transparent 0) 0 0 / 40px 40px,
+    linear-gradient(180deg, #86dc58 0%, #5fb83a 100%);
+  clip-path: polygon(
+    20% 0, 70% 0, 70% 22%, 100% 22%, 100% 60%, 82% 60%, 82% 100%,
+    24% 100%, 24% 70%, 0 70%, 0 30%, 20% 30%
+  );
+}
+
+/* ---------- dialog (matches reference: ~40% of viewport, centered) ---------- */
+.mojang-dialog {
+  position: relative;
+  z-index: 20;
+  width: clamp(520px, 42vw, 640px);
+  max-width: 100%;
+  margin-top: 3vh;
+  background: var(--ui-paper);
+  box-shadow: none;
+}
+
+.mojang-dialog-title {
+  padding: 14px 16px 10px;
+  background: var(--ui-stone);
+  border-bottom: 2px solid #b6aeaa;
+  text-align: center;
+  font-family: var(--pixel);
+  font-weight: 700;
+  font-size: clamp(22px, 2.6vw, 34px);
+  line-height: 1.1;
+  color: #141414;
+}
+
+.mojang-dialog-body { display: grid; grid-template-columns: 1fr 1fr; }
+
+.mojang-left {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px 20px;
+  background: #fff;
+}
+
+.mojang-greeting {
+  margin: 0;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mojang-password-wrap { position: relative; }
+.mojang-lock {
+  position: absolute; left: 12px; top: 50%;
+  width: 16px; height: 16px; transform: translateY(-50%);
+  color: #5a5754; pointer-events: none;
+}
+.mojang-password {
+  width: 100%;
+  height: 42px;
+  padding: 0 44px 0 38px;
+  background: #fff;
+  border: 2px solid #3a3836;
+  border-radius: 0;
+  box-shadow: inset 0 2px 0 rgba(0,0,0,.12);
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .12em;
+  color: var(--ink);
+}
+.mojang-password::placeholder { color: #6f6b68; }
+.mojang-password:focus-visible { outline: 3px solid var(--ui-green); outline-offset: 2px; }
+.mojang-eye {
+  position: absolute; right: 4px; top: 50%;
+  display: grid; place-items: center;
+  width: 34px; height: 34px; transform: translateY(-50%);
+  background: transparent; border: 0; color: #4a4745; cursor: pointer;
+}
+.mojang-eye svg { width: 18px; height: 18px; }
+.mojang-eye:hover { color: var(--ui-green); }
+.mojang-eye:focus-visible { outline: 3px solid var(--ui-green); outline-offset: -2px; }
+
+/* green button: bold sans, wide tracking, dark outline, light top edge */
+.mojang-primary {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  height: 42px;
+  background: #3f8226;
+  border: 2px solid #1c3d12;
+  border-radius: 0;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.3), inset 0 -3px 0 rgba(0,0,0,.25);
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: .12em;
+  color: #fff;
+  cursor: pointer;
+}
+.mojang-primary:hover:not(:disabled) { background: #4a9530; }
+.mojang-primary:active:not(:disabled) { transform: translateY(1px); }
+.mojang-primary:focus-visible { outline: 3px solid #111; outline-offset: 3px; }
+.mojang-primary:disabled {
+  background: #8d928a; border-color: #5b5f58; color: #e6e6e2; cursor: not-allowed;
+}
+.mojang-spinner { width: 18px; height: 18px; animation: mojang-spin .9s steps(8) infinite; }
+@keyframes mojang-spin { to { transform: rotate(360deg); } }
+
+.mojang-joke {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  margin: 4px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid #e3dedc;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #2a2826;
+}
+
+.mojang-right {
+  padding: 18px 20px 20px;
+  background: var(--ui-paper);
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+.mojang-right p { margin: 0; }
+.mojang-right ul {
+  display: grid; gap: 10px;
+  margin: 18px 0 0; padding: 0; list-style: none;
+  font-size: 14px;
+}
+.mojang-right li { position: relative; padding-left: 30px; }
+.mojang-right li::before {
+  content: "";
+  position: absolute; left: 6px; top: 3px;
+  width: 6px; height: 11px;
+  border: solid var(--ui-green); border-width: 0 2px 2px 0;
+  transform: rotate(40deg);
+}
+
+/* ---------- optional: use a real background image instead of the drawn scene ----------
+   1) save your image as public/login-bg.jpg
+   2) add the class "has-bg" to <main> in LoginPage.jsx */
+.mojang-login.has-bg {
+  background: url("../../public/login-bg.jpg") center / cover no-repeat, var(--sky-mid);
+}
+.mojang-login.has-bg > div { display: none; }
+
+/* ---------- responsive ---------- */
+@media (max-width: 640px) {
+  .mojang-login { --ground-h: 26%; align-items: start; }
+  .mojang-dialog { margin-top: 6vh; width: 100%; }
+  .mojang-dialog-body { grid-template-columns: 1fr; }
+  .mojang-tree-right, .mojang-tree-left::after { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mojang-cloud, .mojang-spinner { animation: none; }
+}
+
+/* Final reference-image treatment: the provided screenshot is the backdrop,
+   while this dialog remains functional and responsive on top of it. */
+.mojang-login.has-bg {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px 14px;
+  image-rendering: auto;
+  background:
+    linear-gradient(rgba(21, 65, 78, 0.04), rgba(21, 65, 78, 0.04)),
+    url("/login-bg.jpg") center 52% / cover no-repeat;
+  background-color: #74bdd5;
+}
+
+.mojang-login.has-bg > div {
+  display: none;
+}
+
+.mojang-login.has-bg .mojang-dialog {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+  width: min(620px, calc(100vw - 28px));
+  margin: 4vh 0 0;
+  background: #f7f6f3;
+  border: 2px solid rgba(74, 69, 58, 0.82);
+  box-shadow:
+    8px 9px 0 rgba(46, 58, 42, 0.38),
+    0 18px 38px rgba(24, 33, 24, 0.28);
+}
+
+.mojang-login.has-bg .mojang-dialog-title {
+  height: 52px;
+  padding: 0;
+  border-bottom: 1px solid #c9c4ba;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0)),
+    #d8d2c5;
+  font-family: "Press Start 2P", ui-monospace, monospace;
+  font-size: 17px;
+  line-height: 52px;
+  letter-spacing: -0.06em;
+  text-shadow: 2px 2px 0 #a79f91;
+}
+
+.mojang-login.has-bg .mojang-dialog-body {
+  min-height: 264px;
+  grid-template-columns: 1fr;
+  background: #fff;
+}
+
+.mojang-login.has-bg .mojang-left {
+  padding: 22px 20px 18px;
+  border-right: 0;
+}
+
+.mojang-login.has-bg .mojang-greeting {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4c4a58;
+  font-family: Georgia, serif;
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.mojang-login.has-bg .mojang-password {
+  border: 2px solid #5d5548;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.mojang-login.has-bg .mojang-primary {
+  border: 2px solid #29351f;
+  background: #52893a;
+  box-shadow:
+    inset 3px 3px 0 #77aa5c,
+    inset -3px -3px 0 #315428;
+  font-family: "Noto Sans", Arial, sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.mojang-login.has-bg .mojang-joke {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px 0 0;
+  padding: 7px 8px;
+  border: 0;
+  border-top: 1px solid #d8d2c5;
+  background: transparent;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #5d5a50;
+  text-wrap: balance;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.mojang-login.has-bg .mojang-right {
+  padding: 28px 18px 16px 22px;
+  background: #f8f7f4;
+  color: #55536a;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.mojang-login.has-bg .mojang-right p {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #45444f;
+}
+
+.mojang-login.has-bg .mojang-right li {
+  margin: 10px 0;
+}
+
+@media (max-width: 639px) {
+  .mojang-login.has-bg {
+    align-items: center;
+    padding: 14px;
+  }
+
+  .mojang-login.has-bg .mojang-dialog {
+    width: calc(100vw - 28px);
+    margin: 8vh 0 0;
+  }
+
+  .mojang-login.has-bg .mojang-dialog-title {
+    height: 44px;
+    line-height: 44px;
+    font-size: 12px;
+  }
+
+  .mojang-login.has-bg .mojang-dialog-body {
+    min-height: 250px;
+  }
+
+  .mojang-login.has-bg .mojang-right {
+    display: none;
+  }
+
+  .mojang-login.has-bg .mojang-dialog-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- tab-random login themes ---------- */
+.mojang-login.login-theme-village {
+  background:
+    linear-gradient(rgba(31, 76, 52, 0.04), rgba(31, 76, 52, 0.04)),
+    url("/login-bg.jpg") center 52% / cover no-repeat;
+}
+
+.mojang-login.login-theme-aurora {
+  background:
+    linear-gradient(180deg, rgba(10, 21, 54, 0.16), rgba(8, 24, 43, 0.34)),
+    url("/login-bg-aurora.jpg") center 52% / cover no-repeat;
+}
+
+.mojang-login.login-theme-flowers {
+  background:
+    linear-gradient(180deg, rgba(255, 216, 184, 0.06), rgba(75, 43, 42, 0.32)),
+    url("/login-bg-flowers.jpg") center 62% / cover no-repeat;
+}
+
+.mojang-login.has-bg {
+  font-family: "DM Sans", sans-serif;
+}
+
+.mojang-login.login-theme-village .mojang-dialog-title {
+  font-family: "Press Start 2P", ui-monospace, monospace;
+}
+
+.mojang-login.login-theme-village .mojang-left,
+.mojang-login.login-theme-village .mojang-password,
+.mojang-login.login-theme-village .mojang-primary {
+  font-family: "DM Sans", sans-serif;
+}
+
+.mojang-login.login-theme-aurora .mojang-dialog {
+  width: min(560px, calc(100vw - 28px));
+  margin: 0;
+  border: 1px solid rgba(207, 240, 230, 0.58);
+  border-radius: 18px;
+  background: rgba(14, 28, 48, 0.88);
+  box-shadow:
+    0 24px 65px rgba(5, 15, 35, 0.45),
+    0 0 34px rgba(118, 231, 197, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.mojang-login.login-theme-aurora .mojang-dialog-title {
+  height: 58px;
+  border-bottom: 1px solid rgba(211, 241, 228, 0.2);
+  background:
+    linear-gradient(90deg, rgba(161, 255, 215, 0.12), transparent),
+    rgba(26, 48, 66, 0.75);
+  color: #e8fff5;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 16px rgba(137, 255, 206, 0.32);
+}
+
+.mojang-login.login-theme-aurora .mojang-dialog-body {
+  background: rgba(18, 35, 53, 0.78);
+}
+
+.mojang-login.login-theme-aurora .mojang-left {
+  font-family: "DM Sans", sans-serif;
+}
+
+.mojang-login.login-theme-aurora .mojang-greeting,
+.mojang-login.login-theme-aurora .mojang-joke {
+  font-family: "Playfair Display", Georgia, serif;
+}
+
+.mojang-login.login-theme-aurora .mojang-greeting {
+  color: #c9f3e5;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 18px;
+  font-style: italic;
+}
+
+.mojang-login.login-theme-aurora .mojang-password {
+  border: 1px solid rgba(190, 226, 218, 0.55);
+  border-radius: 10px;
+  background: rgba(236, 248, 243, 0.96);
+  font-family: "DM Sans", sans-serif;
+  text-transform: none;
+}
+
+.mojang-login.login-theme-aurora .mojang-password:focus {
+  border-color: #7ef0c2;
+  box-shadow: 0 0 0 3px rgba(126, 240, 194, 0.18);
+}
+
+.mojang-login.login-theme-aurora .mojang-primary {
+  border: 1px solid #75d7b3;
+  border-radius: 10px;
+  background: #347d68;
+  box-shadow:
+    inset 2px 2px 0 rgba(255,255,255,.2),
+    inset -2px -2px 0 rgba(0,0,0,.16),
+    0 8px 20px rgba(26, 170, 123, .18);
+  font-family: "DM Sans", sans-serif;
+  letter-spacing: .12em;
+}
+
+.mojang-login.login-theme-aurora .mojang-joke {
+  border-top-color: rgba(202, 231, 220, 0.2);
+  color: #d3e8df;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 14px;
+}
+
+.mojang-login.login-theme-flowers .mojang-dialog {
+  width: min(560px, calc(100vw - 28px));
+  margin: 0;
+  border: 1px solid rgba(130, 89, 73, .55);
+  border-radius: 24px;
+  background: rgba(255, 247, 235, .96);
+  box-shadow:
+    0 22px 60px rgba(68, 39, 38, .32),
+    0 0 0 7px rgba(255, 238, 219, .2);
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+}
+
+.mojang-login.login-theme-flowers .mojang-dialog-title {
+  height: 58px;
+  border-bottom: 1px solid #e8d2c2;
+  background: linear-gradient(110deg, #f8dfcb, #f5ead9 55%, #f5d6d1);
+  color: #754d52;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-shadow: none;
+}
+
+.mojang-login.login-theme-flowers .mojang-dialog-body {
+  background: rgba(255, 251, 245, .88);
+}
+
+.mojang-login.login-theme-flowers .mojang-greeting {
+  color: #8e5e68;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 18px;
+  font-style: italic;
+}
+
+.mojang-login.login-theme-flowers .mojang-left,
+.mojang-login.login-theme-flowers .mojang-password,
+.mojang-login.login-theme-flowers .mojang-primary {
+  font-family: "Nunito", sans-serif;
+}
+
+.mojang-login.login-theme-flowers .mojang-left {
+  padding-top: 26px;
+}
+
+.mojang-login.login-theme-flowers .mojang-password {
+  border: 1px solid #d6b7a4;
+  border-radius: 12px;
+  background: #fffefa;
+  font-family: "Nunito", sans-serif;
+  text-transform: none;
+}
+
+.mojang-login.login-theme-flowers .mojang-password:focus {
+  border-color: #c17d83;
+  box-shadow: 0 0 0 3px rgba(193, 125, 131, .13);
+}
+
+.mojang-login.login-theme-flowers .mojang-primary {
+  border: 1px solid #a76b72;
+  border-radius: 12px;
+  background: #bd7d83;
+  box-shadow:
+    inset 2px 2px 0 #d9a5a4,
+    inset -2px -2px 0 #985d68,
+    0 6px 12px rgba(151, 87, 100, .16);
+  font-family: "Nunito", sans-serif;
+  letter-spacing: .1em;
+}
+
+.mojang-login.login-theme-flowers .mojang-joke {
+  border-top-color: #ead9cc;
+  color: #785f5d;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 14px;
+}
+
+.mojang-login.login-theme-village .mojang-dialog {
+  margin: 4vh 0 0;
+}
+
+@media (max-width: 639px) {
+  .mojang-login.login-theme-aurora .mojang-dialog,
+  .mojang-login.login-theme-flowers .mojang-dialog,
+  .mojang-login.login-theme-village .mojang-dialog {
+    width: calc(100vw - 28px);
+  }
+
+  .mojang-login.login-theme-aurora .mojang-dialog-title,
+  .mojang-login.login-theme-flowers .mojang-dialog-title {
+    height: 48px;
+    line-height: 48px;
+  }
+
+  .mojang-login.login-theme-aurora {
+    background-position: center center;
+  }
+
+  .mojang-login.login-theme-flowers {
+    background-position: 58% center;
+  }
+}
+
+.mojang-login.login-card-block {
+  --card-surface: #f7f6f3;
+  --card-header: #d8d2c5;
+  --card-body: #fff;
+  --card-ink: #292820;
+  --card-muted: #5d5a50;
+  --card-border: #8c8271;
+  --card-accent: #52893a;
+  --card-accent-hover: #659f49;
+  --card-radius: 2px;
+  --card-heading-font: "Press Start 2P", ui-monospace, monospace;
+  --card-body-font: "DM Sans", sans-serif;
+  --card-copy-font: Georgia, serif;
+}
+
+.mojang-login.login-card-glass {
+  --card-surface: rgba(15, 28, 42, 0.9);
+  --card-header: rgba(35, 57, 70, 0.94);
+  --card-body: rgba(20, 38, 51, 0.9);
+  --card-ink: #edf8f4;
+  --card-muted: #d2e8df;
+  --card-border: rgba(195, 234, 219, 0.58);
+  --card-accent: #347d68;
+  --card-accent-hover: #41977e;
+  --card-radius: 18px;
+  --card-heading-font: "Space Grotesk", sans-serif;
+  --card-body-font: "DM Sans", sans-serif;
+  --card-copy-font: "Playfair Display", Georgia, serif;
+}
+
+.mojang-login.login-card-cozy {
+  --card-surface: rgba(255, 249, 239, 0.97);
+  --card-header: #f4e3d4;
+  --card-body: rgba(255, 252, 247, 0.96);
+  --card-ink: #55414a;
+  --card-muted: #765a5c;
+  --card-border: #d8bdaa;
+  --card-accent: #b66f78;
+  --card-accent-hover: #c17d83;
+  --card-radius: 24px;
+  --card-heading-font: "Playfair Display", Georgia, serif;
+  --card-body-font: "Nunito", sans-serif;
+  --card-copy-font: "Playfair Display", Georgia, serif;
+}
+
+.mojang-login.login-card-paper {
+  --card-surface: #f2efe7;
+  --card-header: #d8e1de;
+  --card-body: #fbfaf6;
+  --card-ink: #263d3d;
+  --card-muted: #536868;
+  --card-border: #829994;
+  --card-accent: #327b74;
+  --card-accent-hover: #429188;
+  --card-radius: 8px;
+  --card-heading-font: "Space Grotesk", sans-serif;
+  --card-body-font: "DM Sans", sans-serif;
+  --card-copy-font: "Playfair Display", Georgia, serif;
+}
+
+.mojang-login.login-card-meadow {
+  --card-surface: rgba(250, 248, 239, 0.97);
+  --card-header: #e6e2ce;
+  --card-body: #fffdf6;
+  --card-ink: #343c2e;
+  --card-muted: #626950;
+  --card-border: #a4a58c;
+  --card-accent: #66814a;
+  --card-accent-hover: #78965a;
+  --card-radius: 14px;
+  --card-heading-font: "Nunito", sans-serif;
+  --card-body-font: "Nunito", sans-serif;
+  --card-copy-font: "Playfair Display", Georgia, serif;
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-dialog {
+  width: min(560px, calc(100vw - 28px));
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-surface);
+  box-shadow: 0 22px 60px rgba(13, 22, 24, 0.34);
+  backdrop-filter: blur(12px);
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-dialog-title {
+  height: auto;
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--card-border);
+  background: var(--card-header);
+  color: var(--card-ink);
+  font-family: var(--card-heading-font);
+  font-size: clamp(14px, 2.3vw, 19px);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  text-shadow: none;
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-dialog-body,
+.mojang-login.has-bg[class*="login-card-"] .mojang-left {
+  background: var(--card-body);
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-dialog-body {
+  min-height: 0;
+  grid-template-columns: 1fr;
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-left {
+  gap: 16px;
+  padding: 24px;
+  font-family: var(--card-body-font);
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-greeting {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--card-muted);
+  font-family: var(--card-copy-font);
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 600;
+  text-align: center;
+  text-transform: none;
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-password {
+  height: 48px;
+  border: 1px solid var(--card-border);
+  border-radius: max(8px, calc(var(--card-radius) / 2));
+  background: var(--card-body);
+  box-shadow: none;
+  color: var(--card-ink);
+  font-family: var(--card-body-font);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-password::placeholder,
+.mojang-login.has-bg[class*="login-card-"] .mojang-lock,
+.mojang-login.has-bg[class*="login-card-"] .mojang-eye {
+  color: var(--card-muted);
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-password:focus-visible {
+  outline: 3px solid var(--card-accent);
+  outline-offset: 2px;
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-primary {
+  height: 48px;
+  border: 1px solid var(--card-accent);
+  border-radius: max(8px, calc(var(--card-radius) / 2));
+  background: var(--card-accent);
+  box-shadow: none;
+  font-family: var(--card-body-font);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-primary:hover:not(:disabled) {
+  background: var(--card-accent-hover);
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-primary:disabled {
+  border-color: #777b75;
+  background: #858a83;
+  color: #f0f0eb;
+}
+
+.mojang-login.has-bg[class*="login-card-"] .mojang-joke {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2px 0 0;
+  padding: 14px 8px 0;
+  border-top: 1px solid var(--card-border);
+  color: var(--card-muted);
+  font-family: var(--card-copy-font);
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 600;
+  text-align: center;
+  text-wrap: balance;
+  text-shadow: none;
+}
+
+@media (max-width: 639px) {
+  .mojang-login.has-bg[class*="login-card-"] .mojang-dialog {
+    width: calc(100vw - 28px);
+  }
+
+  .mojang-login.has-bg[class*="login-card-"] .mojang-dialog-title {
+    padding: 15px 12px;
+    font-size: 13px;
+  }
+
+  .mojang-login.has-bg[class*="login-card-"] .mojang-left {
+    padding: 20px 16px;
+  }
+}
+
+.mojang-login.has-bg {
+  background-color: #1c3446;
+  background-size: cover;
+  background-position: center;
+}
+
+.mojang-login.has-bg::before {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 16, 24, 0.08) 0%,
+    rgba(8, 16, 24, 0.24) 100%
+  );
+  content: "";
+  pointer-events: none;
+}
+
+.mojang-login.has-bg .mojang-background-image {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  transform: scale(1.02);
+  transition:
+    opacity 800ms ease,
+    transform 9s ease-out;
+  pointer-events: none;
+}
+
+.mojang-login.has-bg .mojang-background-image.is-loaded {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.mojang-login.login-palette-blush {
+  --card-surface: #fff9f6;
+  --card-title: #f1d8d2;
+  --card-title-ink: #48313d;
+  --card-panel: #fffdfb;
+  --card-copy-panel: #fff1ed;
+  --card-ink: #443440;
+  --card-muted: #806372;
+  --card-border: #e3c2bc;
+  --card-accent: #a94e72;
+  --card-accent-hover: #bd6488;
+  --card-field: #fff;
+  --card-field-ink: #3e2e39;
+  --card-field-muted: #967e89;
+  --card-button-ink: #fff;
+}
+
+.mojang-login.login-palette-lagoon {
+  --card-surface: #12363e;
+  --card-title: #16535a;
+  --card-title-ink: #f3fffb;
+  --card-panel: #f4fbf8;
+  --card-copy-panel: #e2f1ec;
+  --card-ink: #1d3d3b;
+  --card-muted: #52716d;
+  --card-border: #82b8ad;
+  --card-accent: #087c72;
+  --card-accent-hover: #14968a;
+  --card-field: #fff;
+  --card-field-ink: #203d3b;
+  --card-field-muted: #67817c;
+  --card-button-ink: #fff;
+}
+
+.mojang-login.login-palette-amber {
+  --card-surface: #fff8eb;
+  --card-title: #603a27;
+  --card-title-ink: #fff5e9;
+  --card-panel: #fffdf8;
+  --card-copy-panel: #f4e3c9;
+  --card-ink: #443225;
+  --card-muted: #80644c;
+  --card-border: #d3a474;
+  --card-accent: #b95730;
+  --card-accent-hover: #d06d3d;
+  --card-field: #fff;
+  --card-field-ink: #403127;
+  --card-field-muted: #8b735e;
+  --card-button-ink: #fff;
+}
+
+.mojang-login.login-palette-violet {
+  --card-surface: #f8f4ff;
+  --card-title: #4a3766;
+  --card-title-ink: #fff;
+  --card-panel: #fff;
+  --card-copy-panel: #eee7f8;
+  --card-ink: #352a44;
+  --card-muted: #746386;
+  --card-border: #c9b9dc;
+  --card-accent: #71479b;
+  --card-accent-hover: #895bb4;
+  --card-field: #fff;
+  --card-field-ink: #352a44;
+  --card-field-muted: #857494;
+  --card-button-ink: #fff;
+}
+
+.mojang-login.login-palette-sage {
+  --card-surface: #f5f8ef;
+  --card-title: #dce8ce;
+  --card-title-ink: #30402e;
+  --card-panel: #fff;
+  --card-copy-panel: #eaf1df;
+  --card-ink: #34402f;
+  --card-muted: #64715c;
+  --card-border: #b9c9a7;
+  --card-accent: #4d7847;
+  --card-accent-hover: #628e5b;
+  --card-field: #fff;
+  --card-field-ink: #34402f;
+  --card-field-muted: #798574;
+  --card-button-ink: #fff;
+}
+
+.mojang-login.login-palette-midnight {
+  --card-surface: #171d36;
+  --card-title: #252f53;
+  --card-title-ink: #f5f6ff;
+  --card-panel: #f6f7ff;
+  --card-copy-panel: #e9ecfa;
+  --card-ink: #29314e;
+  --card-muted: #647091;
+  --card-border: #9da9d0;
+  --card-accent: #5368bc;
+  --card-accent-hover: #6a7ed0;
+  --card-field: #fff;
+  --card-field-ink: #29314e;
+  --card-field-muted: #7882a0;
+  --card-button-ink: #fff;
+}
+
+.mojang-login.login-font-modern {
+  --card-heading-font: "Space Grotesk", sans-serif;
+  --card-body-font: "DM Sans", sans-serif;
+  --card-copy-font: "Playfair Display", Georgia, serif;
+}
+
+.mojang-login.login-font-editorial {
+  --card-heading-font: "Playfair Display", Georgia, serif;
+  --card-body-font: "DM Sans", sans-serif;
+  --card-copy-font: "Playfair Display", Georgia, serif;
+}
+
+.mojang-login.login-font-rounded {
+  --card-heading-font: "Nunito", sans-serif;
+  --card-body-font: "Nunito", sans-serif;
+  --card-copy-font: "Playfair Display", Georgia, serif;
+}
+
+.mojang-login.login-font-pixel {
+  --card-heading-font: "Press Start 2P", ui-monospace, monospace;
+  --card-body-font: "DM Sans", sans-serif;
+  --card-copy-font: "Space Grotesk", sans-serif;
+}
+
+.mojang-login.login-font-minimal {
+  --card-heading-font: "Space Grotesk", sans-serif;
+  --card-body-font: "DM Sans", sans-serif;
+  --card-copy-font: "DM Sans", sans-serif;
+}
+
+.mojang-login[class*="login-layout-"] .mojang-dialog {
+  width: min(560px, calc(100vw - 28px));
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  background: var(--card-surface);
+  box-shadow: 0 28px 80px rgba(10, 18, 30, 0.34);
+  backdrop-filter: blur(14px);
+}
+
+.mojang-login[class*="login-layout-"] .mojang-dialog-title {
+  height: auto;
+  padding: 21px 24px;
+  border-bottom: 1px solid var(--card-border);
+  background: var(--card-title);
+  color: var(--card-title-ink);
+  font-family: var(--card-heading-font);
+  font-size: clamp(14px, 2.2vw, 19px);
+  line-height: 1.45;
+  letter-spacing: 0.035em;
+  text-align: center;
+  text-shadow: none;
+}
+
+.mojang-login[class*="login-layout-"] .mojang-dialog-body {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: 1fr;
+  background: var(--card-panel);
+}
+
+.mojang-login[class*="login-layout-"] .mojang-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 23px 26px 8px;
+  background: var(--card-copy-panel);
+}
+
+.mojang-login[class*="login-layout-"] .mojang-left {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 18px 26px 25px;
+  background: var(--card-panel);
+  font-family: var(--card-body-font);
+}
+
+.mojang-login[class*="login-layout-"] .mojang-greeting {
+  min-height: 0;
+  margin: 0;
+  color: var(--card-muted);
+  font-family: var(--card-copy-font);
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+  text-transform: none;
+}
+
+.mojang-login[class*="login-layout-"] .mojang-joke {
+  min-height: 0;
+  display: block;
+  overflow: visible;
+  margin: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--card-border);
+  color: var(--card-muted);
+  font-family: var(--card-copy-font);
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.55;
+  text-align: center;
+  text-shadow: none;
+  -webkit-line-clamp: unset;
+}
+
+.mojang-login[class*="login-layout-"] .mojang-password {
+  height: 48px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: var(--card-field);
+  box-shadow: none;
+  color: var(--card-field-ink);
+  font-family: var(--card-body-font);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.mojang-login[class*="login-layout-"] .mojang-password::placeholder,
+.mojang-login[class*="login-layout-"] .mojang-lock,
+.mojang-login[class*="login-layout-"] .mojang-eye {
+  color: var(--card-field-muted);
+}
+
+.mojang-login[class*="login-layout-"] .mojang-password:focus-visible {
+  outline: 3px solid var(--card-accent);
+  outline-offset: 2px;
+}
+
+.mojang-login[class*="login-layout-"] .mojang-primary {
+  height: 48px;
+  border: 1px solid var(--card-accent);
+  border-radius: 10px;
+  background: var(--card-accent);
+  box-shadow: none;
+  color: var(--card-button-ink);
+  font-family: var(--card-body-font);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+}
+
+.mojang-login[class*="login-layout-"] .mojang-primary:hover:not(:disabled) {
+  background: var(--card-accent-hover);
+}
+
+.mojang-login[class*="login-layout-"] .mojang-primary:disabled {
+  border-color: #777b75;
+  background: #858a83;
+  color: #f0f0eb;
+}
+
+.mojang-login.login-layout-centered .mojang-dialog {
+  width: min(450px, calc(100vw - 28px));
+  border-radius: 28px;
+}
+
+.mojang-login.login-layout-centered .mojang-copy {
+  padding: 30px 32px 11px;
+  text-align: center;
+}
+
+.mojang-login.login-layout-split .mojang-dialog {
+  width: min(760px, calc(100vw - 36px));
+  border-radius: 18px;
+}
+
+.mojang-login.login-layout-split .mojang-dialog-title {
+  padding-left: 32px;
+  text-align: left;
+}
+
+.mojang-login.login-layout-split .mojang-dialog-body {
+  min-height: 286px;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+}
+
+.mojang-login.login-layout-split .mojang-copy {
+  gap: 19px;
+  padding: 34px 30px;
+  border-right: 1px solid var(--card-border);
+}
+
+.mojang-login.login-layout-split .mojang-greeting {
+  font-size: clamp(20px, 2.4vw, 27px);
+  text-align: left;
+}
+
+.mojang-login.login-layout-split .mojang-joke {
+  text-align: left;
+}
+
+.mojang-login.login-layout-split .mojang-left {
+  justify-content: center;
+  padding: 32px;
+}
+
+.mojang-login.login-layout-editorial .mojang-dialog {
+  width: min(720px, calc(100vw - 36px));
+  border-radius: 10px 28px 10px 10px;
+}
+
+.mojang-login.login-layout-editorial .mojang-dialog-title {
+  padding: 24px 30px;
+  text-align: left;
+}
+
+.mojang-login.login-layout-editorial .mojang-dialog-body {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+}
+
+.mojang-login.login-layout-editorial .mojang-copy {
+  display: contents;
+}
+
+.mojang-login.login-layout-editorial .mojang-greeting {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: end;
+  min-height: 95px;
+  padding: 30px 22px 10px 30px;
+  background: var(--card-copy-panel);
+  font-size: 21px;
+  text-align: left;
+}
+
+.mojang-login.login-layout-editorial .mojang-joke {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+  padding: 10px 22px 28px 30px;
+  border: 0;
+  background: var(--card-copy-panel);
+  text-align: left;
+}
+
+.mojang-login.login-layout-editorial .mojang-left {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  justify-content: center;
+  padding: 32px 30px;
+  border-left: 1px solid var(--card-border);
+}
+
+.mojang-login.login-layout-floating .mojang-dialog {
+  width: min(510px, calc(100vw - 32px));
+  overflow: visible;
+  border-radius: 26px;
+}
+
+.mojang-login.login-layout-floating .mojang-dialog-title {
+  position: relative;
+  z-index: 1;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  margin: 14px auto -8px;
+  padding: 13px 22px;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(10, 18, 30, 0.12);
+}
+
+.mojang-login.login-layout-floating .mojang-copy {
+  padding: 28px 28px 10px;
+  text-align: center;
+}
+
+.mojang-login.login-layout-floating .mojang-left {
+  padding: 18px 30px 30px;
+}
+
+.mojang-login.login-layout-ticket .mojang-dialog {
+  width: min(720px, calc(100vw - 36px));
+  border-left: 8px solid var(--card-accent);
+  border-radius: 12px;
+}
+
+.mojang-login.login-layout-ticket .mojang-dialog-title {
+  padding-left: 27px;
+  text-align: left;
+}
+
+.mojang-login.login-layout-ticket .mojang-copy {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 23px 27px 8px;
+}
+
+.mojang-login.login-layout-ticket .mojang-greeting {
+  text-align: left;
+}
+
+.mojang-login.login-layout-ticket .mojang-joke {
+  max-width: 48%;
+  padding: 0 0 0 18px;
+  border-top: 0;
+  border-left: 1px dashed var(--card-border);
+  text-align: left;
+}
+
+.mojang-login.login-layout-ticket .mojang-left {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  align-items: center;
+  padding: 16px 27px 25px;
+}
+
+@media (max-width: 639px) {
+  .mojang-login[class*="login-layout-"] .mojang-dialog {
+    width: calc(100vw - 28px);
+  }
+
+  .mojang-login[class*="login-layout-"] .mojang-dialog-title {
+    padding: 16px;
+    font-size: 14px;
+  }
+
+  .mojang-login.login-layout-split .mojang-dialog-body,
+  .mojang-login.login-layout-editorial .mojang-dialog-body {
+    grid-template-columns: 1fr;
+  }
+
+  .mojang-login.login-layout-split .mojang-copy {
+    padding: 22px 22px 8px;
+    border-right: 0;
+  }
+
+  .mojang-login.login-layout-split .mojang-left {
+    padding: 18px 22px 24px;
+  }
+
+  .mojang-login.login-layout-editorial .mojang-copy {
+    display: flex;
+  }
+
+  .mojang-login.login-layout-editorial .mojang-greeting,
+  .mojang-login.login-layout-editorial .mojang-joke {
+    grid-column: auto;
+    grid-row: auto;
+    min-height: 0;
+    padding: 18px 22px 8px;
+    text-align: center;
+  }
+
+  .mojang-login.login-layout-editorial .mojang-joke {
+    padding-top: 10px;
+    border-top: 1px solid var(--card-border);
+  }
+
+  .mojang-login.login-layout-editorial .mojang-left {
+    grid-column: auto;
+    grid-row: auto;
+    padding: 18px 22px 24px;
+    border-top: 1px solid var(--card-border);
+    border-left: 0;
+  }
+
+  .mojang-login.login-layout-ticket .mojang-copy {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 18px 20px 8px;
+  }
+
+  .mojang-login.login-layout-ticket .mojang-greeting {
+    text-align: center;
+  }
+
+  .mojang-login.login-layout-ticket .mojang-joke {
+    max-width: none;
+    padding: 10px 0 0;
+    border-top: 1px solid var(--card-border);
+    border-left: 0;
+    text-align: center;
+  }
+
+  .mojang-login.login-layout-ticket .mojang-left {
+    grid-template-columns: 1fr;
+    padding: 16px 20px 22px;
+  }
+}

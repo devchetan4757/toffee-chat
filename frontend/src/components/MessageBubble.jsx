@@ -1,6 +1,7 @@
 import { memo, useCallback, useRef, useState } from "react";
 import { Trash2, Reply } from "lucide-react";
 import VoiceMessageBubble from "./VoiceMessageBubble";
+import VideoPlayer from "./VideoPlayer";
 import InstagramBubble from "./InstagramBubble";
 import { formatMessageTime } from "../lib/utils";
 import {
@@ -73,6 +74,14 @@ const MessageContent = memo(function MessageContent({
                 />
                 Photo
               </span>
+            ) : message.replyTo.video ? (
+              <span className="text-sm opacity-70 flex items-center gap-1">
+                <Reply
+                  size={12}
+                  className="opacity-50 shrink-0 rotate-180"
+                />
+                Video
+              </span>
             ) : message.replyTo.stickers?.length > 0 ? (
               <span className="text-sm opacity-70">Sticker</span>
             ) : (
@@ -111,6 +120,14 @@ const MessageContent = memo(function MessageContent({
 
       {message.audio && <VoiceMessageBubble src={message.audio} />}
 
+      {message.video && (
+        <VideoPlayer
+          src={message.video}
+          compact
+          className="mt-2 h-[220px] w-[240px] max-w-full rounded-xl border border-white/10 shadow-md"
+        />
+      )}
+
       {message.stickers?.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {message.stickers.map((sticker, idx) => (
@@ -142,10 +159,10 @@ const MessageContent = memo(function MessageContent({
               onImageClick(message.image);
             }
           }}
-          className={`mt-2 rounded-md bg-base-300/40 ${
+          className={`mt-1 rounded-[18px] border border-white/10 bg-black/5 shadow-sm ${
             isStickerImage(message.image)
               ? "w-[72px] h-auto object-contain"
-              : "max-w-[180px] min-h-[96px] object-cover cursor-pointer"
+              : "w-[220px] max-w-full max-h-[280px] h-auto object-contain cursor-pointer"
           }`}
         />
       )}
@@ -326,6 +343,12 @@ const MessageBubble = memo(function MessageBubble({
       <div
         className={`chat-bubble max-w-[75%] cursor-pointer relative message-bubble ${
           skinActive ? effectBubbleClass(effect) : ""
+        } ${
+          message.image && !isStickerImage(message.image)
+            ? "media-bubble photo-bubble p-1.5"
+            : message.video
+              ? "media-bubble video-bubble p-1.5"
+              : ""
         }`}
         style={{
           transform: `translateX(${dragX}px)`,

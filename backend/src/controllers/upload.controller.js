@@ -45,3 +45,26 @@ export const uploadAudio = async (req, res) => {
     res.status(500).json({ message: "Audio upload failed" });
   }
 };
+
+/**
+ * VIDEO UPLOAD
+ */
+export const uploadVideo = async (req, res) => {
+  try {
+    const { video } = req.body;
+
+    if (!video) {
+      return res.status(400).json({ message: "No video provided" });
+    }
+
+    const uploaded = await cloudinary.uploader.upload(video, {
+      folder: "chat_videos",
+      resource_type: "video",
+    });
+
+    return res.status(200).json({ url: uploaded.secure_url });
+  } catch (error) {
+    console.error("uploadVideo error:", error);
+    res.status(500).json({ message: "Video upload failed" });
+  }
+};

@@ -24,6 +24,11 @@ const replySchema = new mongoose.Schema(
       default: null,
     },
 
+    video: {
+      type: String,
+      default: null,
+    },
+
     stickers: [
       {
         type: String,
@@ -51,6 +56,10 @@ const messageSchema = new mongoose.Schema(
     },
 
     audio: {
+      type: String,
+    },
+
+    video: {
       type: String,
     },
 
