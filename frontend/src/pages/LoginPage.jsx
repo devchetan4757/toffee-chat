@@ -42,16 +42,11 @@ const onlinePhotoIds = [
   "photo-1518005020951-eccb494ad742",
   "photo-1499002238440-d264edd596ec",
   "photo-1441986300917-64674bd600d8",
-  "photo-1517841905240-472988babdf9",
-  "photo-1515886657613-9f3515b0c78f",
   "photo-1547891654-e66ed7ebb968",
   "photo-1534447677768-be436bb09401",
   "photo-1501785888041-af3ef285b470",
   "photo-1519608487953-e999c86e7455",
   "photo-1500534623283-312aade485b7",
-  "photo-1524504388940-b1c1722653e1",
-  "photo-1534528741775-53994a69daeb",
-  "photo-1469334031218-e382a71b716b",
   "photo-1579783902614-a3fb3927b6a5",
   "photo-1531058020387-3be344556be6",
 ];
@@ -194,8 +189,6 @@ const LoginPage = () => {
       </div>
 
       <section className="mojang-dialog" aria-label="Sign in">
-        <header className="mojang-dialog-title">WELCOME TO TOFFEE CHAT</header>
-
         <div className="mojang-dialog-body">
           <div className="mojang-copy">
             <p className="mojang-greeting">{greeting}</p>
