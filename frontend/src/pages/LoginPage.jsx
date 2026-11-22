@@ -185,6 +185,67 @@ const jokes = [
   "I thought this was just a quick visit. Then you made it the best part of my day.",
   "I found a beautiful view online, then remembered you're here.",
   "You make a random day feel like it was planned just right.",
+  "Do you have a map? I keep getting lost in this conversation.",
+  "I was going to play it cool, but then you showed up.",
+  "You must be my favorite song; I keep wanting you on repeat.",
+  "If smiles were messages, yours would be my favorite notification.",
+  "I think my day just got a very cute plot twist.",
+  "You make my phone feel a little more interesting.",
+  "Are you a good book? Because I don't want to put you down.",
+  "I had a witty opener, but your smile interrupted my train of thought.",
+  "You make ordinary moments feel like the start of a story.",
+  "I would share my fries with you. That's how you know this is serious.",
+  "Are you made of sunshine? Because you just brightened my whole screen.",
+  "You seem like someone I'd accidentally stay up talking to.",
+  "If I had a favorite hello, it would probably be yours.",
+  "You make being distracted feel like a pretty good idea.",
+  "Are you a notification? Because I was hoping you'd pop up.",
+  "I don't need a playlist; this conversation is already a good vibe.",
+  "You have the kind of smile that deserves a second look.",
+  "I think we should make this a regular part of my day.",
+  "You're dangerously easy to talk to.",
+  "My plans were fine, but talking to you sounds better.",
+  "Is your name Wi-Fi? Because I feel a pretty strong connection.",
+  "I must be having a lucky day; I got to see you.",
+  "If charming were a job, you'd be employee of the month.",
+  "You make my favorite place the one where you're hanging out.",
+  "Can I save this moment? It's one of my favorites.",
+  "Are you a spark? Because you just made this conversation electric.",
+  "I like your style. Especially the part where you showed up.",
+  "I was having a normal day until you made it interesting.",
+  "You're the reason I keep checking if there's a new message.",
+  "If we were a story, I'd definitely read another chapter.",
+  "I could get used to this whole you-and-me-talking thing.",
+  "You make even a tiny hello feel like a big deal.",
+  "I think my favorite hobby might be making you smile.",
+  "Are you a shooting star? Because I just made a wish.",
+  "I didn't believe in perfect timing until you appeared.",
+  "You bring out my best lines. And occasionally my worst ones.",
+  "Is it too soon to say you're my favorite distraction?",
+  "I think the universe deserves credit for introducing us.",
+  "You make a simple chat feel like a little adventure.",
+  "I was going to be productive, but then you became more interesting.",
+  "If I could pick today's highlight, it would be this conversation.",
+  "You have a way of making the whole room feel warmer.",
+  "I may be smiling at my screen. I'm blaming you.",
+  "Do you believe in chemistry, or should I send another message?",
+  "You make it very hard to come up with a casual hello.",
+  "I was saving my best smile. Then I saw yours.",
+  "You + me + a long conversation sounds like a lovely plan.",
+  "I think you just raised the bar for good company.",
+  "Are you a little bit of magic? Because this feels like a good day.",
+  "I hope you know you're very easy to root for.",
+  "You're the kind of person who makes a place feel more welcoming.",
+  "I'd pick your company over a perfect plan any day.",
+  "If this were a meet-cute, I think we're doing pretty well.",
+  "Your timing is excellent. I was just thinking I wanted to see you.",
+  "You make my heart do a tiny happy dance.",
+  "I don't mean to flirt, but you make it really difficult not to.",
+  "You have main-character energy, and I love that for you.",
+  "I could tell you a joke, but I'd rather hear your laugh.",
+  "If you were a page in my diary, you'd have a little heart beside your name.",
+  "I think I just found my favorite person to be a little awkward around.",
+  "You make every conversation feel like time well spent.",
 ];
 
 const onlinePhotoIds = [
@@ -248,41 +309,41 @@ const fetchOnlineGreeting = async (signal) => {
     throw new Error("Greeting API returned invalid text");
   }
 
-  return `Hey, cutie. The internet picked this thought for you: “${advice.trim()}” — and my advice is to stay a little longer.`;
+  return advice.trim();
 };
 
-const fetchOnlineJoke = async (signal) => {
-  const response = await fetch(
-    "https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&safe-mode",
-    { cache: "no-store", signal }
-  );
-  if (!response.ok) {
-    throw new Error(`Joke API returned ${response.status}`);
+const fetchOnlineFlirtyLine = async (signal) => {
+  const recent = (sessionStorage.getItem("toffee-login-joke") || "")
+    .split("\n")
+    .filter(Boolean);
+  const unsuitableWords = /\b(?:ass|boobs|breasts|dick|nudes?|pant(?:s|ies)|sex|tits|unzip)\b/i;
+  let lastError;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(
+      `https://rizzapi.vercel.app/random?cacheBust=${Date.now()}-${attempt}`,
+      { cache: "no-store", signal }
+    );
+    if (!response.ok) {
+      throw new Error(`Flirty line API returned ${response.status}`);
+    }
+
+    const result = await response.json();
+    const text = typeof result?.text === "string" ? result.text.trim() : "";
+    if (
+      typeof text === "string" &&
+      text.length <= 240 &&
+      ["Flirty", "Complimentary", "Romantic", "Cheesy"].includes(result?.category) &&
+      !unsuitableWords.test(text) &&
+      !recent.includes(text)
+    ) {
+      return text;
+    }
+
+    lastError = new Error("Flirty line API returned a repeated or unsuitable line");
   }
 
-  const result = await response.json();
-  if (result.error) {
-    throw new Error("Joke API could not provide a joke");
-  }
-
-  let text;
-  if (
-    result.type === "twopart" &&
-    typeof result.setup === "string" &&
-    typeof result.delivery === "string"
-  ) {
-    text = `${result.setup} — ${result.delivery}`;
-  } else if (result.type === "single" && typeof result.joke === "string") {
-    text = result.joke;
-  } else {
-    throw new Error("Joke API returned an invalid joke");
-  }
-
-  if (!text.trim()) {
-    throw new Error("Joke API returned an empty joke");
-  }
-
-  return text.trim();
+  throw lastError;
 };
 
 const createAppearance = () => {
@@ -347,7 +408,7 @@ const LoginPage = () => {
         `toffee-login-greeting-${appearance.category}-${period}`
       )
     );
-    setJoke(chooseVariant(jokes, "toffee-login-joke"));
+    setJoke(chooseGreeting(jokes, "toffee-login-joke"));
 
     const greetingController = new AbortController();
     let greetingTimedOut = false;
@@ -374,9 +435,15 @@ const LoginPage = () => {
       controller.abort();
     }, 5000);
 
-    fetchOnlineJoke(controller.signal)
+    fetchOnlineFlirtyLine(controller.signal)
       .then((onlineJoke) => {
-        sessionStorage.setItem("toffee-login-joke", onlineJoke);
+        const recent = (sessionStorage.getItem("toffee-login-joke") || "")
+          .split("\n")
+          .filter((line) => line && line !== onlineJoke);
+        sessionStorage.setItem(
+          "toffee-login-joke",
+          [onlineJoke, ...recent].slice(0, 8).join("\n")
+        );
         setJoke(onlineJoke);
       })
       .catch((error) => {
