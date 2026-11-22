@@ -1271,6 +1271,7 @@
 .mojang-login[class*="login-layout-"] .mojang-greeting {
   min-height: 0;
   margin: 0;
+  overflow: hidden;
   color: var(--card-muted);
   font-family: var(--card-copy-font);
   font-size: 18px;
@@ -1278,7 +1279,9 @@
   font-weight: 600;
   line-height: 1.45;
   text-align: center;
+  text-overflow: ellipsis;
   text-transform: none;
+  white-space: nowrap;
 }
 
 .mojang-login[class*="login-layout-"] .mojang-joke {
@@ -1377,7 +1380,7 @@
 }
 
 .mojang-login.login-layout-split .mojang-greeting {
-  font-size: clamp(20px, 2.4vw, 27px);
+  font-size: clamp(16px, 2.1vw, 20px);
   text-align: left;
 }
 
