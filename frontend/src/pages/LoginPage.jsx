@@ -6,19 +6,173 @@ import "./mojang-login.css";
 
 const themeLines = {
   village: {
-    morning: ["Morning, sunshine. The village is brighter already.", "Good morning, favorite neighbor."],
-    afternoon: ["There you are. I saved you the sunny spot.", "The day got a little brighter when you arrived."],
-    evening: ["Evening! The porch light was waiting for you.", "Look who made this little place feel like home."],
+    morning: [
+      "Morning, sunshine. The village is brighter already.",
+      "Good morning, favorite neighbor.",
+      "The kettle's on, and your seat is ready.",
+      "A fresh day in the village looks good on you.",
+      "Morning! The birds have been saving their best song for you.",
+      "The day hasn't officially started until you arrive.",
+      "I blame the sunrise for the butterflies. Then you showed up.",
+      "Are you always this charming before coffee?",
+      "Coffee can wait. I want a minute of your attention first.",
+      "Is it the fresh air, or did you just take my breath away?",
+      "Your smile should come with a morning warning.",
+      "I would happily make this my first hello every day.",
+      "You look like my favorite reason to get out of bed.",
+      "I had a whole morning planned, then you distracted me.",
+      "The sunrise is pretty, but it knows it isn't the main attraction.",
+      "Good morning, heart-stealer. Did you dream about me?",
+      "If charm were a breakfast food, you'd be the whole buffet.",
+    ],
+    afternoon: [
+      "There you are. I saved you the sunny spot.",
+      "The day got a little brighter when you arrived.",
+      "Perfect timing. There's still cake left.",
+      "The village just got its favorite visitor back.",
+      "Take a breather. The afternoon can wait a minute.",
+      "Well, this is a lovely surprise.",
+      "I was trying to get things done, but then you walked in.",
+      "You make a sunny spot look like it was made just for you.",
+      "Is that your smile, or did the whole village just get warmer?",
+      "I saved you the best seat. Mostly because I hoped you'd sit near me.",
+      "You have a talent for making my afternoon plans disappear.",
+      "If I bring you a snack, do I get to keep you company?",
+      "I think the village gossip is that I have a little crush on you.",
+      "You could make even a trip to the market feel like a date.",
+      "That look should come with a warning: may cause daydreaming.",
+      "I was doing just fine until you showed up looking that cute.",
+    ],
+    evening: [
+      "Evening! The porch light was waiting for you.",
+      "Look who made this little place feel like home.",
+      "The day's winding down, but the welcome is just getting started.",
+      "Come on in. The coziest spot is yours.",
+      "Evening, friend. You made it through another one.",
+      "The stars are out, and so is your favorite welcome.",
+      "The porch is cozy, but it'd be cozier if you sat closer.",
+      "I made room by the fire. I may have saved the closest spot for me.",
+      "You're looking pretty cute for someone who just stole my attention.",
+      "Want to stay a little longer? I promise the company is excellent.",
+      "The night is lovely, but I think you're winning.",
+      "I was going to watch the stars, then you became my favorite view.",
+      "Come sit with me. I have a blanket and absolutely no ulterior motive.",
+      "You make coming home feel like the best part of the day.",
+      "If I said I missed you, would you stay for one more minute?",
+      "The porch light is on. So is my very obvious crush.",
+    ],
   },
   aurora: {
-    morning: ["Good morning. Even the sky is showing off for you.", "Morning, starlight."],
-    afternoon: ["There you are, brighter than the whole forecast.", "My favorite kind of surprise just arrived."],
-    evening: ["Good evening, starlight. You made it.", "The sky put on a show. I still noticed you first."],
+    morning: [
+      "Good morning. Even the sky is showing off for you.",
+      "Morning, starlight.",
+      "The horizon saved its brightest colors for your arrival.",
+      "A new day is unfolding. Glad you're here for it.",
+      "Rise and shine, cosmic favorite.",
+      "The sky's awake, and now the day can begin.",
+      "The stars aligned, and somehow they brought me you.",
+      "Good morning, gorgeous. The universe has excellent taste.",
+      "I saw the sunrise, but it still wasn't as lovely as you.",
+      "Are those butterflies from the aurora, or are you doing that again?",
+      "I could get used to waking up in the same universe as you.",
+      "You're brighter than the morning sky, and you know it.",
+      "My horoscope said I'd meet someone captivating. It meant you.",
+      "You make the whole galaxy feel like a more romantic place.",
+      "Morning, starlight. Save a little of that sparkle for me.",
+      "I was going to wish on a star, but then you logged in.",
+    ],
+    afternoon: [
+      "There you are, brighter than the whole forecast.",
+      "My favorite kind of surprise just arrived.",
+      "The clouds parted. They must have heard you were coming.",
+      "A little midday magic, right on schedule.",
+      "The universe has excellent timing today.",
+      "The afternoon looks brighter from here.",
+      "The forecast says partly cloudy with a 100% chance of me flirting.",
+      "You must be a supernova, because you just stole the whole scene.",
+      "I could stare at the sky all day, but you keep outshining it.",
+      "Are you gravity? Because I keep getting pulled your way.",
+      "The universe is huge, and I still got lucky enough to find you.",
+      "I think the stars are jealous of how well you shine.",
+      "You and I would make a pretty great constellation.",
+      "I had a clever cosmic pickup line, but you made me forget it.",
+      "Careful, starlight. You're making this orbit feel like a date.",
+      "If I get lost in your eyes, please send a rescue mission.",
+    ],
+    evening: [
+      "Good evening, starlight. You made it.",
+      "The sky put on a show. I still noticed you first.",
+      "The stars are out, and your spot is right here.",
+      "Another orbit complete. Welcome back.",
+      "The night feels a little less quiet now.",
+      "Stay a while; the sky isn't going anywhere.",
+      "The stars are beautiful, but I keep looking at you instead.",
+      "If we watched the aurora together, I would forget to look up.",
+      "You're my favorite thing to find in the whole night sky.",
+      "Come closer; I promise the stargazing is better from here.",
+      "I would travel light-years for a little more time with you.",
+      "The moon has competition tonight, and it knows who.",
+      "I wished on a star for you to show up. It came through.",
+      "You make even the endless universe feel like a cozy place for two.",
+      "Stay until the stars get jealous of all the attention I'm giving you.",
+      "Good evening, gorgeous. Ready to make a little moonlight mischief?",
+    ],
   },
   online: {
-    morning: ["Good morning. You make a pretty good first thought.", "Morning, favorite person."],
-    afternoon: ["There you are. The day just improved.", "My favorite view is right here."],
-    evening: ["Good evening. I was hoping you'd show up.", "You make even an ordinary evening feel special."],
+    morning: [
+      "Good morning. You make a pretty good first thought.",
+      "Morning, favorite person.",
+      "The world is waking up. Glad we get to start here.",
+      "Coffee, fresh air, and you. Not a bad morning.",
+      "A new day just got a little more interesting.",
+      "Morning! Hope today is kind to you.",
+      "Good morning, cutie. I hope I made your to-do list.",
+      "If mornings always started with you, I'd become a morning person.",
+      "I woke up in a good mood. Then I saw you, so now it's great.",
+      "You make bedhead and morning light look unfairly good.",
+      "I can think of one thing better than coffee, and it's saying hi to you.",
+      "Morning! Just checking if you're as distracting before noon.",
+      "My favorite notification of the day arrived early.",
+      "You must be my lucky charm; the day already feels promising.",
+      "I hope your morning is as lovely as your smile.",
+      "A little flirt to start your day: you're ridiculously cute.",
+    ],
+    afternoon: [
+      "There you are. The day just improved.",
+      "My favorite view is right here.",
+      "A little break, a familiar face. Perfect.",
+      "The afternoon was missing something. It was you.",
+      "Pause the scroll; your favorite corner is right here.",
+      "Hey, you. Good things are still happening today.",
+      "Are you free later, or should I keep pretending this is casual?",
+      "I was having a normal afternoon until you made my heart do that.",
+      "You make even a quick hello feel like the highlight of my day.",
+      "If flirting were a sport, I'd still lose because you distract me.",
+      "I hope you know that smile is doing a lot of work right now.",
+      "You + me + absolutely no plans sounds like a pretty good plan.",
+      "I had a productive afternoon planned. Then I remembered you exist.",
+      "Can I borrow your attention? I promise to give it back eventually.",
+      "The best part of this screen is definitely you.",
+      "You have no business looking that good in the middle of my day.",
+    ],
+    evening: [
+      "Good evening. I was hoping you'd show up.",
+      "You make even an ordinary evening feel special.",
+      "The day is done; your welcome is not.",
+      "Unwind a little. You're right where you belong.",
+      "The evening got better at exactly the right time.",
+      "Hey, glad you're here. How was today?",
+      "Want to call this a date, or should I keep being subtle?",
+      "My evening plans just improved: you're here.",
+      "I saved the best part of tonight for talking with you.",
+      "You look like trouble. The kind I'd happily stay up for.",
+      "If I tell you that I missed you, will you stay a little longer?",
+      "The night is young, and I have a very cute person to flirt with.",
+      "I hope you're ready for me to pretend I'm not blushing.",
+      "You make late nights feel like the right place to be.",
+      "Come closer. I promise my conversation is almost as good as my taste.",
+      "I was waiting for you. Don't let it go to your head. (Too late.)",
+    ],
   },
 };
 
@@ -65,6 +219,70 @@ const chooseVariant = (options, storageKey) => {
   const selected = eligible[Math.floor(Math.random() * eligible.length)];
   sessionStorage.setItem(storageKey, selected);
   return selected;
+};
+
+const chooseGreeting = (options, storageKey) => {
+  const recent = (sessionStorage.getItem(storageKey) || "").split("\n").filter(Boolean);
+  const eligible = options.filter((option) => !recent.includes(option));
+  const pool = eligible.length ? eligible : options;
+  const selected = pool[Math.floor(Math.random() * pool.length)];
+  sessionStorage.setItem(
+    storageKey,
+    [selected, ...recent.filter((line) => line !== selected)].slice(0, 8).join("\n")
+  );
+  return selected;
+};
+
+const fetchOnlineGreeting = async (signal) => {
+  const response = await fetch(
+    `https://api.adviceslip.com/advice?cacheBust=${Date.now()}`,
+    { cache: "no-store", signal }
+  );
+  if (!response.ok) {
+    throw new Error(`Greeting API returned ${response.status}`);
+  }
+
+  const result = await response.json();
+  const advice = result.slip?.advice;
+  if (typeof advice !== "string" || !advice.trim()) {
+    throw new Error("Greeting API returned invalid text");
+  }
+
+  return `Hey, cutie. The internet picked this thought for you: “${advice.trim()}” — and my advice is to stay a little longer.`;
+};
+
+const fetchOnlineJoke = async (signal) => {
+  const response = await fetch(
+    "https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&safe-mode",
+    { cache: "no-store", signal }
+  );
+  if (!response.ok) {
+    throw new Error(`Joke API returned ${response.status}`);
+  }
+
+  const result = await response.json();
+  if (result.error) {
+    throw new Error("Joke API could not provide a joke");
+  }
+
+  let text;
+  if (
+    result.type === "twopart" &&
+    typeof result.setup === "string" &&
+    typeof result.delivery === "string"
+  ) {
+    text = `${result.setup} — ${result.delivery}`;
+  } else if (result.type === "single" && typeof result.joke === "string") {
+    text = result.joke;
+  } else {
+    throw new Error("Joke API returned an invalid joke");
+  }
+
+  if (!text.trim()) {
+    throw new Error("Joke API returned an empty joke");
+  }
+
+  return text.trim();
 };
 
 const createAppearance = () => {
@@ -123,17 +341,59 @@ const LoginPage = () => {
     const hour = new Date().getHours();
     const period = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
     const options = themeLines[appearance.category][period];
-    setGreeting(options[Math.floor(Math.random() * options.length)]);
+    setGreeting(
+      chooseGreeting(
+        options,
+        `toffee-login-greeting-${appearance.category}-${period}`
+      )
+    );
+    setJoke(chooseVariant(jokes, "toffee-login-joke"));
 
-    let nextIndex = Math.floor(Math.random() * jokes.length);
-    const previousJoke = sessionStorage.getItem("toffee-login-joke");
-    if (jokes[nextIndex] === previousJoke) {
-      nextIndex = (nextIndex + 1) % jokes.length;
-    }
+    const greetingController = new AbortController();
+    let greetingTimedOut = false;
+    const greetingTimeoutId = window.setTimeout(() => {
+      greetingTimedOut = true;
+      greetingController.abort();
+    }, 5000);
 
-    const nextJoke = jokes[nextIndex];
-    sessionStorage.setItem("toffee-login-joke", nextJoke);
-    setJoke(nextJoke);
+    fetchOnlineGreeting(greetingController.signal)
+      .then(setGreeting)
+      .catch((error) => {
+        if (greetingTimedOut) {
+          console.warn("Could not load a fresh login greeting: request timed out.");
+        } else if (!greetingController.signal.aborted) {
+          console.warn("Could not load a fresh login greeting:", error);
+        }
+      })
+      .finally(() => window.clearTimeout(greetingTimeoutId));
+
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 5000);
+
+    fetchOnlineJoke(controller.signal)
+      .then((onlineJoke) => {
+        sessionStorage.setItem("toffee-login-joke", onlineJoke);
+        setJoke(onlineJoke);
+      })
+      .catch((error) => {
+        if (timedOut) {
+          console.warn("Could not load a fresh login joke: request timed out.");
+        } else if (!controller.signal.aborted) {
+          console.warn("Could not load a fresh login joke:", error);
+        }
+      })
+      .finally(() => window.clearTimeout(timeoutId));
+
+    return () => {
+      window.clearTimeout(greetingTimeoutId);
+      greetingController.abort();
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [appearance.category]);
 
   if (isAuthenticated) return <Navigate to="/home" replace />;
