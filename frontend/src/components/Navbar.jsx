@@ -258,7 +258,7 @@ const otherOn =
                     </button>
 
                     {searchOpen && (
-                      <div className="absolute right-0 top-full mt-2 z-50 w-[min(24rem,calc(100vw-1rem))] rounded-box border border-base-300 bg-base-100 p-3 shadow-xl">
+                      <div className="fixed right-2 top-[4.5rem] z-50 w-[calc(100vw-1rem)] max-w-sm rounded-box border border-base-300 bg-base-100 p-3 shadow-xl md:absolute md:right-0 md:top-full md:mt-2 md:w-96 md:max-w-none">
                         <form
                           onSubmit={handleSearchSubmit}
                           className="flex items-center gap-2"
