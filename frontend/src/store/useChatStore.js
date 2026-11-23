@@ -33,6 +33,11 @@ const normalizeEffect = (effect) => {
 export const useChatStore = create((set, get) => ({
   messages: [],
   isMessagesLoading: false,
+  isFetchingMore: false,
+  isFetchingNewer: false,
+  hasMore: true,
+  hasMoreNewer: false,
+  scrollToMessageId: null,
 
   // ---------------- REPLY FEATURE ----------------
 
@@ -50,71 +55,159 @@ export const useChatStore = create((set, get) => ({
 
   // ---------------- GET MESSAGES ----------------
 
-  getMessages: async (cursor) => {
-    set({
-      isMessagesLoading: true,
-    });
+  getMessages: async (cursor, { burst = false } = {}) => {
+    set(
+      cursor
+        ? { isFetchingMore: true }
+        : { isMessagesLoading: true }
+    );
 
     try {
       const res = await axiosInstance.get(
         "/messages",
         {
-          params: cursor
-            ? { cursor }
-            : {},
+          params: {
+            ...(cursor ? { cursor } : {}),
+            limit: cursor ? (burst ? 150 : 50) : 150,
+          },
         }
       );
 
-      const fetched = res.data || [];
+      const { messages: fetched = [], hasMore = false } =
+        res.data || {};
 
       set((state) => {
-        /*
-         * Initial load.
-         *
-         * Backend returns newest-first, while the
-         * existing frontend stores messages oldest-first.
-         */
-        if (!cursor) {
-          return {
-            messages: fetched.reverse(),
-          };
-        }
-
-        /*
-         * Pagination:
-         * Add only messages that aren't already loaded.
-         */
         const existingIds = new Set(
           state.messages.map(
             (message) => message._id
           )
         );
 
-        const older = fetched
-          .filter(
-            (message) =>
-              !existingIds.has(message._id)
-          )
-          .reverse();
+        const newMessages = fetched.filter(
+          (message) => !existingIds.has(message._id)
+        );
 
         return {
-          messages: [
-            ...state.messages,
-            ...older,
-          ],
+          // Both the server and store use newest-first order. Older
+          // pages extend the list at the bottom without moving the view.
+          messages: cursor
+            ? [...state.messages, ...newMessages]
+            : [...newMessages, ...state.messages],
+          hasMore,
+          ...(cursor ? {} : { hasMoreNewer: false }),
         };
       });
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
+          error?.response?.data?.error ||
           "Failed to load messages"
       );
     } finally {
-      set({
-        isMessagesLoading: false,
-      });
+      set(
+        cursor
+          ? { isFetchingMore: false }
+          : { isMessagesLoading: false }
+      );
     }
   },
+
+  getNewerMessages: async (cursor) => {
+    set({ isFetchingNewer: true });
+
+    try {
+      const res = await axiosInstance.get("/messages", {
+        params: { cursor, direction: "newer", limit: 50 },
+      });
+      const { messages: fetched = [], hasMore = false } = res.data || {};
+
+      set((state) => {
+        const existingIds = new Set(
+          state.messages.map((message) => message._id)
+        );
+        const newer = fetched
+          .filter((message) => !existingIds.has(message._id))
+          .reverse();
+
+        return {
+          messages: [...newer, ...state.messages],
+          hasMoreNewer: hasMore,
+        };
+      });
+
+      return true;
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          "Failed to load newer messages"
+      );
+      return false;
+    } finally {
+      set({ isFetchingNewer: false });
+    }
+  },
+
+  searchMessages: async (query, cursor) => {
+    try {
+      const res = await axiosInstance.get("/messages/search", {
+        params: {
+          q: query,
+          ...(cursor ? { cursor } : {}),
+          limit: 40,
+        },
+      });
+
+      return res.data;
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          "Failed to search messages"
+      );
+      return null;
+    }
+  },
+
+  loadMessagesAround: async (id) => {
+    if (get().messages.some((message) => message._id === id)) {
+      set({ scrollToMessageId: id });
+      return true;
+    }
+
+    set({ isMessagesLoading: true });
+
+    try {
+      const res = await axiosInstance.get(`/messages/around/${id}`, {
+        params: { limit: 30 },
+      });
+      const {
+        messages = [],
+        hasMoreNewer = false,
+        hasMoreOlder = false,
+      } = res.data || {};
+
+      set({
+        messages,
+        hasMoreNewer,
+        hasMore: hasMoreOlder,
+        scrollToMessageId: id,
+      });
+
+      return true;
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          "Failed to open search result"
+      );
+      return false;
+    } finally {
+      set({ isMessagesLoading: false });
+    }
+  },
+
+  clearScrollToMessage: () => set({ scrollToMessageId: null }),
 
   // ---------------- SEND MESSAGE ----------------
 

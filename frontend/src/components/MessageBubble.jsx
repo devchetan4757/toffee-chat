@@ -173,6 +173,7 @@ const MessageContent = memo(function MessageContent({
 const MessageBubble = memo(function MessageBubble({
   message,
   isSelf,
+  isSearchTarget = false,
   onDelete,
   onImageClick,
   onSwipeReply,
@@ -307,6 +308,7 @@ const MessageBubble = memo(function MessageBubble({
 
   return (
     <div
+      data-message-id={message._id}
       className={`chat ${
         isSelf ? "chat-end" : "chat-start"
       } group relative`}
@@ -349,6 +351,8 @@ const MessageBubble = memo(function MessageBubble({
             : message.video
               ? "media-bubble video-bubble p-1.5"
               : ""
+        } ${
+          isSearchTarget ? "ring-2 ring-primary ring-offset-2" : ""
         }`}
         style={{
           transform: `translateX(${dragX}px)`,

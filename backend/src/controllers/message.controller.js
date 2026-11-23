@@ -1,34 +1,140 @@
 import Message, {
   MESSAGE_EFFECTS,
 } from "../models/message.model.js";
+import mongoose from "mongoose";
 import sanitizeHtml from "sanitize-html";
 import { io } from "../lib/socket.js";
 import cloudinary from "../lib/cloudinary.js";
+
+const escapeRegExp = (value) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * GET /api/messages?cursor=<messageId>&limit=150
  */
 export const getMessages = async (req, res) => {
   try {
-    const limit = Number(req.query.limit) || 150;
+    const requestedLimit = Number(req.query.limit) || 150;
+    const limit = Math.min(Math.max(requestedLimit, 1), 150);
     const { cursor } = req.query;
+    const direction = req.query.direction === "newer" ? "newer" : "older";
 
     const query = cursor
-      ? { _id: { $lt: cursor } }
+      ? { _id: direction === "newer" ? { $gt: cursor } : { $lt: cursor } }
       : {};
 
     const messages = await Message.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit)
+      .sort(direction === "newer" ? { _id: 1 } : { _id: -1 })
+      .hint({ _id: 1 })
+      .limit(limit + 1)
       .lean();
 
-    res.status(200).json(messages.reverse());
+    const hasMore = messages.length > limit;
+    res.status(200).json({
+      messages: messages.slice(0, limit),
+      hasMore,
+    });
   } catch (error) {
     console.error("getMessages error:", error);
 
     res.status(500).json({
       error: "Internal server error",
     });
+  }
+};
+
+/**
+ * GET /api/messages/search?q=<text>&cursor=<messageId>&limit=40
+ */
+export const searchMessages = async (req, res) => {
+  try {
+    const queryText =
+      typeof req.query.q === "string" ? req.query.q.trim() : "";
+
+    if (!queryText) {
+      return res.status(400).json({ message: "Search text is required" });
+    }
+
+    if (queryText.length > 100) {
+      return res.status(400).json({ message: "Search text is too long" });
+    }
+
+    const { cursor } = req.query;
+    if (cursor && !mongoose.isValidObjectId(cursor)) {
+      return res.status(400).json({ message: "Invalid search cursor" });
+    }
+
+    const requestedLimit = Number(req.query.limit) || 40;
+    const limit = Math.min(Math.max(requestedLimit, 1), 100);
+    const query = {
+      text: {
+        $regex: escapeRegExp(queryText),
+        $options: "i",
+      },
+    };
+
+    if (cursor) query._id = { $lt: cursor };
+
+    const matches = await Message.find(query)
+      .sort({ _id: -1 })
+      .hint({ _id: 1 })
+      .select("_id text createdAt")
+      .limit(limit + 1)
+      .lean();
+
+    res.status(200).json({
+      messages: matches.slice(0, limit),
+      hasMore: matches.length > limit,
+    });
+  } catch (error) {
+    console.error("searchMessages error:", error);
+    res.status(500).json({ message: "Failed to search messages" });
+  }
+};
+
+/**
+ * GET /api/messages/around/:id?limit=30
+ */
+export const getMessagesAround = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid message id" });
+    }
+
+    const target = await Message.findById(id).lean();
+    if (!target) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    const requestedLimit = Number(req.query.limit) || 30;
+    const limit = Math.min(Math.max(requestedLimit, 1), 50);
+
+    const [newer, older] = await Promise.all([
+      Message.find({ _id: { $gt: target._id } })
+        .sort({ _id: 1 })
+        .hint({ _id: 1 })
+        .limit(limit + 1)
+        .lean(),
+      Message.find({ _id: { $lt: target._id } })
+        .sort({ _id: -1 })
+        .hint({ _id: 1 })
+        .limit(limit + 1)
+        .lean(),
+    ]);
+
+    res.status(200).json({
+      messages: [
+        ...newer.slice(0, limit).reverse(),
+        target,
+        ...older.slice(0, limit),
+      ],
+      hasMoreNewer: newer.length > limit,
+      hasMoreOlder: older.length > limit,
+    });
+  } catch (error) {
+    console.error("getMessagesAround error:", error);
+    res.status(500).json({ message: "Failed to load messages around search result" });
   }
 };
 

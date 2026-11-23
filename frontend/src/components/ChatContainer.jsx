@@ -23,16 +23,24 @@ const ChatContainer = () => {
     deleteMessage,
     isMessagesLoading,
     isFetchingMore,
+    isFetchingNewer,
     hasMore,
+    hasMoreNewer,
+    scrollToMessageId,
     setReplyTo,
+    getNewerMessages,
+    clearScrollToMessage,
   } = useChatStore();
 
   const { role: myRole, wallpaper } = useAuthStore();
 
   const chatRef = useRef(null);
   const loadingOlderRef = useRef(false);
+  const loadingNewerRef = useRef(false);
+  const newerSentinelRef = useRef(null);
   const [fullImage, setFullImage] = useState(null);
   const [wallpaperPickerOpen, setWallpaperPickerOpen] = useState(false);
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
 
   // ================= CELEBRATION BURST (chat-wide, one-off) =================
   // The bubble's own confetti skin (see MessageBubble/MessageEffects) is
@@ -72,7 +80,7 @@ const ChatContainer = () => {
       await getMessages();
     };
     initChat();
-  }, []);
+  }, [getMessages]);
 
   // mark newly loaded messages as seen. Only emit for messages we
   // haven't already marked — otherwise every messages-array update
@@ -138,8 +146,8 @@ const ChatContainer = () => {
   const lastLoadAtRef = useRef(0);
   const BURST_THRESHOLD_MS = 600;
 
-  const loadOlder = async () => {
-    if (loadingOlderRef.current || isFetchingMore || !hasMore) return;
+  const loadOlder = useCallback(async () => {
+    if (loadingOlderRef.current || !hasMore) return;
 
     const oldestId = messagesRef.current[messagesRef.current.length - 1]?._id;
     if (!oldestId) return;
@@ -157,7 +165,28 @@ const ChatContainer = () => {
     await getMessages(oldestId, { burst: isBurst });
 
     loadingOlderRef.current = false;
-  };
+  }, [getMessages, hasMore]);
+
+  const loadNewer = useCallback(async () => {
+    if (loadingNewerRef.current || !hasMoreNewer) return;
+
+    const newestId = messagesRef.current[0]?._id;
+    const root = chatRef.current;
+    if (!newestId || !root) return;
+
+    loadingNewerRef.current = true;
+    const previousHeight = root.scrollHeight;
+    const loaded = await getNewerMessages(newestId);
+
+    if (loaded) {
+      requestAnimationFrame(() => {
+        root.scrollTop += root.scrollHeight - previousHeight;
+        loadingNewerRef.current = false;
+      });
+    } else {
+      loadingNewerRef.current = false;
+    }
+  }, [getNewerMessages, hasMoreNewer]);
 
   // IntersectionObserver instead of scroll-position math: fires
   // reliably regardless of scroll speed (mobile momentum scrolling
@@ -177,12 +206,48 @@ const ChatContainer = () => {
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-    // isMessagesLoading is included so this re-runs the moment the real
-    // chat UI (and therefore the refs) actually mounts — during the
-    // initial skeleton render, chatRef/sentinelRef don't exist yet, so
-    // the very first run of this effect would otherwise bail out and
-    // never get a second chance since hasMore alone doesn't change
-  }, [hasMore, isMessagesLoading]);
+    // isMessagesLoading ensures the observer attaches when the real chat
+    // UI replaces the initial skeleton.
+  }, [hasMore, isMessagesLoading, loadOlder]);
+
+  useEffect(() => {
+    const sentinel = newerSentinelRef.current;
+    const root = chatRef.current;
+    if (!sentinel || !root || !hasMoreNewer) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadNewer();
+      },
+      { root, rootMargin: "400px 0px 0px 0px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMoreNewer, isMessagesLoading, loadNewer]);
+
+  useEffect(() => {
+    if (!scrollToMessageId || !chatRef.current) return;
+
+    const target = Array.from(
+      chatRef.current.querySelectorAll("[data-message-id]")
+    ).find((element) => element.dataset.messageId === scrollToMessageId);
+
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightedMessageId(scrollToMessageId);
+    clearScrollToMessage();
+  }, [clearScrollToMessage, messages, scrollToMessageId]);
+
+  useEffect(() => {
+    if (!highlightedMessageId) return;
+    const timeout = window.setTimeout(
+      () => setHighlightedMessageId(null),
+      1800
+    );
+    return () => window.clearTimeout(timeout);
+  }, [highlightedMessageId]);
 
   // Swipe-to-reply now lives entirely inside MessageBubble (it needs
   // a live per-bubble offset while dragging, which has to be local
@@ -257,11 +322,21 @@ const ChatContainer = () => {
             : undefined
         }
       >
+        {hasMoreNewer && (
+          <div ref={newerSentinelRef} className="h-px" />
+        )}
+        {isFetchingNewer && (
+          <div className="flex justify-center py-1">
+            <span className="loading loading-spinner loading-sm opacity-60" />
+          </div>
+        )}
+
         {messages.map((message) => (
           <MessageBubble
             key={message._id}
             message={message}
             isSelf={message.logger === myRole}
+            isSearchTarget={highlightedMessageId === message._id}
             onDelete={deleteMessage}
             onImageClick={handleImageClick}
             onSwipeReply={handleSwipeReply}

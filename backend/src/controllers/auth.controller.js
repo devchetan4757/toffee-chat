@@ -22,9 +22,22 @@ export const login = async (req, res) => {
       [USER2]: process.env.PASSWORD_2,
     };
 
+    const configuredCredentials = Object.entries(rolePasswords).filter(
+      ([role, hash]) =>
+        role &&
+        role !== "undefined" &&
+        typeof hash === "string" &&
+        /^\$2[aby]\$\d{2}\$/.test(hash)
+    );
+
+    if (!configuredCredentials.length || !process.env.JWT_SECRET) {
+      console.error("Login configuration is missing valid credentials or JWT_SECRET");
+      return res.status(500).json({ message: "Login is not configured" });
+    }
+
     let role;
 
-    for (const [r, hash] of Object.entries(rolePasswords)) {
+    for (const [r, hash] of configuredCredentials) {
       const match = await bcrypt.compare(password, hash);
 
       if (match) {

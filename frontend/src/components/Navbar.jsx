@@ -1,18 +1,31 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { useLocation } from "react-router-dom";
 import { useChatStore } from "../store/useChatStore";
-import { LogOut, Settings, Image, MoreVertical, Home } from "lucide-react";
+import {
+  LogOut,
+  Settings,
+  Image,
+  MoreVertical,
+  Home,
+  Search,
+  ChevronUp,
+  ChevronDown,
+  X,
+} from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 const Navbar = ({ autoPlay, setAutoPlay }) => {
-  const { role, logout, isAuthenticated, authUser, otherUser } = useAuthStore();
+  const { logout, isAuthenticated, authUser, otherUser } = useAuthStore();
 
   // FIX: prevent crash if undefined
-  const { onlineUsers = [] } = useChatStore();
+  const {
+    onlineUsers = [],
+    searchMessages,
+    loadMessagesAround,
+  } = useChatStore();
 
   const location = useLocation();
-  const navigate = useNavigate();
   const isMusicPage = location.pathname === "/music";
 
   const handleLogout = async () => {
@@ -27,7 +40,6 @@ const Navbar = ({ autoPlay, setAutoPlay }) => {
 
   // ✅ NEW PFP SYSTEM (Cloudinary from backend)
   const pfp = authUser?.pfp;
-  const otherPfp = otherUser?.pfp;
   
   // if you still need online indicator logic
 const otherOn =
@@ -35,11 +47,43 @@ const otherOn =
   
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
+  const searchInputRef = useRef(null);
   const [localAutoPlay, setLocalAutoPlay] = useState(autoPlay);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
+  const [hasMoreSearchResults, setHasMoreSearchResults] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     setLocalAutoPlay(autoPlay);
   }, [autoPlay]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+
+    searchInputRef.current?.focus();
+    const handleOutsideClick = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchOpen(false);
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setSearchOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [searchOpen]);
 
   const handleAutoToggle = () => {
     if (isMusicPage) return;
@@ -62,6 +106,79 @@ const otherOn =
       document.removeEventListener("touchstart", handleClickOutside);
     };
   }, []);
+
+  const showSearchResult = async (index, results = searchResults) => {
+    const result = results[index];
+    if (!result) return;
+
+    setIsSearching(true);
+    try {
+      if (await loadMessagesAround(result._id)) {
+        setActiveSearchIndex(index);
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchSubmit = async (event) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    if (!query || isSearching) return;
+
+    setIsSearching(true);
+    setSearchResults([]);
+    setActiveSearchIndex(-1);
+    setHasMoreSearchResults(false);
+
+    try {
+      const page = await searchMessages(query);
+      if (!page) return;
+
+      const results = page.messages || [];
+      setSearchResults(results);
+      setHasMoreSearchResults(page.hasMore);
+
+      if (results.length) {
+        await showSearchResult(0, results);
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const showNewerSearchResult = () => {
+    if (activeSearchIndex > 0) {
+      showSearchResult(activeSearchIndex - 1);
+    }
+  };
+
+  const showOlderSearchResult = async () => {
+    if (activeSearchIndex + 1 < searchResults.length) {
+      await showSearchResult(activeSearchIndex + 1);
+      return;
+    }
+
+    if (!hasMoreSearchResults || !searchResults.length || isSearching) return;
+
+    setIsSearching(true);
+    try {
+      const page = await searchMessages(
+        searchQuery.trim(),
+        searchResults[searchResults.length - 1]._id
+      );
+      if (!page) return;
+
+      const results = [...searchResults, ...(page.messages || [])];
+      setSearchResults(results);
+      setHasMoreSearchResults(page.hasMore);
+      if (results.length > searchResults.length) {
+        await showSearchResult(searchResults.length, results);
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   return (
     <header className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40 backdrop-blur-lg bg-base-100/80">
@@ -128,6 +245,100 @@ const otherOn =
     />
   </div>
 )}
+                {location.pathname === "/home" && (
+                  <div ref={searchRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setSearchOpen((value) => !value)}
+                      className="btn btn-sm btn-ghost btn-circle"
+                      aria-label="Search chat messages"
+                      aria-expanded={searchOpen}
+                    >
+                      <Search className="w-5 h-5" />
+                    </button>
+
+                    {searchOpen && (
+                      <div className="absolute right-0 top-full mt-2 z-50 w-[min(24rem,calc(100vw-1rem))] rounded-box border border-base-300 bg-base-100 p-3 shadow-xl">
+                        <form
+                          onSubmit={handleSearchSubmit}
+                          className="flex items-center gap-2"
+                          role="search"
+                          aria-label="Search chat messages"
+                        >
+                          <input
+                            ref={searchInputRef}
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                            className="input input-sm input-bordered min-w-0 flex-1"
+                            placeholder="Search messages"
+                            maxLength={100}
+                          />
+                          <button
+                            type="submit"
+                            className="btn btn-sm btn-primary"
+                            disabled={isSearching || !searchQuery.trim()}
+                            aria-label="Search"
+                          >
+                            {isSearching ? (
+                              <span className="loading loading-spinner loading-xs" />
+                            ) : (
+                              <Search className="h-4 w-4" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSearchOpen(false)}
+                            className="btn btn-sm btn-ghost btn-circle"
+                            aria-label="Close search"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </form>
+
+                        {searchResults.length > 0 && activeSearchIndex >= 0 ? (
+                          <div className="mt-3 flex items-center gap-2">
+                            <p className="min-w-0 flex-1 text-sm line-clamp-2 break-words">
+                              {searchResults[activeSearchIndex]?.text}
+                            </p>
+                            <span className="shrink-0 text-xs opacity-70">
+                              {activeSearchIndex + 1}/{searchResults.length}
+                              {hasMoreSearchResults ? "+" : ""}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={showNewerSearchResult}
+                              className="btn btn-xs btn-ghost btn-circle"
+                              disabled={isSearching || activeSearchIndex === 0}
+                              aria-label="Newer matching message"
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={showOlderSearchResult}
+                              className="btn btn-xs btn-ghost btn-circle"
+                              disabled={
+                                isSearching ||
+                                (!hasMoreSearchResults &&
+                                  activeSearchIndex >= searchResults.length - 1)
+                              }
+                              aria-label="Older matching message"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          !isSearching &&
+                          searchQuery.trim() && (
+                            <p className="mt-3 text-sm opacity-70">
+                              No matching messages
+                            </p>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* DROPDOWN */}
                 <div ref={dropdownRef} className="relative">
                   <button
