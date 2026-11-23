@@ -53,8 +53,8 @@ const MessageContent = memo(function MessageContent({
         <div
           className={`px-2 py-1.5 mb-1.5 rounded-md flex items-start gap-2 bg-black/10 border-l-[3px] ${
             isSelf
-              ? "border-primary-content/70"
-              : "border-primary"
+              ? "border-base-content/30"
+              : "border-primary-content/70"
           }`}
         >
           <div className="min-w-0 flex-1">
@@ -308,8 +308,8 @@ const MessageBubble = memo(function MessageBubble({
   const bubbleSurfaceClass = skinActive
     ? ""
     : isSelf
-      ? "chat-bubble-primary border border-primary/20 shadow-sm"
-      : "border border-base-300/70 bg-base-100 text-base-content shadow-sm";
+      ? "border border-base-300/70 bg-base-200 text-base-content shadow-sm"
+      : "chat-bubble-primary border border-primary/20 shadow-sm";
 
   return (
     <div

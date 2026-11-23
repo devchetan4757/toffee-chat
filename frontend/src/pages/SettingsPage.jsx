@@ -165,8 +165,8 @@ const SettingsPage = () => {
                           max-w-[80%] rounded-xl p-3 shadow-sm
                           ${
                             message.isSent
-                              ? "bg-primary text-primary-content"
-                              : "bg-base-200"
+                              ? "bg-base-200 text-base-content"
+                              : "bg-primary text-primary-content"
                           }
                         `}
                       >

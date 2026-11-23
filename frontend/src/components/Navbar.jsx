@@ -13,7 +13,6 @@ import {
   Search,
   ChevronUp,
   ChevronDown,
-  ChevronRight,
   X,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
@@ -48,11 +47,11 @@ const Navbar = ({ autoPlay, setAutoPlay }) => {
 const otherOn =
   otherUser?.role && onlineUsers.includes(otherUser.role);
 
-  const menuLinkClass = (active) =>
-    `group flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-sm transition-colors ${
+  const menuIconClass = (active) =>
+    `grid h-9 w-9 place-items-center rounded-xl transition-colors ${
       active
-        ? "bg-primary/10 text-primary"
-        : "text-base-content hover:bg-base-200"
+        ? "bg-primary/10 ring-1 ring-primary/20"
+        : "hover:bg-base-200"
     }`;
   
   const [open, setOpen] = useState(false);
@@ -383,69 +382,55 @@ const otherOn =
                   </button>
 
                   {open && (
-                    <div className="absolute right-0 z-50 mt-2 w-52 rounded-2xl border border-base-300 bg-base-100 p-1.5 shadow-xl">
-                      <p className="px-2.5 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-base-content/50">
-                        Explore
-                      </p>
-
+                    <div className="absolute right-0 z-50 mt-2 grid w-32 max-w-[calc(100vw-1.5rem)] grid-cols-3 gap-1 rounded-2xl border border-base-300 bg-base-100 p-1.5 shadow-xl">
                       <Link
                         to="/"
                         onClick={() => setOpen(false)}
-                        className={menuLinkClass(location.pathname === "/")}
+                        className={`${menuIconClass(location.pathname === "/")} text-primary`}
+                        aria-label="Home"
+                        title="Home"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-105">
-                          <Home className="h-4 w-4" />
-                        </span>
-                        <span className="flex-1 font-medium">Home</span>
-                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
+                        <Home className="h-5 w-5" />
                       </Link>
 
                       <Link
                         to="/gallery?section=photo"
                         onClick={() => setOpen(false)}
-                        className={menuLinkClass(location.pathname === "/gallery" && location.search.includes("photo"))}
+                        className={`${menuIconClass(location.pathname === "/gallery" && location.search.includes("photo"))} text-secondary`}
+                        aria-label="Photos"
+                        title="Photos"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary/10 text-secondary transition-transform group-hover:scale-105">
-                          <Image className="h-4 w-4" />
-                        </span>
-                        <span className="flex-1 font-medium">Photos</span>
-                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
+                        <Image className="h-5 w-5" />
                       </Link>
 
                       <Link
                         to="/gallery?section=video"
                         onClick={() => setOpen(false)}
-                        className={menuLinkClass(location.pathname === "/gallery" && location.search.includes("video"))}
+                        className={`${menuIconClass(location.pathname === "/gallery" && location.search.includes("video"))} text-accent`}
+                        aria-label="Videos"
+                        title="Videos"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent/10 text-accent transition-transform group-hover:scale-105">
-                          <Video className="h-4 w-4" />
-                        </span>
-                        <span className="flex-1 font-medium">Videos</span>
-                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
+                        <Video className="h-5 w-5" />
                       </Link>
 
                       <Link
                         to="/music"
                         onClick={() => setOpen(false)}
-                        className={menuLinkClass(location.pathname === "/music")}
+                        className={`${menuIconClass(location.pathname === "/music")} text-info`}
+                        aria-label="Music"
+                        title="Music"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-info/10 text-info transition-transform group-hover:scale-105">
-                          <Music2 className="h-4 w-4" />
-                        </span>
-                        <span className="flex-1 font-medium">Music</span>
-                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
+                        <Music2 className="h-5 w-5" />
                       </Link>
 
                       <Link
                         to="/settings"
                         onClick={() => setOpen(false)}
-                        className={menuLinkClass(location.pathname === "/settings")}
+                        className={`${menuIconClass(location.pathname === "/settings")} text-warning`}
+                        aria-label="Settings"
+                        title="Settings"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-warning/10 text-warning transition-transform group-hover:scale-105">
-                          <Settings className="h-4 w-4" />
-                        </span>
-                        <span className="flex-1 font-medium">Settings</span>
-                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
+                        <Settings className="h-5 w-5" />
                       </Link>
 
                       <button
@@ -453,13 +438,11 @@ const otherOn =
                           setOpen(false);
                           handleLogout();
                         }}
-                        className="group mt-1 flex w-full items-center gap-2.5 rounded-xl border-t border-base-200 px-2 py-2 text-left text-sm text-error transition-colors hover:bg-error/10"
+                        className="grid h-9 w-9 place-items-center rounded-xl text-error transition-colors hover:bg-error/10"
+                        aria-label="Log out"
+                        title="Log out"
                       >
-                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-error/10 text-error transition-transform group-hover:scale-105">
-                          <LogOut className="h-4 w-4" />
-                        </span>
-                        <span className="flex-1 font-medium">Log out</span>
-                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
+                        <LogOut className="h-5 w-5" />
                       </button>
 
                     </div>

@@ -5,9 +5,11 @@ import VideoPlayer from "./VideoPlayer";
 import {
   ChevronLeft,
   ChevronRight,
+  CircleAlert,
   Eye,
   Film,
   Image,
+  RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
@@ -15,16 +17,21 @@ import {
 const ImageGallery = ({ section = "all" }) => {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const [currentIndex, setCurrentIndex] = useState(null);
   const [activeIndex, setActiveIndex] = useState(null); // 👈 for tap actions
 
   // 🔄 FETCH
   const fetchImages = async () => {
+    setLoading(true);
+    setLoadError(false);
+
     try {
       const res = await axiosInstance.get("/gallery");
       setImages(res.data);
     } catch {
+      setLoadError(true);
       toast.error("Failed to load gallery");
     } finally {
       setLoading(false);
@@ -76,6 +83,28 @@ const ImageGallery = ({ section = "all" }) => {
     return (
       <div className="flex h-[40vh] items-center justify-center">
         <span className="loading loading-spinner loading-md text-primary" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-[35vh] flex-col items-center justify-center px-4 text-center">
+        <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-error/10 text-error">
+          <CircleAlert className="h-6 w-6" />
+        </div>
+        <p className="font-semibold">Couldn&apos;t load the gallery</p>
+        <p className="mt-1 max-w-sm text-sm text-base-content/60">
+          Check your connection and try again.
+        </p>
+        <button
+          type="button"
+          onClick={fetchImages}
+          className="btn btn-sm btn-outline mt-4"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Try again
+        </button>
       </div>
     );
   }

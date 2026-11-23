@@ -29,7 +29,8 @@ const MAX_SCALE = 1.6;
 // keeps getting misread as a drag — which silently eats the click.
 const DRAG_THRESHOLD = 10;
 
-const clampScale = (s) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
+const clampScale = (s, maxScale = MAX_SCALE) =>
+  Math.min(maxScale, Math.max(MIN_SCALE, s));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
 const EFFECT_ICONS = {
@@ -294,16 +295,55 @@ const MessageInput = () => {
     const viewportTop = vv?.offsetTop ?? 0;
     const vw = vv?.width ?? window.innerWidth;
     const vh = vv?.height ?? window.innerHeight;
+    const boxWidth =
+      containerRef.current?.offsetWidth ?? Math.min(BOX_WIDTH, vw - 24);
+    const boxHeight = containerRef.current?.offsetHeight ?? BOX_HEIGHT;
     const currentScale = scaleRef.current;
 
-    const maxLeft = viewportLeft + vw - BOX_WIDTH * currentScale;
-    const maxTop = viewportTop + vh - BOX_HEIGHT * currentScale;
+    const minLeft = viewportLeft + 12;
+    const maxLeft = viewportLeft + vw - 12 - boxWidth * currentScale;
+    const maxTop = viewportTop + vh - boxHeight * currentScale;
 
     return {
-      left: Math.min(Math.max(viewportLeft, pos.left), Math.max(viewportLeft, maxLeft)),
+      left: Math.min(Math.max(minLeft, pos.left), Math.max(minLeft, maxLeft)),
       top: Math.min(Math.max(viewportTop, pos.top), Math.max(viewportTop, maxTop)),
     };
   }, []);
+
+  const getMaxScale = useCallback(() => {
+    const vv = window.visualViewport;
+    const vw = vv?.width ?? window.innerWidth;
+    const boxWidth =
+      containerRef.current?.offsetWidth ?? Math.min(BOX_WIDTH, vw - 24);
+    return Math.min(MAX_SCALE, Math.max(MIN_SCALE, (vw - 24) / boxWidth));
+  }, []);
+
+  useEffect(() => {
+    const fitToViewport = () => {
+      const nextScale = clampScale(scaleRef.current, getMaxScale());
+      if (nextScale !== scaleRef.current) {
+        scaleRef.current = nextScale;
+        setScale(nextScale);
+      }
+
+      const nextPosition = clampPosition(positionRef.current);
+      if (
+        nextPosition.left !== positionRef.current.left ||
+        nextPosition.top !== positionRef.current.top
+      ) {
+        positionRef.current = nextPosition;
+        setPosition(nextPosition);
+      }
+    };
+
+    fitToViewport();
+    window.addEventListener("resize", fitToViewport);
+    window.visualViewport?.addEventListener("resize", fitToViewport);
+    return () => {
+      window.removeEventListener("resize", fitToViewport);
+      window.visualViewport?.removeEventListener("resize", fitToViewport);
+    };
+  }, [clampPosition, getMaxScale]);
 
   const applyTransform = (pos, currentScale) => {
     const el = containerRef.current;
@@ -390,7 +430,10 @@ const MessageInput = () => {
       const [p1, p2] = [...pointersRef.current.values()];
       if (pinchStartDistRef.current) {
         const ratio = distance(p1, p2) / pinchStartDistRef.current;
-        const newScale = clampScale(pinchStartScaleRef.current * ratio);
+        const newScale = clampScale(
+          pinchStartScaleRef.current * ratio,
+          getMaxScale()
+        );
         scaleRef.current = newScale;
         setScale(newScale);
         applyTransform(positionRef.current, newScale);
@@ -477,7 +520,7 @@ const MessageInput = () => {
     const centerY = e.clientY - rect.top;
 
     const oldScale = scaleRef.current;
-    const newScale = clampScale(oldScale - e.deltaY * 0.001);
+    const newScale = clampScale(oldScale - e.deltaY * 0.001, getMaxScale());
 
     const current = positionRef.current;
     const offsetX = (centerX / oldScale) * (newScale - oldScale);
@@ -529,6 +572,7 @@ const MessageInput = () => {
         left: 0,
         zIndex: 9999,
         width: `${BOX_WIDTH}px`,
+        maxWidth: "calc(100vw - 24px)",
         transform: `translate3d(${position.left}px, ${position.top}px, 0) scale(${scale})`,
         transformOrigin: "top left",
         touchAction: "none",
