@@ -227,15 +227,29 @@ const ChatContainer = () => {
   }, [hasMoreNewer, isMessagesLoading, loadNewer]);
 
   useEffect(() => {
-    if (!scrollToMessageId || !chatRef.current) return;
+    const root = chatRef.current;
+    if (!scrollToMessageId || !root) return;
 
     const target = Array.from(
-      chatRef.current.querySelectorAll("[data-message-id]")
+      root.querySelectorAll("[data-message-id]")
     ).find((element) => element.dataset.messageId === scrollToMessageId);
 
     if (!target) return;
 
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    const rootRect = root.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const targetTop = root.scrollTop + targetRect.top - rootRect.top;
+    const centeredTop =
+      targetTop + targetRect.height / 2 - root.clientHeight / 2;
+    const maxScrollTop = Math.max(0, root.scrollHeight - root.clientHeight);
+
+    root.scrollTo({
+      top: Math.min(
+        Math.max(0, centeredTop),
+        maxScrollTop
+      ),
+      behavior: "smooth",
+    });
     setHighlightedMessageId(scrollToMessageId);
     clearScrollToMessage();
   }, [clearScrollToMessage, messages, scrollToMessageId]);

@@ -44,7 +44,7 @@ export const getMessages = async (req, res) => {
 };
 
 /**
- * GET /api/messages/search?q=<text>&cursor=<messageId>&limit=40
+ * GET /api/messages/search?q=<text>&cursor=<tier>:<messageId>&limit=40
  */
 export const searchMessages = async (req, res) => {
   try {
@@ -59,32 +59,130 @@ export const searchMessages = async (req, res) => {
       return res.status(400).json({ message: "Search text is too long" });
     }
 
-    const { cursor } = req.query;
-    if (cursor && !mongoose.isValidObjectId(cursor)) {
-      return res.status(400).json({ message: "Invalid search cursor" });
-    }
-
     const requestedLimit = Number(req.query.limit) || 40;
     const limit = Math.min(Math.max(requestedLimit, 1), 100);
-    const query = {
+    const startsWithWordCharacter = /^[A-Za-z0-9_]/.test(queryText);
+    const endsWithWordCharacter = /[A-Za-z0-9_]$/.test(queryText);
+    const wordBoundaryPattern =
+      `${startsWithWordCharacter ? "\\b" : ""}` +
+      `${escapeRegExp(queryText)}` +
+      `${endsWithWordCharacter ? "\\b" : ""}`;
+    const partialPattern = escapeRegExp(queryText);
+
+    let phase = "exact";
+    let cursorId = null;
+    const { cursor } = req.query;
+    if (cursor) {
+      if (cursor === "partial:") {
+        phase = "partial";
+      } else if (cursor.startsWith("exact:")) {
+        phase = "exact";
+        cursorId = cursor.slice("exact:".length);
+      } else if (cursor.startsWith("partial:")) {
+        phase = "partial";
+        cursorId = cursor.slice("partial:".length);
+      } else if (mongoose.isValidObjectId(cursor)) {
+        // Continue older clients' cursors as exact-word pages.
+        cursorId = cursor;
+      } else {
+        return res.status(400).json({ message: "Invalid search cursor" });
+      }
+
+      if (cursorId && !mongoose.isValidObjectId(cursorId)) {
+        return res.status(400).json({ message: "Invalid search cursor" });
+      }
+    }
+
+    const exactQuery = {
       text: {
-        $regex: escapeRegExp(queryText),
+        $regex: wordBoundaryPattern,
         $options: "i",
       },
     };
+    if (cursorId) exactQuery._id = { $lt: cursorId };
 
-    if (cursor) query._id = { $lt: cursor };
+    const partialQuery = {
+      text: {
+        $regex: partialPattern,
+        $options: "i",
+      },
+      $nor: [
+        {
+          text: {
+            $regex: wordBoundaryPattern,
+            $options: "i",
+          },
+        },
+      ],
+    };
 
-    const matches = await Message.find(query)
+    if (phase === "partial") {
+      if (cursorId) partialQuery._id = { $lt: cursorId };
+
+      const partialMatches = await Message.find(partialQuery)
+        .sort({ _id: -1 })
+        .hint({ _id: 1 })
+        .select("_id text createdAt")
+        .limit(limit + 1)
+        .lean();
+      const messages = partialMatches.slice(0, limit).map((message) => ({
+        ...message,
+        matchType: "partial",
+      }));
+      const hasMore = partialMatches.length > limit;
+
+      return res.status(200).json({
+        messages,
+        hasMore,
+        nextCursor: hasMore
+          ? `partial:${messages[messages.length - 1]._id}`
+          : null,
+      });
+    }
+
+    const exactMatches = await Message.find(exactQuery)
       .sort({ _id: -1 })
       .hint({ _id: 1 })
       .select("_id text createdAt")
       .limit(limit + 1)
       .lean();
 
+    if (exactMatches.length > limit) {
+      const messages = exactMatches.slice(0, limit).map((message) => ({
+        ...message,
+        matchType: "exact",
+      }));
+
+      return res.status(200).json({
+        messages,
+        hasMore: true,
+        nextCursor: `exact:${messages[messages.length - 1]._id}`,
+      });
+    }
+
+    const exactMessages = exactMatches.map((message) => ({
+      ...message,
+      matchType: "exact",
+    }));
+    const remaining = limit - exactMessages.length;
+    const partialMatches = await Message.find(partialQuery)
+      .sort({ _id: -1 })
+      .hint({ _id: 1 })
+      .select("_id text createdAt")
+      .limit(Math.max(remaining, 1) + 1)
+      .lean();
+    const partialPage = partialMatches.slice(0, remaining).map((message) => ({
+      ...message,
+      matchType: "partial",
+    }));
+    const hasMore = partialMatches.length > remaining;
+
     res.status(200).json({
-      messages: matches.slice(0, limit),
-      hasMore: matches.length > limit,
+      messages: [...exactMessages, ...partialPage],
+      hasMore,
+      nextCursor: hasMore
+        ? `partial:${partialPage[partialPage.length - 1]?._id || ""}`
+        : null,
     });
   } catch (error) {
     console.error("searchMessages error:", error);

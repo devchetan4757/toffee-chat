@@ -55,6 +55,7 @@ const otherOn =
   const [searchResults, setSearchResults] = useState([]);
   const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
   const [hasMoreSearchResults, setHasMoreSearchResults] = useState(false);
+  const [searchCursor, setSearchCursor] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
@@ -130,6 +131,7 @@ const otherOn =
     setSearchResults([]);
     setActiveSearchIndex(-1);
     setHasMoreSearchResults(false);
+    setSearchCursor(null);
 
     try {
       const page = await searchMessages(query);
@@ -138,6 +140,7 @@ const otherOn =
       const results = page.messages || [];
       setSearchResults(results);
       setHasMoreSearchResults(page.hasMore);
+      setSearchCursor(page.nextCursor || null);
 
       if (results.length) {
         await showSearchResult(0, results);
@@ -159,19 +162,20 @@ const otherOn =
       return;
     }
 
-    if (!hasMoreSearchResults || !searchResults.length || isSearching) return;
+    if (!hasMoreSearchResults || !searchCursor || isSearching) return;
 
     setIsSearching(true);
     try {
       const page = await searchMessages(
         searchQuery.trim(),
-        searchResults[searchResults.length - 1]._id
+        searchCursor
       );
       if (!page) return;
 
       const results = [...searchResults, ...(page.messages || [])];
       setSearchResults(results);
       setHasMoreSearchResults(page.hasMore);
+      setSearchCursor(page.nextCursor || null);
       if (results.length > searchResults.length) {
         await showSearchResult(searchResults.length, results);
       }
@@ -300,6 +304,17 @@ const otherOn =
                             <p className="min-w-0 flex-1 text-sm line-clamp-2 break-words">
                               {searchResults[activeSearchIndex]?.text}
                             </p>
+                            <span
+                              className={`badge badge-xs shrink-0 ${
+                                searchResults[activeSearchIndex]?.matchType === "exact"
+                                  ? "badge-primary"
+                                  : "badge-ghost"
+                              }`}
+                            >
+                              {searchResults[activeSearchIndex]?.matchType === "exact"
+                                ? "Exact"
+                                : "Contains"}
+                            </span>
                             <span className="shrink-0 text-xs opacity-70">
                               {activeSearchIndex + 1}/{searchResults.length}
                               {hasMoreSearchResults ? "+" : ""}
