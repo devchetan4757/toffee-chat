@@ -553,11 +553,16 @@ const MessageInput = () => {
 
         {/* ================= REPLY ================= */}
         {replyTo && (
-          <div className="bg-gray-200 px-3 py-1 rounded-lg flex justify-between items-center">
+          <div className="flex items-center justify-between rounded-xl border border-base-300 bg-base-200 px-3 py-2">
             <span className="text-sm truncate max-w-[80%]">
               Replying: {replyTo.text || "Media"}
             </span>
-            <button type="button" onClick={clearReplyTo}>
+            <button
+              type="button"
+              onClick={clearReplyTo}
+              className="btn btn-ghost btn-xs btn-circle"
+              aria-label="Cancel reply"
+            >
               <X size={16} />
             </button>
           </div>
@@ -609,7 +614,7 @@ const MessageInput = () => {
         {/* ================= FORM ================= */}
         <form
           onSubmit={handleSendMessage}
-          className="flex items-center gap-2 bg-base-200 rounded-full shadow-lg px-4 py-3 w-full"
+          className="flex w-full items-center gap-1.5 rounded-2xl border border-base-300 bg-base-100 px-2.5 py-2 shadow-lg sm:gap-2 sm:px-3"
           style={{
             pointerEvents: dragging ? "none" : "auto",
             opacity: dragging ? 0.85 : 1,
@@ -626,6 +631,10 @@ const MessageInput = () => {
               onClick={() => {
                 isRecording ? stopRecording() : startRecording();
               }}
+              className={`btn btn-ghost btn-circle btn-sm shrink-0 ${
+                isRecording ? "text-error" : "text-base-content/70"
+              }`}
+              aria-label={isRecording ? "Stop recording" : "Record voice message"}
             >
               {isRecording ? <Square size={18} /> : <Mic size={18} />}
             </button>
@@ -633,8 +642,11 @@ const MessageInput = () => {
             <button
               type="button"
               onClick={() => setShowEffectPicker((p) => !p)}
-              className={`relative ${selectedEffect ? "text-primary" : ""}`}
+              className={`btn btn-ghost btn-circle btn-sm relative shrink-0 ${
+                selectedEffect ? "text-primary" : "text-base-content/70"
+              }`}
               title="Send effect"
+              aria-label="Choose message effect"
             >
               {selectedEffect ? (
                 (() => {
@@ -669,7 +681,7 @@ const MessageInput = () => {
             }}
             placeholder="Type a message"
             rows={1}
-            className="flex-1 bg-base-100 rounded-full px-4 py-3 resize-none focus:outline-none"
+            className="min-w-0 flex-1 resize-none rounded-xl bg-transparent px-2 py-2 text-sm leading-5 focus:outline-none"
           />
 
           {/* IMAGE INPUT */}
@@ -687,6 +699,8 @@ const MessageInput = () => {
               fileInputRef.current?.click();
             }}
             title="Add photo or video"
+            className="btn btn-ghost btn-circle btn-sm shrink-0 text-base-content/70"
+            aria-label="Add photo or video"
           >
             <Image size={18} />
           </button>
@@ -702,12 +716,18 @@ const MessageInput = () => {
               setShowStickerPicker((p) => !p);
               fetchStickers();
             }}
+            className="btn btn-ghost btn-circle btn-sm shrink-0 text-base-content/70"
+            aria-label="Choose sticker"
           >
             <Smile size={18} />
           </button>
 
           {/* SEND */}
-          <button type="submit">
+          <button
+            type="submit"
+            className="btn btn-primary btn-circle btn-sm shrink-0"
+            aria-label="Send message"
+          >
             <Send size={18} />
           </button>
 

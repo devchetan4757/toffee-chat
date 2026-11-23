@@ -305,6 +305,11 @@ const MessageBubble = memo(function MessageBubble({
   const celebrationActive = effect === "celebration";
   const giftActive = effect === "gift";
   const skinActive = isSkinEffect(effect);
+  const bubbleSurfaceClass = skinActive
+    ? ""
+    : isSelf
+      ? "chat-bubble-primary border border-primary/20 shadow-sm"
+      : "border border-base-300/70 bg-base-100 text-base-content shadow-sm";
 
   return (
     <div
@@ -313,13 +318,13 @@ const MessageBubble = memo(function MessageBubble({
         isSelf ? "chat-end" : "chat-start"
       } group relative`}
     >
-      <div className="chat-header flex gap-2 text-[10px] opacity-60">
+      <div className="chat-header flex items-center gap-2 px-1 pb-1 text-[11px] leading-4 text-base-content/60">
         {formatMessageTime(message.createdAt)}
 
         <button
           type="button"
           onClick={() => onDelete?.(message._id)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
+          className="opacity-50 transition-opacity focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
           aria-label="Delete message"
         >
           <Trash2 size={12} />
@@ -343,7 +348,9 @@ const MessageBubble = memo(function MessageBubble({
       </div>
 
       <div
-        className={`chat-bubble max-w-[75%] cursor-pointer relative message-bubble ${
+        className={`chat-bubble relative max-w-[85%] cursor-pointer message-bubble shadow-sm transition-shadow sm:max-w-[75%] ${
+          bubbleSurfaceClass
+        } ${
           skinActive ? effectBubbleClass(effect) : ""
         } ${
           message.image && !isStickerImage(message.image)

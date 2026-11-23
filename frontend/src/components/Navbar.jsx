@@ -8,9 +8,12 @@ import {
   Image,
   MoreVertical,
   Home,
+  Video,
+  Music2,
   Search,
   ChevronUp,
   ChevronDown,
+  ChevronRight,
   X,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
@@ -44,6 +47,13 @@ const Navbar = ({ autoPlay, setAutoPlay }) => {
   // if you still need online indicator logic
 const otherOn =
   otherUser?.role && onlineUsers.includes(otherUser.role);
+
+  const menuLinkClass = (active) =>
+    `group flex items-center gap-2.5 rounded-xl px-2 py-1.5 text-sm transition-colors ${
+      active
+        ? "bg-primary/10 text-primary"
+        : "text-base-content hover:bg-base-200"
+    }`;
   
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -185,33 +195,32 @@ const otherOn =
   };
 
   return (
-    <header className="bg-base-100 border-b border-base-300 fixed w-full top-0 z-40 backdrop-blur-lg bg-base-100/80">
-      <div className="container mx-auto px-4 h-16">
+    <header className="fixed top-0 z-40 w-full border-b border-base-300/80 bg-base-100/95 shadow-sm backdrop-blur-md">
+      <div className="container mx-auto h-16 px-3 sm:px-4">
         <div className="flex items-center justify-between h-full">
 
           {/* LEFT */}
           <div className="flex items-center gap-8">
             <Link
               to="/"
-              className="flex items-center gap-2.5 hover:opacity-80 transition-all"
+              className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
             >
-              {/* ✅ Cloudinary PFP */}
               <img
                 src={pfp || "/default.png"}
                 alt="logo"
-                className="w-11 h-11 object-cover bg-gray-200 rounded-lg"
+                className="h-10 w-10 rounded-full border border-base-300 object-cover"
               />
-              <h2 className="text-lg font-bold">You</h2>
+              <h2 className="text-base font-semibold tracking-tight text-base-content">You</h2>
             </Link>
           </div>
 
           {/* MUSIC TOGGLE */}
-          <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-base-200 opacity-90">
+          <div className="flex items-center gap-2 rounded-full border border-base-300/70 bg-base-200/70 px-3 py-1 shadow-sm">
             <span
-              className={`text-xs font-bold transition-all duration-300 ${
+              className={`hidden text-xs font-semibold transition-colors sm:inline ${
                 localAutoPlay
-                  ? "text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-[length:200%_200%] animate-gradient-x opacity-100"
-                  : "text-base-content opacity-70"
+                  ? "text-primary"
+                  : "text-base-content/70"
               }`}
             >
               Music
@@ -220,7 +229,7 @@ const otherOn =
             <div className="relative flex items-center">
               <input
                 type="checkbox"
-                className={`toggle toggle-success toggle-sm transition-all duration-700 ease-in-out ${
+                className={`toggle toggle-primary toggle-sm transition-colors duration-200 ${
                   isMusicPage ? "opacity-40 cursor-not-allowed" : ""
                 }`}
                 checked={localAutoPlay}
@@ -235,26 +244,34 @@ const otherOn =
           </div>
 
           {/* RIGHT */}
-          <div className="flex items-center gap-0">
+          <div className="flex items-center gap-1 sm:gap-2">
             {isAuthenticated && (
               <>
-           {otherUser && (
-  <div className="flex items-center gap-2 px-3 py-1 rounded-md bg-base-200 opacity-90">
-    <img
-      src={otherUser.pfp}
-      alt="Other User"
-      className={`h-7 w-7 rounded-full object-cover ${
-        otherOn ? "grayscale-0" : "grayscale-[100%]"
-      }`}
-    />
-  </div>
-)}
+                {otherUser && (
+                  <div className="rounded-full border border-base-300/70 bg-base-200/70 p-1">
+                    <div className="relative">
+                      <img
+                        src={otherUser.pfp}
+                        alt="Other user"
+                        className={`h-8 w-8 rounded-full object-cover ${
+                          otherOn ? "grayscale-0" : "grayscale"
+                        }`}
+                      />
+                      <span
+                        className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-base-100 ${
+                          otherOn ? "bg-success" : "bg-base-300"
+                        }`}
+                        aria-label={otherOn ? "Online" : "Offline"}
+                      />
+                    </div>
+                  </div>
+                )}
                 {location.pathname === "/home" && (
                   <div ref={searchRef} className="relative">
                     <button
                       type="button"
                       onClick={() => setSearchOpen((value) => !value)}
-                      className="btn btn-sm btn-ghost btn-circle"
+                      className="btn btn-sm btn-ghost btn-circle border border-base-300/70"
                       aria-label="Search chat messages"
                       aria-expanded={searchOpen}
                     >
@@ -358,36 +375,77 @@ const otherOn =
                 <div ref={dropdownRef} className="relative">
                   <button
                     onClick={() => setOpen((prev) => !prev)}
-                    className="btn btn-sm btn-ghost"
+                    className="btn btn-sm btn-ghost btn-circle border border-base-300/70"
+                    aria-label="Open menu"
+                    aria-expanded={open}
                   >
                     <MoreVertical className="w-5 h-5" />
                   </button>
 
                   {open && (
-                    <div className="absolute right-0 mt-2 bg-base-100 shadow rounded-box w-40 z-50">
+                    <div className="absolute right-0 z-50 mt-2 w-52 rounded-2xl border border-base-300 bg-base-100 p-1.5 shadow-xl">
+                      <p className="px-2.5 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-base-content/50">
+                        Explore
+                      </p>
 
-                      <Link to="/" onClick={() => setOpen(false)} className="flex gap-2 p-2 hover:bg-base-200">
-                        <Home className="w-4 h-4" />
-                        Home
+                      <Link
+                        to="/"
+                        onClick={() => setOpen(false)}
+                        className={menuLinkClass(location.pathname === "/")}
+                      >
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-105">
+                          <Home className="h-4 w-4" />
+                        </span>
+                        <span className="flex-1 font-medium">Home</span>
+                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
                       </Link>
 
-                      <Link to="/gallery?section=photo" onClick={() => setOpen(false)} className="flex gap-2 p-2 hover:bg-base-200">
-                        <Image className="w-4 h-4" />
-                        Photos
+                      <Link
+                        to="/gallery?section=photo"
+                        onClick={() => setOpen(false)}
+                        className={menuLinkClass(location.pathname === "/gallery" && location.search.includes("photo"))}
+                      >
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary/10 text-secondary transition-transform group-hover:scale-105">
+                          <Image className="h-4 w-4" />
+                        </span>
+                        <span className="flex-1 font-medium">Photos</span>
+                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
                       </Link>
 
-                      <Link to="/gallery?section=video" onClick={() => setOpen(false)} className="flex gap-2 p-2 hover:bg-base-200">
-                        <span aria-hidden="true">🎬</span>
-                        Videos
+                      <Link
+                        to="/gallery?section=video"
+                        onClick={() => setOpen(false)}
+                        className={menuLinkClass(location.pathname === "/gallery" && location.search.includes("video"))}
+                      >
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent/10 text-accent transition-transform group-hover:scale-105">
+                          <Video className="h-4 w-4" />
+                        </span>
+                        <span className="flex-1 font-medium">Videos</span>
+                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
                       </Link>
 
-                      <Link to="/music" className="flex gap-2 p-2 hover:bg-base-200">
-                        🎵 Music
+                      <Link
+                        to="/music"
+                        onClick={() => setOpen(false)}
+                        className={menuLinkClass(location.pathname === "/music")}
+                      >
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-info/10 text-info transition-transform group-hover:scale-105">
+                          <Music2 className="h-4 w-4" />
+                        </span>
+                        <span className="flex-1 font-medium">Music</span>
+                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
                       </Link>
 
-                      <Link to="/settings" onClick={() => setOpen(false)} className="flex gap-2 p-2 hover:bg-base-200">
-                        <Settings className="w-4 h-4" />
-                        Settings
+                      <Link
+                        to="/settings"
+                        onClick={() => setOpen(false)}
+                        className={menuLinkClass(location.pathname === "/settings")}
+                      >
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-warning/10 text-warning transition-transform group-hover:scale-105">
+                          <Settings className="h-4 w-4" />
+                        </span>
+                        <span className="flex-1 font-medium">Settings</span>
+                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
                       </Link>
 
                       <button
@@ -395,10 +453,13 @@ const otherOn =
                           setOpen(false);
                           handleLogout();
                         }}
-                        className="flex gap-2 p-2 w-full text-left hover:bg-red-100 text-red-500"
+                        className="group mt-1 flex w-full items-center gap-2.5 rounded-xl border-t border-base-200 px-2 py-2 text-left text-sm text-error transition-colors hover:bg-error/10"
                       >
-                        <LogOut className="w-4 h-4" />
-                        Logout
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-error/10 text-error transition-transform group-hover:scale-105">
+                          <LogOut className="h-4 w-4" />
+                        </span>
+                        <span className="flex-1 font-medium">Log out</span>
+                        <ChevronRight className="h-4 w-4 opacity-40 transition-transform group-hover:translate-x-0.5" />
                       </button>
 
                     </div>

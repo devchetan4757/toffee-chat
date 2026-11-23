@@ -286,7 +286,7 @@ const ChatContainer = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full relative">
+    <div className="relative flex h-full flex-1 flex-col bg-base-100">
       {celebrationActive && (
         <CelebrationBurst
           key={celebrationRunId}
@@ -298,7 +298,7 @@ const ChatContainer = () => {
           message list (below the navbar), right-aligned. Tapping it
           fans out small round icons to its left instead of opening a
           big dropdown panel or full-screen modal. */}
-      <div className="flex items-center justify-end px-2 py-1 border-b border-base-300">
+      <div className="flex min-h-12 items-center justify-end border-b border-base-300/70 bg-base-100/80 px-3 py-1.5">
         <div className="relative">
           <ChatWallpaperPicker
             isOpen={wallpaperPickerOpen}
@@ -316,7 +316,7 @@ const ChatContainer = () => {
 
       <div
         ref={chatRef}
-        className="relative flex-1 overflow-y-auto p-3 space-y-3"
+        className="relative flex-1 space-y-4 overflow-y-auto bg-base-200/30 p-4 sm:p-6"
         style={
           appliedWallpaperUrl
             ? {
@@ -364,7 +364,7 @@ const ChatContainer = () => {
       </div>
 
       {isFetchingMore && (
-        <div className="flex justify-center py-1 bg-base-100">
+        <div className="flex justify-center border-t border-base-300/70 bg-base-100/90 py-1.5">
           <span className="loading loading-spinner loading-sm opacity-60" />
         </div>
       )}

@@ -2,6 +2,15 @@ import { useEffect, useState } from "react";
 import { axiosInstance } from "../lib/axios";
 import { toast } from "react-hot-toast";
 import VideoPlayer from "./VideoPlayer";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Film,
+  Image,
+  Trash2,
+  X,
+} from "lucide-react";
 
 const ImageGallery = ({ section = "all" }) => {
   const [images, setImages] = useState([]);
@@ -15,7 +24,7 @@ const ImageGallery = ({ section = "all" }) => {
     try {
       const res = await axiosInstance.get("/gallery");
       setImages(res.data);
-    } catch (err) {
+    } catch {
       toast.error("Failed to load gallery");
     } finally {
       setLoading(false);
@@ -65,8 +74,8 @@ const ImageGallery = ({ section = "all" }) => {
   // ⏳ LOADING
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-[60vh]">
-        <span className="loading loading-spinner loading-lg"></span>
+      <div className="flex h-[40vh] items-center justify-center">
+        <span className="loading loading-spinner loading-md text-primary" />
       </div>
     );
   }
@@ -79,12 +88,20 @@ const ImageGallery = ({ section = "all" }) => {
   // 📭 EMPTY
   if (!visibleMedia.length) {
     return (
-      <div className="text-center mt-10 opacity-70">
-        {section === "image"
-          ? "No photos yet"
-          : section === "video"
-            ? "No videos yet"
-            : "No media yet"}
+      <div className="flex min-h-[35vh] flex-col items-center justify-center px-4 text-center">
+        <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-base-200 text-base-content/50">
+          {section === "video" ? <Film className="h-6 w-6" /> : <Image className="h-6 w-6" />}
+        </div>
+        <p className="font-semibold">
+          {section === "image"
+            ? "No photos yet"
+            : section === "video"
+              ? "No videos yet"
+              : "No media yet"}
+        </p>
+        <p className="mt-1 text-sm text-base-content/60">
+          Shared photos and videos will appear here.
+        </p>
       </div>
     );
   }
@@ -92,12 +109,12 @@ const ImageGallery = ({ section = "all" }) => {
   return (
     <>
       {/* GRID */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 items-start">
+      <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
 
         {visibleMedia.map((img, i) => (
           <div
-            key={i}
-            className="relative rounded-xl overflow-hidden bg-black/5 border border-base-300"
+            key={img.public_id}
+            className="group relative overflow-hidden rounded-2xl border border-base-300 bg-base-200 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
             onClick={() => setActiveIndex(i)} // 👈 tap to show options
           >
             {img.type === "video" ? (
@@ -106,19 +123,19 @@ const ImageGallery = ({ section = "all" }) => {
                 fit="cover"
                 compact
                 naturalRatio
-                className="min-h-[160px] w-full"
+                className="aspect-[4/3] w-full"
               />
             ) : (
               <img
                 src={img.url}
                 alt=""
-                className="w-full h-auto max-h-64 object-contain"
+                className="aspect-[4/3] w-full object-cover"
               />
             )}
 
             {/* ACTION BUTTONS (mobile style) */}
             {activeIndex === i && (
-              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/65 p-3 backdrop-blur-[2px]">
 
                 {/* VIEW */}
                 <button
@@ -127,8 +144,9 @@ const ImageGallery = ({ section = "all" }) => {
                     setCurrentIndex(i);
                     setActiveIndex(null);
                   }}
-                  className="bg-white text-black px-4 py-1 rounded-lg text-sm"
+                  className="btn btn-sm min-w-28 border-0 bg-white text-gray-900 shadow-sm hover:bg-gray-100"
                 >
+                  <Eye className="h-4 w-4" />
                   View
                 </button>
 
@@ -138,8 +156,9 @@ const ImageGallery = ({ section = "all" }) => {
                     e.stopPropagation();
                     handleDelete(img.public_id, img.type);
                   }}
-                  className="bg-red-500 text-white px-4 py-1 rounded-lg text-sm"
+                  className="btn btn-sm min-w-28 border-0 bg-error text-error-content hover:bg-error/90"
                 >
+                  <Trash2 className="h-4 w-4" />
                   Delete
                 </button>
 
@@ -149,8 +168,9 @@ const ImageGallery = ({ section = "all" }) => {
                     e.stopPropagation();
                     setActiveIndex(null);
                   }}
-                  className="text-white text-xs opacity-70"
+                  className="btn btn-ghost btn-xs mt-1 text-white/80 hover:bg-white/10 hover:text-white"
                 >
+                  <X className="h-3.5 w-3.5" />
                   Cancel
                 </button>
 
@@ -163,44 +183,47 @@ const ImageGallery = ({ section = "all" }) => {
 
       {/* FULLSCREEN */}
       {currentIndex !== null && (
-        <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4">
 
           {/* CLOSE */}
           <button
-            className="absolute top-4 right-4 text-white text-2xl"
+            className="btn btn-circle btn-sm absolute right-4 top-4 border-white/20 bg-white/10 text-white hover:bg-white/20"
             onClick={() => setCurrentIndex(null)}
+            aria-label="Close media viewer"
           >
-            ✕
+            <X className="h-5 w-5" />
           </button>
 
           {/* PREV */}
           <button
-            className="absolute left-4 text-white text-3xl"
+            className="btn btn-circle absolute left-3 top-1/2 -translate-y-1/2 border-white/20 bg-white/10 text-white hover:bg-white/20 sm:left-6"
             onClick={prevImage}
+            aria-label="Previous media"
           >
-            ‹
+            <ChevronLeft className="h-6 w-6" />
           </button>
 
           {/* MEDIA */}
           {visibleMedia[currentIndex].type === "video" ? (
             <VideoPlayer
               src={visibleMedia[currentIndex].url}
-              className="h-[85vh] w-[90vw] max-w-5xl rounded-xl"
+              className="h-[75vh] w-[calc(100vw-6rem)] max-w-5xl rounded-xl sm:h-[85vh]"
             />
           ) : (
             <img
               src={visibleMedia[currentIndex].url}
               alt=""
-              className="max-h-[90%] max-w-[90%] rounded-lg"
+              className="max-h-[85vh] max-w-[calc(100vw-6rem)] rounded-xl object-contain shadow-2xl"
             />
           )}
 
           {/* NEXT */}
           <button
-            className="absolute right-4 text-white text-3xl"
+            className="btn btn-circle absolute right-3 top-1/2 -translate-y-1/2 border-white/20 bg-white/10 text-white hover:bg-white/20 sm:right-6"
             onClick={nextImage}
+            aria-label="Next media"
           >
-            ›
+            <ChevronRight className="h-6 w-6" />
           </button>
 
         </div>
