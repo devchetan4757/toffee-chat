@@ -634,12 +634,17 @@ const createAppearance = () => {
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
-  const [greeting, setGreeting] = useState("Welcome back");
-  const [joke, setJoke] = useState("The world is ready for you.");
+  const [, setGreeting] = useState("");
+  const [joke, setJoke] = useState(() =>
+    chooseGreeting(jokes, "toffee-login-joke")
+  );
   const [appearance] = useState(createAppearance);
   const [backgroundLoaded, setBackgroundLoaded] = useState(false);
   const { login, isLoggingIn, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
+  const hour = new Date().getHours();
+  const titleGreeting =
+    hour < 12 ? "Good morning!" : hour < 18 ? "Good afternoon!" : "Good evening!";
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -658,8 +663,6 @@ const LoginPage = () => {
         `toffee-login-greeting-${appearance.category}-${period}`
       )
     );
-    setJoke(chooseGreeting(jokes, "toffee-login-joke"));
-
     const greetingController = new AbortController();
     let greetingTimedOut = false;
     const greetingTimeoutId = window.setTimeout(() => {
@@ -778,9 +781,9 @@ const LoginPage = () => {
       </div>
 
       <section className="mojang-dialog" aria-label="Sign in">
+        <h1 className="mojang-dialog-title">{titleGreeting}</h1>
         <div className="mojang-dialog-body">
           <div className="mojang-copy">
-            <p className="mojang-greeting">{greeting}</p>
             <p className="mojang-joke">{joke}</p>
           </div>
 
