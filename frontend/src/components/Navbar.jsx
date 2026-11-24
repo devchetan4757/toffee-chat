@@ -25,6 +25,7 @@ const Navbar = ({ autoPlay, setAutoPlay }) => {
     onlineUsers = [],
     searchMessages,
     loadMessagesAround,
+    returnToLatest,
   } = useChatStore();
 
   const location = useLocation();
@@ -193,6 +194,25 @@ const otherOn =
     }
   };
 
+  const handleSearchInputChange = (event) => {
+    const query = event.target.value;
+    setSearchQuery(query);
+
+    if (query.trim()) return;
+
+    setSearchResults([]);
+    setActiveSearchIndex(-1);
+    setHasMoreSearchResults(false);
+    setSearchCursor(null);
+
+    returnToLatest();
+  };
+
+  const handleCloseSearch = () => {
+    if (searchResults.length > 0) returnToLatest();
+    setSearchOpen(false);
+  };
+
   return (
     <header className="fixed top-0 z-40 w-full border-b border-base-300/80 bg-base-100/95 shadow-sm backdrop-blur-md">
       <div className="container mx-auto h-16 px-3 sm:px-4">
@@ -288,7 +308,7 @@ const otherOn =
                           <input
                             ref={searchInputRef}
                             value={searchQuery}
-                            onChange={(event) => setSearchQuery(event.target.value)}
+                            onChange={handleSearchInputChange}
                             className="input input-sm input-bordered min-w-0 flex-1"
                             placeholder="Search messages"
                             maxLength={100}
@@ -307,7 +327,7 @@ const otherOn =
                           </button>
                           <button
                             type="button"
-                            onClick={() => setSearchOpen(false)}
+                            onClick={handleCloseSearch}
                             className="btn btn-sm btn-ghost btn-circle"
                             aria-label="Close search"
                           >

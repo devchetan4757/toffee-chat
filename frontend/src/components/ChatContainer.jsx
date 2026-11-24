@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Image as ImageIcon } from "lucide-react";
 import MessageInput from "./MessageInput";
 import MessageBubble from "./MessageBubble";
@@ -27,9 +33,11 @@ const ChatContainer = () => {
     hasMore,
     hasMoreNewer,
     scrollToMessageId,
+    scrollToLatest,
     setReplyTo,
     getNewerMessages,
     clearScrollToMessage,
+    clearScrollToLatest,
   } = useChatStore();
 
   const { role: myRole, wallpaper } = useAuthStore();
@@ -253,6 +261,14 @@ const ChatContainer = () => {
     setHighlightedMessageId(scrollToMessageId);
     clearScrollToMessage();
   }, [clearScrollToMessage, messages, scrollToMessageId]);
+
+  useLayoutEffect(() => {
+    const root = chatRef.current;
+    if (!scrollToLatest || !root) return;
+
+    root.scrollTo({ top: 0, behavior: "smooth" });
+    clearScrollToLatest();
+  }, [clearScrollToLatest, messages, scrollToLatest]);
 
   useEffect(() => {
     if (!highlightedMessageId) return;

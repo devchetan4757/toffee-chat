@@ -38,6 +38,7 @@ export const useChatStore = create((set, get) => ({
   hasMore: true,
   hasMoreNewer: false,
   scrollToMessageId: null,
+  scrollToLatest: false,
 
   // ---------------- REPLY FEATURE ----------------
 
@@ -55,7 +56,10 @@ export const useChatStore = create((set, get) => ({
 
   // ---------------- GET MESSAGES ----------------
 
-  getMessages: async (cursor, { burst = false } = {}) => {
+  getMessages: async (
+    cursor,
+    { burst = false, replace = false, scrollToLatest = false } = {}
+  ) => {
     set(
       cursor
         ? { isFetchingMore: true }
@@ -83,18 +87,28 @@ export const useChatStore = create((set, get) => ({
           )
         );
 
-        const newMessages = fetched.filter(
-          (message) => !existingIds.has(message._id)
-        );
+        const newMessages = replace
+          ? fetched
+          : fetched.filter(
+              (message) => !existingIds.has(message._id)
+            );
 
         return {
           // Both the server and store use newest-first order. Older
           // pages extend the list at the bottom without moving the view.
           messages: cursor
             ? [...state.messages, ...newMessages]
-            : [...newMessages, ...state.messages],
+            : replace
+              ? newMessages
+              : [...newMessages, ...state.messages],
           hasMore,
-          ...(cursor ? {} : { hasMoreNewer: false }),
+          ...(cursor
+            ? {}
+            : {
+                hasMoreNewer: false,
+                ...(replace ? { scrollToMessageId: null } : {}),
+                ...(scrollToLatest ? { scrollToLatest: true } : {}),
+              }),
         };
       });
     } catch (error) {
@@ -111,6 +125,14 @@ export const useChatStore = create((set, get) => ({
       );
     }
   },
+
+  returnToLatest: () =>
+    get().getMessages(undefined, {
+      replace: true,
+      scrollToLatest: true,
+    }),
+
+  clearScrollToLatest: () => set({ scrollToLatest: false }),
 
   getNewerMessages: async (cursor) => {
     set({ isFetchingNewer: true });
