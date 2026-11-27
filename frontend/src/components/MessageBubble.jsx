@@ -16,15 +16,16 @@ import {
 const detectInstagramMedia = (text) => {
   if (!text) return null;
 
-  if (text.includes("instagram.com/reel")) {
-    return { type: "reel", url: text };
-  }
+  const match = text.match(
+    /https?:\/\/(?:www\.)?instagram\.com\/(reel|reels|p)\/[\w-]+\/?(?:\?[^\s]*)?/i
+  );
+  if (!match) return null;
 
-  if (text.includes("instagram.com/p")) {
-    return { type: "post", url: text };
-  }
-
-  return null;
+  const url = new URL(match[0].replace(/[.,!?;:)]+$/, ""));
+  url.search = "";
+  url.hash = "";
+  const type = /^p$/i.test(match[1]) ? "post" : "reel";
+  return { type, url: url.toString() };
 };
 
 const isStickerImage = (img) =>
@@ -180,6 +181,8 @@ const MessageBubble = memo(function MessageBubble({
   onCelebrationReplay,
 }) {
   const media = detectInstagramMedia(message.text);
+  const mediaWidthClass =
+    media?.type === "post" ? "max-w-full" : "max-w-[85%] sm:max-w-[75%]";
   const effect = message.effect ?? message.effect_type ?? null;
 
   const [dragX, setDragX] = useState(0);
@@ -348,7 +351,7 @@ const MessageBubble = memo(function MessageBubble({
       </div>
 
       <div
-        className={`chat-bubble relative max-w-[85%] cursor-pointer message-bubble shadow-sm transition-shadow sm:max-w-[75%] ${
+        className={`chat-bubble relative ${mediaWidthClass} cursor-pointer message-bubble shadow-sm transition-shadow ${
           bubbleSurfaceClass
         } ${
           skinActive ? effectBubbleClass(effect) : ""

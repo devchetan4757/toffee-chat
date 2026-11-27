@@ -1,8 +1,26 @@
+import { useState } from "react";
 import { RotateCw } from "lucide-react";
 import ReelPlayer from "./ReelPlayer";
+import { axiosInstance } from "../lib/axios";
+
+const getInstagramPostImageUrl = (url) => {
+  const parsedUrl = new URL(url);
+  if (!["instagram.com", "www.instagram.com"].includes(parsedUrl.hostname)) {
+    return null;
+  }
+
+  const shortcode = parsedUrl.pathname.match(/^\/p\/([\w-]+)\/?$/)?.[1];
+
+  if (!shortcode) return null;
+
+  const apiBaseUrl = axiosInstance.defaults.baseURL || "/api";
+  const endpoint = `${apiBaseUrl.replace(/\/+$/, "")}/upload/instagram-post/${encodeURIComponent(shortcode)}`;
+  return new URL(endpoint, window.location.origin).toString();
+};
 
 const InstagramBubble = ({ url, type }) => {
   const isReel = type === "reel";
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
 
   const handleReplay = () => {
     window.location.reload();
@@ -31,7 +49,7 @@ const InstagramBubble = ({ url, type }) => {
             height: "530px",
           }}
         >
-          <ReelPlayer url={url} />
+          <ReelPlayer url={url} type={type} />
         </div>
 
         <button
@@ -56,31 +74,43 @@ const InstagramBubble = ({ url, type }) => {
     );
   }
 
-  // Post bubble
+  const imageUrl = getInstagramPostImageUrl(url);
+
   return (
     <div
       className="instagram-post-bubble"
       style={{
-        width: "280px",
-        height: "220px",
-        borderRadius: "12px",
-        overflow: "hidden",
+        width: "min(540px, 85vw)",
+        maxWidth: "100%",
+        overflow: "visible",
         margin: "5px 0",
-        position: "relative",
-        backgroundColor: "#000",
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          top: "-50px",
-          left: "-25px",
-          width: "260px",
-          height: "260px",
-        }}
-      >
-        <ReelPlayer url={url} />
-      </div>
+      {imageUrl && !imageLoadFailed ? (
+        <img
+          src={imageUrl}
+          alt="Instagram post"
+          loading="lazy"
+          decoding="async"
+          crossOrigin="use-credentials"
+          onError={() => setImageLoadFailed(true)}
+          style={{
+            display: "block",
+            width: "100%",
+            height: "auto",
+            borderRadius: "12px",
+          }}
+        />
+      ) : (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block rounded-xl border border-base-300 bg-base-100 px-4 py-3 text-sm text-primary underline"
+        >
+          Unable to load the post image. Open it on Instagram.
+        </a>
+      )}
     </div>
   );
 };
